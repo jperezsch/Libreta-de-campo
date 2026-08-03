@@ -1424,7 +1424,15 @@ window.addEventListener("error", function(e){
 
 if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
   window.addEventListener("load", function(){
-    navigator.serviceWorker.register("sw.js").catch(function(){});
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      reg.update();
+      var recargando = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function(){
+        if(recargando) return;
+        recargando = true;
+        window.location.reload();
+      });
+    }).catch(function(){});
   });
 }
 </script>
