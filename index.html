@@ -56,15 +56,6 @@ input,select,textarea{font-family:inherit; font-size:1.05rem; color:var(--texto)
   box-shadow:var(--sombra); display:flex; align-items:center; gap:5px;
 }
 
-/* ---- Draft pill (registro en curso) ---- */
-#draftpill{
-  position:fixed; top:0; left:0; right:0; z-index:60; background:var(--ambar); color:#fff;
-  display:none; align-items:center; justify-content:space-between; padding:9px 14px; font-size:.82rem; font-weight:700;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
-}
-#draftpill.on{display:flex;}
-#draftpill button{background:rgba(255,255,255,.22); border:none; color:#fff; padding:6px 12px; border-radius:20px; font-size:.75rem; font-weight:800;}
-
 /* ---- Topbar ---- */
 .topbar{background:var(--verde); color:#fff; padding:14px 16px 12px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:20;}
 .topbar .brand{display:flex; align-items:center; gap:10px;}
@@ -127,7 +118,22 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .gpsbox.error{background:#fbe4e0;}
 .gpsbox.error b{color:var(--rojo);}
 .row2 input.manual{margin-top:2px;}
+#gps-manual-wrap{display:none; margin-top:10px;}
+#gps-manual-wrap.abierto{display:block;}
 #gps-manual-wrap.resaltado input{border-color:var(--rojo); box-shadow:0 0 0 2px rgba(181,71,58,.2);}
+.manual-toggle{
+  width:100%; background:none; border:none; padding:9px 2px; margin-top:6px; display:flex; align-items:center; gap:6px;
+  font-size:.85rem; font-weight:700; color:var(--texto-sec); cursor:pointer;
+}
+.manual-chev{transition:transform .2s; font-size:.8rem;}
+.manual-toggle.abierto .manual-chev{transform:rotate(90deg);}
+
+/* ---- Código de registro editable dentro del banner rojo ---- */
+.codigo-inline{
+  background:transparent; border:none; border-bottom:1.5px dotted #c98a70; color:inherit; font-weight:800;
+  font-family:inherit; font-size:1em; padding:0 2px; width:150px; min-width:0;
+}
+.codigo-inline:focus{outline:none; border-bottom-style:solid; border-bottom-color:var(--rojo);}
 
 /* ---- Sección secundaria colapsable: datos generales del registro ---- */
 .dg-box{background:#eeece4; border:1px solid var(--borde); border-radius:12px; overflow:hidden;}
@@ -232,7 +238,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 <body>
 
 <button id="temabtn">☀️ Normal</button>
-<div id="draftpill"><span>✏️ Registro en curso: <span id="draft-codigo">—</span></span><button id="btn-continuar-draft">Continuar</button></div>
 
 <!-- ===================== SESIÓN ===================== -->
 <div class="screen on" id="s-sesion">
@@ -286,7 +291,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 <!-- ===================== NUEVO REGISTRO ===================== -->
 <div class="screen" id="s-form">
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Registro</h2><p class="sub">CHILOE2026</p></div></div></div>
-  <div class="banner-curso"><span class="dotlive"></span> Registro en curso — <span id="form-codigo-live">CHILOE2026-001</span></div>
+  <div class="banner-curso"><span class="dotlive"></span> Registro en curso — <input type="text" id="f-codigo" class="codigo-inline"></div>
   <div class="pad">
 
     <!-- Sección secundaria: datos que se repiten entre varios puntos -->
@@ -339,30 +344,34 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
             </select>
           </div>
         </div>
-        <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
         <div id="bloque-especifico"></div>
-        <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
       </div>
     </div>
 
-    <!-- Sección principal: captura directa del punto -->
-    <div class="section-title" style="margin-top:20px;"><span class="n">📍</span>Captura del punto</div>
-    <div class="field"><label>Código de registro</label><input type="text" id="f-codigo"></div>
-    <button type="button" class="btnfull btn-amber" id="btn-gps" style="padding:18px; font-size:1.1rem;">📍 Capturar ubicación</button>
+    <button type="button" class="btnfull btn-amber" id="btn-gps" style="padding:18px; font-size:1.1rem; margin-top:16px;">📍 Capturar ubicación</button>
     <div class="gpsbox" id="gpsbox">
       <b id="gps-estado">📍 Sin capturar</b>
       <span id="gps-coords-txt">Toca "Capturar ubicación" para registrar coordenada, altitud, fecha y hora juntas.</span>
     </div>
-    <div class="row2" id="gps-manual-wrap">
-      <input type="text" class="manual" id="f-lat" placeholder="Latitud (manual)">
-      <input type="text" class="manual" id="f-lon" placeholder="Longitud (manual)">
+
+    <button type="button" class="manual-toggle" id="btn-toggle-manual"><span>Ingreso manual</span><span class="manual-chev" id="manual-chev">▸</span></button>
+    <div class="manual-body" id="gps-manual-wrap">
+      <div class="row2">
+        <input type="text" class="manual" id="f-lat" placeholder="Latitud">
+        <input type="text" class="manual" id="f-lon" placeholder="Longitud">
+      </div>
+      <div class="field" style="margin-top:10px;"><label>Altitud (m)</label><input type="text" id="f-altitud"></div>
     </div>
-    <div class="row2" id="fecha-hora-row" style="margin-top:10px; display:none;">
+
+    <div class="row2" id="fecha-hora-row" style="margin-top:14px; display:none;">
       <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
     </div>
-    <div class="field"><label>Altitud (m)</label><input type="text" id="f-altitud" placeholder="Se completa junto al GPS"></div>
-    <div class="field"><label>Referencia puntual (micrositio)</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+    <div class="field" style="margin-top:14px;"><label>Referencia puntual (micrositio)</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+
+    <div class="section-title"><span class="n">🔎</span>Identificación</div>
+    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
+    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
 
     <div class="section-title"><span class="n">📷</span>Fotografías</div>
     <div class="foto-btns">
@@ -659,7 +668,6 @@ function irA(view){
   if(view==="sesion") renderSesion();
   if(view==="exportar") renderExportar();
   if(view==="config") renderConfig();
-  renderDraftPill();
   irSubirInicio();
 }
 function irSubirInicio(){
@@ -770,14 +778,6 @@ function renderLista(justSavedId){
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 document.getElementById("buscador").addEventListener("input", renderLista);
 
-/* ---------------- DRAFT (registro en curso) ---------------- */
-function renderDraftPill(){
-  var on = !!state.draft && state.currentView === "form";
-  document.getElementById("draftpill").classList.toggle("on", on);
-  if(state.draft) document.getElementById("draft-codigo").textContent = state.draft.codigo;
-}
-document.getElementById("btn-continuar-draft").addEventListener("click", function(){ cargarDraftEnFormulario(); irA("form"); });
-
 function iniciarNuevoRegistro(){
   var ahora = new Date();
   state.draft = {
@@ -797,7 +797,6 @@ function iniciarNuevoRegistro(){
 function cargarDraftEnFormulario(){
   if(!state.draft) return;
   var d = state.draft;
-  document.getElementById("form-codigo-live").textContent = d.codigo;
   document.getElementById("f-codigo").value = d.codigo;
   document.getElementById("f-lat").value = d.lat; document.getElementById("f-lon").value = d.lon;
   document.getElementById("f-fecha").value = d.fecha; document.getElementById("f-hora").value = d.hora;
@@ -817,9 +816,10 @@ function cargarDraftEnFormulario(){
   state.especiesTemp = (d.especies||[]).slice();
   renderFotosTemp();
   renderBloqueEspecifico();
-  renderDraftPill();
   document.getElementById("gpsbox").classList.remove("error");
   document.getElementById("gps-manual-wrap").classList.remove("resaltado");
+  document.getElementById("gps-manual-wrap").classList.remove("abierto");
+  document.getElementById("btn-toggle-manual").classList.remove("abierto");
   actualizarGpsBox();
   actualizarResumenDg();
   poblarSugerencias("dl-sustrato","sustrato");
@@ -867,7 +867,6 @@ function sincronizarDraftDesdeFormulario(){
 ["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-notas","f-nind","f-sustrato","f-condicion","f-taxon-libre"].forEach(function(id){
   document.getElementById(id).addEventListener("input", sincronizarDraftDesdeFormulario);
 });
-document.getElementById("f-codigo").addEventListener("input", function(){ document.getElementById("form-codigo-live").textContent = this.value || "—"; });
 document.getElementById("f-tipo").addEventListener("change", function(){ renderBloqueEspecifico(); sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
 ligarSugerencia("f-sustrato","dl-sustrato","sustrato");
 ligarSugerencia("f-taxon-libre","dl-taxon","taxonLibre");
@@ -877,6 +876,14 @@ ligarSugerencia("f-referencia","dl-referencia","referencia");
 document.getElementById("btn-toggle-dg").addEventListener("click", function(){
   document.querySelector(".dg-box").classList.toggle("abierto");
 });
+document.getElementById("btn-toggle-manual").addEventListener("click", function(){
+  this.classList.toggle("abierto");
+  document.getElementById("gps-manual-wrap").classList.toggle("abierto");
+});
+function abrirIngresoManual(){
+  document.getElementById("btn-toggle-manual").classList.add("abierto");
+  document.getElementById("gps-manual-wrap").classList.add("abierto");
+}
 function actualizarResumenDg(){
   var tipo = document.getElementById("f-tipo").value;
   var ti = TIPOS[tipo]||TIPOS.nota;
@@ -964,6 +971,7 @@ function capturarGPS(){
     document.getElementById("gpsbox").classList.add("error");
     document.getElementById("gps-estado").textContent = "⚠️ No se pudo obtener el GPS";
     document.getElementById("gps-coords-txt").textContent = mensaje;
+    abrirIngresoManual();
     document.getElementById("gps-manual-wrap").classList.add("resaltado");
     document.getElementById("f-lat").focus();
     toast(mensaje);
@@ -1199,7 +1207,6 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     if(idx>=0) state.registros[idx] = r; else state.registros.push(r);
     var okE = guardarRegistros();
     state.draft = null; guardarDraft();
-    renderDraftPill();
     if(okE) toast("✅ Registro "+r.codigo+" actualizado");
     irA("lista");
     renderLista(r.id);
@@ -1354,7 +1361,6 @@ function init(){
   document.getElementById("modal-confirm-sesion").classList.remove("on");
   aplicarTema(localStorage.getItem("libretacampo_tema") || "");
   cargar();
-  renderDraftPill();
   cargarPosicionFab();
   irA("sesion");
 }
