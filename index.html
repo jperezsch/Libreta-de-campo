@@ -126,6 +126,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .search{width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); font-size:1rem; margin-bottom:12px; color:var(--texto);}
 .empty{text-align:center; padding:50px 20px; color:var(--texto-sec); font-size:1rem;}
 .lista-footer-acciones{margin-top:22px; padding-top:16px; border-top:1px solid var(--borde); padding-bottom:30px;}
+.version-info{font-size:.75rem; color:var(--texto-sec); text-align:center; margin:8px 0 4px;}
 .empty .ic{font-size:2.8rem; margin-bottom:10px;}
 
 .gpsbox{background:var(--verde-cl); border-radius:10px; padding:13px; font-size:.85rem; margin-bottom:8px; color:var(--texto-sec); transition:background .2s;}
@@ -437,6 +438,9 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   <div class="pad">
     <div class="section-title">Preferencias</div>
     <div class="field"><label>Colector por defecto</label><input type="text" id="cfg-colector"></div>
+    <div class="section-title">Aplicación</div>
+    <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
+    <div class="version-info" id="version-info">Comprobando versión...</div>
     <div class="section-title">Datos</div>
     <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
   </div>
@@ -3004,6 +3008,7 @@ SOFTWARE.
 </script>
 <script>
 "use strict";
+var APP_BUILD = "2026-08-03 · v6";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4104,7 +4109,22 @@ document.getElementById("input-import-json").addEventListener("change", function
 });
 
 /* ---------------- Config ---------------- */
-function renderConfig(){ document.getElementById("cfg-colector").value = state.config.colector||""; }
+function renderConfig(){
+  document.getElementById("cfg-colector").value = state.config.colector||"";
+  document.getElementById("version-info").textContent = "Versión cargada: " + APP_BUILD;
+}
+document.getElementById("btn-buscar-actualizacion").addEventListener("click", function(){
+  if(!("serviceWorker" in navigator)){ toast("Este navegador no admite actualización automática"); return; }
+  toast("Buscando actualización...");
+  navigator.serviceWorker.getRegistration().then(function(reg){
+    if(!reg){ toast("No se pudo comprobar (abre la app desde su enlace instalado)"); return; }
+    return reg.update();
+  }).then(function(){
+    setTimeout(function(){
+      toast("Ya tienes la última versión, o se recargará sola en unos segundos si encontró una nueva.", 4000);
+    }, 1200);
+  }).catch(function(){ toast("No se pudo comprobar actualizaciones ahora"); });
+});
 document.getElementById("cfg-colector").addEventListener("input", function(){ state.config.colector=this.value.trim(); guardarConfig(); });
 document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   if(!confirm("Esto eliminará TODOS los registros y TODAS las sesiones guardadas (activa y archivadas), dejando la app como recién instalada. ¿Continuar?")) return;
