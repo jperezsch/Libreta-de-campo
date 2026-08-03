@@ -88,6 +88,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 }
 .field textarea{min-height:66px; resize:vertical;}
 .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.row2 > *{min-width:0;}
 
 .nota{background:var(--nota-bg); border:1px dashed var(--nota-borde); border-radius:10px; padding:11px 13px; font-size:.82rem; color:var(--nota-txt); margin:9px 0 7px; line-height:1.5;}
 .nota b{display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.3px; margin-bottom:3px;}
@@ -117,7 +118,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .gpsbox b{display:block; color:var(--texto); font-size:.92rem; margin-bottom:4px;}
 .gpsbox.error{background:#fbe4e0;}
 .gpsbox.error b{color:var(--rojo);}
-.row2 input.manual{margin-top:2px;}
+.row2 input.manual{width:100%; box-sizing:border-box; padding:13px; border-radius:10px; border:1.5px solid var(--borde); font-size:1.02rem; margin-top:2px; min-width:0;}
 #gps-manual-wrap{display:none; margin-top:10px;}
 #gps-manual-wrap.abierto{display:block;}
 #gps-manual-wrap.resaltado input{border-color:var(--rojo); box-shadow:0 0 0 2px rgba(181,71,58,.2);}
@@ -160,7 +161,11 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 html[data-tema="noche"] .foto-item{background:#241f14;}
 .foto-item img.thumb{width:50px;height:50px;border-radius:8px; object-fit:cover; flex-shrink:0;}
 .foto-item .info{flex:1; min-width:0;}
-.foto-item .name{font-size:.72rem; font-family:ui-monospace,monospace; color:var(--texto-sec);}
+.foto-item .name-edit{
+  font-size:.78rem; font-family:ui-monospace,monospace; color:var(--texto-sec); background:transparent;
+  border:none; border-bottom:1px dotted var(--borde); width:100%; padding:2px 0; margin-bottom:2px;
+}
+.foto-item .name-edit:focus{outline:none; border-bottom:1px solid var(--verde); color:var(--texto);}
 .foto-item .coment{font-size:.85rem; color:var(--texto); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .foto-item .x{color:var(--rojo); font-weight:800; font-size:1.2rem; padding:4px 6px; flex-shrink:0;}
 
@@ -367,11 +372,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
     </div>
-    <div class="field" style="margin-top:14px;"><label>Referencia puntual (micrositio)</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+    <div class="field" style="margin-top:14px;"><label>Microhábitat</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
 
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
+    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
 
     <div class="section-title"><span class="n">📷</span>Fotografías</div>
     <div class="foto-btns">
@@ -1089,6 +1094,36 @@ function encolarArchivos(fileList){
 document.getElementById("f-input-camara").addEventListener("change", function(e){ encolarArchivos(e.target.files); e.target.value=""; });
 document.getElementById("f-input-galeria").addEventListener("change", function(e){ encolarArchivos(e.target.files); e.target.value=""; });
 
+function sanitizarNombreArchivo(s){
+  return String(s||"foto").replace(/\.[a-zA-Z0-9]+$/,"").replace(/[^a-zA-Z0-9_\-]+/g, "_").replace(/_+/g,"_").slice(0,60) || "foto";
+}
+function descargarFotoComoArchivo(foto, codigoRegistro){
+  return leerFotoDB(foto.id).then(function(dataURL){
+    if(!dataURL) return;
+    var filename = sanitizarNombreArchivo(codigoRegistro)+"__"+sanitizarNombreArchivo(foto.nombre)+".jpg";
+    var a = document.createElement("a");
+    a.href = dataURL;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    foto.descargada = true;
+    foto.nombreDescargado = foto.nombre;
+  });
+}
+function descargarFotosPendientes(registro){
+  var pendientes = (registro.fotos||[]).filter(function(f){ return !f.descargada || f.nombreDescargado !== f.nombre; });
+  if(pendientes.length===0) return Promise.resolve();
+  var p = Promise.resolve();
+  pendientes.forEach(function(f, idx){
+    p = p.then(function(){
+      return new Promise(function(res){
+        setTimeout(function(){ descargarFotoComoArchivo(f, registro.codigo).then(res); }, idx===0?0:450);
+      });
+    });
+  });
+  return p;
+}
 function procesarSiguienteFoto(){
   if(colaFotos.length===0) return;
   var file = colaFotos.shift();
@@ -1111,7 +1146,7 @@ document.getElementById("btn-caption-guardar").addEventListener("click", functio
   var comentario = document.getElementById("caption-texto").value.trim();
   var nombre = state.captionPending.nombre;
   guardarFotoDB(id, state.captionPending.dataURL).then(function(){
-    state.fotosTemp.push({id:id, nombre:nombre, comentario:comentario});
+    state.fotosTemp.push({id:id, nombre:nombre, comentario:comentario, descargada:false, nombreDescargado:null});
     state.captionPending = null;
     document.getElementById("modal-caption").classList.remove("on");
     renderFotosTemp();
@@ -1134,7 +1169,9 @@ document.getElementById("modal-caption").addEventListener("click", function(e){ 
 function renderFotosTemp(){
   var box = document.getElementById("fotos-lista");
   box.innerHTML = state.fotosTemp.map(function(f,i){
-    return '<div class="foto-item" data-i="'+i+'"><img class="thumb" id="thumb-'+f.id+'" src=""><div class="info"><div class="name">'+escapeHtml(f.nombre)+'</div><div class="coment">'+escapeHtml(f.comentario||"(sin observación)")+'</div></div><span class="x" data-x="'+i+'">✕</span></div>';
+    return '<div class="foto-item" data-i="'+i+'"><img class="thumb" id="thumb-'+f.id+'" src=""><div class="info">'+
+      '<input type="text" class="name-edit" id="nombre-foto-'+i+'" value="'+escapeHtml(f.nombre)+'">'+
+      '<div class="coment">'+escapeHtml(f.comentario||"(sin observación)")+'</div></div><span class="x" data-x="'+i+'">✕</span></div>';
   }).join("");
   state.fotosTemp.forEach(function(f){
     leerFotoDB(f.id).then(function(dataURL){
@@ -1144,8 +1181,16 @@ function renderFotosTemp(){
   });
   box.querySelectorAll(".foto-item").forEach(function(it){
     it.addEventListener("click", function(e){
-      if(e.target.classList.contains("x")) return;
+      if(e.target.classList.contains("x") || e.target.classList.contains("name-edit")) return;
       abrirLightbox(parseInt(it.dataset.i,10));
+    });
+  });
+  box.querySelectorAll(".name-edit").forEach(function(inp){
+    inp.addEventListener("click", function(e){ e.stopPropagation(); });
+    inp.addEventListener("change", function(){
+      var idx = parseInt(this.id.replace("nombre-foto-",""),10);
+      var f = state.fotosTemp[idx];
+      if(f){ f.nombre = this.value.trim() || f.nombre; sincronizarDraftDesdeFormulario(); toast("Nombre actualizado — se guardará así al terminar el registro"); }
     });
   });
   box.querySelectorAll(".x").forEach(function(x){
@@ -1210,6 +1255,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     if(okE) toast("✅ Registro "+r.codigo+" actualizado");
     irA("lista");
     renderLista(r.id);
+    descargarFotosPendientes(r).then(function(){ guardarRegistros(); });
   } else {
     state.registros.push(r);
     state.sesion.contador = state.sesion.contador + 1;
@@ -1218,6 +1264,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     if(ok) toast("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo());
     state.draft = null; guardarDraft();
     iniciarNuevoRegistro();
+    descargarFotosPendientes(r).then(function(){ guardarRegistros(); });
   }
 });
 
