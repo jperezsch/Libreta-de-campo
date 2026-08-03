@@ -4186,6 +4186,35 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
 });
 
 /* ---------------- Exportar ---------------- */
+function eliminarSesionVacia(id){
+  var s = sesionPorId(id);
+  if(!s) return;
+  var numRegistros = state.registros.filter(function(r){return r.sesionId===id;}).length;
+  if(numRegistros>0){ toast("No se puede eliminar: tiene "+numRegistros+" registro(s) asociado(s)."); return; }
+  if(state.sesiones.length<=1){ toast("Debe quedar al menos una sesión."); return; }
+  var eraActiva = (id === state.sesionActivaId);
+  var mensajeExtra = eraActiva ? " Como era la sesión activa, se activará otra en su lugar." : "";
+  if(!confirm('¿Eliminar la sesión "'+(s.proyecto||"sin nombre")+'"? No tiene registros asociados. Esta acción no se puede deshacer.'+mensajeExtra)) return;
+
+  if(eraActiva && state.draft && state.draft.sesionId===id){
+    state.draft = null; guardarDraft();
+  }
+  state.sesiones = state.sesiones.filter(function(x){ return x.id!==id; });
+
+  if(eraActiva){
+    var candidatas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
+    var nueva = candidatas[0];
+    nueva.archivada = false;
+    state.sesionActivaId = nueva.id;
+    setLS(LSK.act, state.sesionActivaId);
+    toast('Sesión eliminada. Ahora la activa es "'+(nueva.proyecto||"sin nombre")+'"');
+  } else {
+    toast("Sesión eliminada");
+  }
+  if(state.sesionEnPantallaId === id) state.sesionEnPantallaId = state.sesionActivaId;
+  guardarListaSesiones();
+  renderExportar();
+}
 function renderExportar(){
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".colector-chip.on"), function(c){return c.dataset.id;});
@@ -4194,7 +4223,7 @@ function renderExportar(){
   box.innerHTML = ordenadas.map(function(s){
     var etiqueta = iconoSesion(s.id)+" "+(s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10)) + (s.id===state.sesionActivaId?" · activa":"");
     var numRegistros = state.registros.filter(function(r){return r.sesionId===s.id;}).length;
-    var puedeBorrar = numRegistros===0 && s.id!==state.sesionActivaId;
+    var puedeBorrar = numRegistros===0 && state.sesiones.length>1;
     var borrarHtml = puedeBorrar ? ' <span class="chip-borrar" data-del="'+s.id+'" title="Eliminar sesión vacía">🗑</span>' : "";
     return '<span class="colector-chip'+(seleccion.indexOf(s.id)>=0?" on":"")+'" data-id="'+s.id+'">'+escapeHtml(etiqueta)+borrarHtml+'</span>';
   }).join("");
@@ -4204,13 +4233,7 @@ function renderExportar(){
   box.querySelectorAll(".chip-borrar").forEach(function(x){
     x.addEventListener("click", function(e){
       e.stopPropagation();
-      var id = x.dataset.del;
-      var s = sesionPorId(id);
-      if(!confirm('¿Eliminar la sesión "'+(s.proyecto||"sin nombre")+'"? No tiene registros asociados. Esta acción no se puede deshacer.')) return;
-      state.sesiones = state.sesiones.filter(function(x){return x.id!==id;});
-      guardarListaSesiones();
-      renderExportar();
-      toast("Sesión eliminada");
+      eliminarSesionVacia(x.dataset.del);
     });
   });
   actualizarStatsExportar();
