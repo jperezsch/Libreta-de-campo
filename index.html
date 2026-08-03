@@ -74,10 +74,22 @@ input,select,textarea{font-family:inherit; font-size:1.05rem; color:var(--texto)
 }
 html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; color:#f0b9a3;}
 .banner-curso .dotlive{width:8px;height:8px;border-radius:50%;background:var(--rojo); animation:pulse 1.4s infinite; flex-shrink:0;}
+.banner-sesion-registro{padding:9px 14px; font-size:.8rem; font-weight:700;}
+.banner-sesion-registro.activa{background:var(--verde-cl); color:var(--verde-osc);}
+.banner-sesion-registro.archivada{background:#fdeee9; color:#8a3a1f;}
 @keyframes pulse{0%{opacity:1;}50%{opacity:.35;}100%{opacity:1;}}
 
 .pad{padding:14px;}
 .section-title{font-size:.82rem; text-transform:uppercase; letter-spacing:.4px; color:var(--texto-sec); font-weight:700; margin:20px 0 9px; display:flex; align-items:center; gap:7px;}
+.section-title-row{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:20px 0 9px; flex-wrap:wrap;}
+.section-title-row .section-title{margin:0;}
+.btn-nueva-salida{
+  background:var(--ambar); color:#fff; border:none; border-radius:20px; padding:9px 16px; font-size:.82rem; font-weight:700; cursor:pointer; white-space:nowrap;
+}
+.sesion-modo-banner{border-radius:10px; padding:10px 13px; font-size:.82rem; margin-bottom:16px; line-height:1.5;}
+.sesion-modo-banner.modo-activa{background:var(--verde-cl); color:var(--verde-osc);}
+.sesion-modo-banner.modo-archivada{background:#fdeee9; color:#8a3a1f;}
+.sesion-modo-banner button{background:rgba(0,0,0,.08); border:none; color:inherit; font-weight:700; padding:5px 11px; border-radius:20px; font-size:.78rem; margin-left:4px; cursor:pointer;}
 .section-title:first-child{margin-top:0;}
 .section-title .n{width:22px;height:22px;border-radius:50%;background:var(--verde);color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:800; flex-shrink:0;}
 
@@ -98,6 +110,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .reg-ic{width:44px;height:44px;border-radius:10px;background:var(--verde-cl);color:var(--verde);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
 .reg-title{font-weight:700; font-size:1.02rem;}
 .reg-meta{font-size:.8rem; color:var(--texto-sec); margin-top:3px;}
+.reg-sesion-tag{font-size:.68rem; color:var(--texto-sec); margin-top:4px; opacity:.8;}
 .tag{display:inline-block; font-size:.66rem; font-weight:700; padding:2px 8px; border-radius:20px; background:var(--verde-cl); color:var(--verde-osc); text-transform:uppercase;}
 .card.nuevo-highlight{animation:flash 1.6s ease-out;}
 .card.card-draft{background:#fdf6e8; border:1.5px dashed var(--ambar); margin-top:14px;}
@@ -256,7 +269,13 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
   </div>
   <div class="pad">
-    <div class="section-title">Datos generales de la salida</div>
+    <div class="field"><label>Sesión mostrada</label><select id="ss-selector-sesion"></select></div>
+    <div id="sesion-modo-banner" class="sesion-modo-banner modo-activa">🟢 Sesión activa</div>
+
+    <div class="section-title-row">
+      <div class="section-title" style="margin:0;">Datos generales de la salida</div>
+      <button type="button" class="btn-nueva-salida" id="btn-nueva-salida">🆕 Nueva Salida</button>
+    </div>
     <div class="field"><label>Proyecto / campaña</label><input type="text" id="ss-proyecto" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
     <div class="field"><label>Objetivo de la salida</label><input type="text" id="ss-objetivo" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="row2">
@@ -287,6 +306,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 <div class="screen" id="s-lista">
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Libreta de Campo</h2><p class="sub">WikiTaxa · Registro en terreno</p></div></div></div>
   <div class="pad">
+    <div class="field"><label>Sesión</label><select id="lista-selector-sesion"></select></div>
     <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
     <div class="chipbar" id="chipbar"></div>
     <div id="lista-registros"></div>
@@ -297,6 +317,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 <div class="screen" id="s-form">
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Registro</h2><p class="sub">CHILOE2026</p></div></div></div>
   <div class="banner-curso"><span class="dotlive"></span> Registro en curso — <input type="text" id="f-codigo" class="codigo-inline"></div>
+  <div id="banner-sesion-registro" class="banner-sesion-registro" style="display:none;"></div>
   <div class="pad">
 
     <!-- Sección secundaria: datos que se repiten entre varios puntos -->
@@ -402,10 +423,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="stat"><div class="n" id="stat-total">0</div><div class="l">Registros</div></div>
       <div class="stat"><div class="n" id="stat-hoy">0</div><div class="l">De hoy</div></div>
     </div>
+    <div class="field"><label>Sesión a exportar</label><select id="exp-selector-sesion"></select></div>
     <div class="section-title">Exportar a Excel</div>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx">📊 Generar planilla Excel (.xlsx)</button>
     <div class="section-title">Respaldo de datos</div>
-    <button type="button" class="btnfull btn-secondary" id="btn-export-json">⬇️ Exportar respaldo (.json)</button>
+    <button type="button" class="btnfull btn-secondary" id="btn-export-json">⬇️ Exportar respaldo completo (.json)</button>
     <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo (.json)</label>
     <input type="file" id="input-import-json" accept="application/json" style="display:none;">
   </div>
@@ -503,7 +525,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 "use strict";
 (function(){
 
-var LSK = {ses:"libretacampo_sesiones_v1", act:"libretacampo_sesionActiva_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
+var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
 
 var TIPOS = {
   coleccion:{label:"Recolección", ic:"🧪"}, observacion:{label:"Observación", ic:"👁"},
@@ -511,13 +533,20 @@ var TIPOS = {
   medicion:{label:"Medición", ic:"📏"}, nota:{label:"Nota general", ic:"📝"}
 };
 
-var state = {
-  currentView: "sesion",
-  sesion: {
+function sesionVacia(){
+  return {
+    id: uid(), creada: new Date().toISOString(), archivada:false,
     proyecto:"", objetivo:"", fechaIni:"", fechaFin:"", participantes:"",
     zona:"", paisaje:"", institucion:"", clima:"", notas:"",
     prefijo:"CAMPO", inicio:1, contador:1
-  },
+  };
+}
+
+var state = {
+  currentView: "sesion",
+  sesiones: [],           // todas las sesiones (activa + archivadas)
+  sesionActivaId: null,   // la sesión "en curso" — a ella se asignan los registros nuevos
+  sesionEnPantallaId: null, // la sesión que se muestra/edita ahora mismo en la pestaña Sesión
   config:{colector:""},
   registros: [],
   historial: {},
@@ -525,9 +554,13 @@ var state = {
   fotosTemp: [],
   especiesTemp: [],
   filtroTipo:"",
+  filtroSesionLista:"", // filtro de sesión en la pestaña Registros ("" = todas)
   lightboxIdx: null,
   captionPending: null // {file, dataURL}
 };
+function sesionActiva(){ return state.sesiones.find(function(s){ return s.id===state.sesionActivaId; }) || null; }
+function sesionEnPantalla(){ return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva(); }
+function sesionPorId(id){ return state.sesiones.find(function(s){ return s.id===id; }) || null; }
 
 function uid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function pad(n,l){ n=String(n); while(n.length<l) n="0"+n; return n; }
@@ -546,13 +579,35 @@ function setLS(key, value){
   }
 }
 function cargar(){
-  try{ var s=JSON.parse(localStorage.getItem(LSK.ses)); if(s) state.sesion=s; }catch(e){}
+  try{ var lista=JSON.parse(localStorage.getItem(LSK.sesiones)); if(lista && lista.length) state.sesiones=lista; }catch(e){}
+  try{ var act=localStorage.getItem(LSK.act); if(act) state.sesionActivaId=act; }catch(e){}
   try{ var c=JSON.parse(localStorage.getItem(LSK.cfg)); if(c) state.config=c; }catch(e){}
   try{ var r=JSON.parse(localStorage.getItem(LSK.reg)); if(r) state.registros=r; }catch(e){}
   try{ var h=JSON.parse(localStorage.getItem(LSK.hist)); if(h) state.historial=h; }catch(e){}
   try{ var d=JSON.parse(localStorage.getItem(LSK.draft)); if(d) state.draft=d; }catch(e){}
+
+  // Migración: formato anterior de una sola sesión (sin lista de sesiones todavía)
+  if(state.sesiones.length===0){
+    var previa = null;
+    try{ previa = JSON.parse(localStorage.getItem(LSK.sesOld)); }catch(e){}
+    var nueva = sesionVacia();
+    if(previa){
+      nueva = Object.assign(nueva, previa, {id: nueva.id, archivada:false});
+    }
+    state.sesiones = [nueva];
+    // Todos los registros existentes (de antes de este cambio) quedan asociados a esta sesión migrada
+    state.registros.forEach(function(r){ if(!r.sesionId) r.sesionId = nueva.id; });
+    guardarRegistros();
+  }
+  if(!state.sesionActivaId || !sesionPorId(state.sesionActivaId)){
+    state.sesionActivaId = state.sesiones[state.sesiones.length-1].id;
+  }
+  state.sesionEnPantallaId = state.sesionActivaId;
+  guardarListaSesiones();
+  setLS(LSK.act, state.sesionActivaId);
 }
-function guardarSesion(){ return setLS(LSK.ses, JSON.stringify(state.sesion)); }
+function guardarListaSesiones(){ return setLS(LSK.sesiones, JSON.stringify(state.sesiones)); }
+function guardarSesion(){ return guardarListaSesiones(); }
 function guardarConfig(){ return setLS(LSK.cfg, JSON.stringify(state.config)); }
 function guardarRegistros(){ return setLS(LSK.reg, JSON.stringify(state.registros)); }
 function guardarDraft(){ if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
@@ -658,7 +713,11 @@ function poblarTodasLasSugerenciasSesion(){
   });
 }
 
-function proximoCodigo(){ return state.sesion.prefijo + "-" + pad(state.sesion.contador, 3); }
+function proximoCodigo(sesion){
+  var s = sesion || sesionActiva();
+  if(!s) return "—";
+  return s.prefijo + "-" + pad(s.contador, 3);
+}
 
 /* ---------------- Navegación ---------------- */
 function irA(view){
@@ -699,27 +758,59 @@ var SS_MAP = {"ss-proyecto":"proyecto","ss-objetivo":"objetivo","ss-fecha-ini":"
   "ss-participantes":"participantes","ss-zona":"zona","ss-paisaje":"paisaje","ss-institucion":"institucion",
   "ss-clima":"clima","ss-notas":"notas","ss-prefijo":"prefijo"};
 function renderSesion(){
-  Object.keys(SS_MAP).forEach(function(id){ document.getElementById(id).value = state.sesion[SS_MAP[id]] || ""; });
-  document.getElementById("ss-inicio").value = state.sesion.inicio;
-  document.getElementById("ss-proximo").value = proximoCodigo();
+  var s = sesionEnPantalla();
+  Object.keys(SS_MAP).forEach(function(id){ document.getElementById(id).value = s[SS_MAP[id]] || ""; });
+  document.getElementById("ss-inicio").value = s.inicio;
+  document.getElementById("ss-proximo").value = proximoCodigo(s);
   poblarTodasLasSugerenciasSesion();
+  renderSesionModo();
+  renderSelectorSesiones();
 }
+function renderSesionModo(){
+  var s = sesionEnPantalla();
+  var esActiva = s.id === state.sesionActivaId;
+  var banner = document.getElementById("sesion-modo-banner");
+  if(esActiva){
+    banner.className = "sesion-modo-banner modo-activa";
+    banner.innerHTML = '🟢 Sesión activa — los registros nuevos se guardan aquí';
+  } else {
+    banner.className = "sesion-modo-banner modo-archivada";
+    banner.innerHTML = '📁 Viendo una sesión archivada (' + escapeHtml(s.proyecto||"sin nombre") + ') — puedes revisar y editar sus datos generales, pero los registros nuevos seguirán yendo a la sesión activa. <button type="button" id="btn-volver-activa">Volver a la sesión activa</button>';
+    var btnVolver = document.getElementById("btn-volver-activa");
+    if(btnVolver) btnVolver.addEventListener("click", function(){ state.sesionEnPantallaId = state.sesionActivaId; renderSesion(); });
+  }
+}
+function renderSelectorSesiones(){
+  var sel = document.getElementById("ss-selector-sesion");
+  var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
+  sel.innerHTML = ordenadas.map(function(s){
+    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + (s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10));
+    return '<option value="'+s.id+'"'+(s.id===state.sesionEnPantallaId?" selected":"")+'>'+escapeHtml(etiqueta)+'</option>';
+  }).join("");
+}
+document.getElementById("ss-selector-sesion").addEventListener("change", function(){
+  state.sesionEnPantallaId = this.value;
+  renderSesion();
+});
 [["ss-proyecto","dl-ss-proyecto","proyecto"],["ss-objetivo","dl-ss-objetivo","objetivo"],["ss-participantes","dl-ss-participantes","participantes"],
  ["ss-zona","dl-ss-zona","zona"],["ss-institucion","dl-ss-institucion","institucion"],["ss-prefijo","dl-ss-prefijo","prefijo"]].forEach(function(p){
   ligarSugerencia(p[0], p[1], p[2]);
 });
 Object.keys(SS_MAP).forEach(function(id){
   document.getElementById(id).addEventListener("input", function(){
-    state.sesion[SS_MAP[id]] = this.value;
-    if(id==="ss-prefijo") document.getElementById("ss-proximo").value = proximoCodigo();
+    var s = sesionEnPantalla();
+    s[SS_MAP[id]] = this.value;
+    if(id==="ss-prefijo") document.getElementById("ss-proximo").value = proximoCodigo(s);
     guardarSesion();
   });
 });
 document.getElementById("ss-inicio").addEventListener("input", function(){
+  var s = sesionEnPantalla();
   var v = parseInt(this.value,10); if(isNaN(v)) v=0;
-  state.sesion.inicio = v;
-  if(state.registros.length===0) state.sesion.contador = v;
-  document.getElementById("ss-proximo").value = proximoCodigo();
+  s.inicio = v;
+  var misRegistros = state.registros.filter(function(r){ return r.sesionId===s.id; });
+  if(misRegistros.length===0) s.contador = v;
+  document.getElementById("ss-proximo").value = proximoCodigo(s);
   guardarSesion();
 });
 document.getElementById("btn-guardar-sesion").addEventListener("click", function(){
@@ -735,6 +826,30 @@ document.getElementById("btn-confirm-ir-nuevo").addEventListener("click", functi
   abrirRegistro();
 });
 
+/* ---------------- Nueva Salida: archiva la sesión activa y crea una nueva ---------------- */
+function crearNuevaSalida(){
+  var actual = sesionActiva();
+  if(actual) actual.archivada = true;
+  if(state.draft && state.draft.sesionId === (actual && actual.id)){
+    state.draft = null; guardarDraft();
+    toast("Se descartó un registro sin guardar de la sesión anterior");
+  }
+  var nueva = sesionVacia();
+  // La numeración continúa sin cortes: mismo prefijo y correlativo donde iba la anterior
+  if(actual){ nueva.prefijo = actual.prefijo; nueva.inicio = actual.inicio; nueva.contador = actual.contador; }
+  state.sesiones.push(nueva);
+  state.sesionActivaId = nueva.id;
+  state.sesionEnPantallaId = nueva.id;
+  guardarListaSesiones();
+  setLS(LSK.act, state.sesionActivaId);
+  renderSesion();
+  toast("✅ Nueva salida creada — la anterior quedó guardada en el historial");
+}
+document.getElementById("btn-nueva-salida").addEventListener("click", function(){
+  if(!confirm("¿Iniciar una nueva salida a terreno?\n\nLos datos generales (proyecto, objetivo, participantes, etc.) se limpiarán para escribir los de la nueva salida. El acrónimo y el correlativo de numeración continúan sin cambios.\n\nLa sesión actual y todos sus registros quedan guardados y accesibles desde el selector de arriba.")) return;
+  crearNuevaSalida();
+});
+
 /* ---------------- LISTA DE REGISTROS ---------------- */
 function renderChips(){
   var box = document.getElementById("chipbar");
@@ -743,10 +858,32 @@ function renderChips(){
   box.innerHTML = html;
   box.querySelectorAll(".chip").forEach(function(c){ c.addEventListener("click", function(){ state.filtroTipo=c.dataset.t; renderLista(); }); });
 }
+function renderSelectorListaSesiones(){
+  var sel = document.getElementById("lista-selector-sesion");
+  var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
+  var opciones = '<option value="">Todas las sesiones</option>' + ordenadas.map(function(s){
+    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + (s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10));
+    return '<option value="'+s.id+'">'+escapeHtml(etiqueta)+'</option>';
+  }).join("");
+  sel.innerHTML = opciones;
+  sel.value = state.filtroSesionLista;
+}
+document.getElementById("lista-selector-sesion").addEventListener("change", function(){
+  state.filtroSesionLista = this.value;
+  renderLista();
+});
+function etiquetaSesionCorta(sesionId){
+  var s = sesionPorId(sesionId);
+  if(!s) return "";
+  var ic = s.id===state.sesionActivaId ? "🟢" : "📁";
+  return ic+" "+(s.proyecto||"sin nombre");
+}
 function renderLista(justSavedId){
   renderChips();
+  renderSelectorListaSesiones();
   var q = (document.getElementById("buscador").value||"").toLowerCase();
   var lista = state.registros.slice().sort(function(a,b){ return b.codigo.localeCompare(a.codigo, undefined, {numeric:true}); });
+  if(state.filtroSesionLista) lista = lista.filter(function(r){ return r.sesionId===state.filtroSesionLista; });
   if(state.filtroTipo) lista = lista.filter(function(r){ return r.tipo===state.filtroTipo; });
   if(q) lista = lista.filter(function(r){ return [r.codigo,r.referencia,r.notas,(r.especies||[]).map(function(e){return e.nombre;}).join(" ")].join(" ").toLowerCase().indexOf(q)>=0; });
   var cont = document.getElementById("lista-registros");
@@ -767,6 +904,7 @@ function renderLista(justSavedId){
         '<div class="reg-info" style="flex:1; min-width:0;">'+
           '<div class="reg-title">'+escapeHtml(r.codigo)+' · '+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
           '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(r.taxonLibre||r.referencia||"")+'</div>'+
+          '<div class="reg-sesion-tag">'+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>'+
         '</div>'+
         '<div class="reg-actions">'+
           '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver / editar">👁</button>'+
@@ -786,7 +924,7 @@ document.getElementById("buscador").addEventListener("input", renderLista);
 function iniciarNuevoRegistro(){
   var ahora = new Date();
   state.draft = {
-    id: uid(), codigo: proximoCodigo(),
+    id: uid(), codigo: proximoCodigo(sesionActiva()), sesionId: state.sesionActivaId,
     fecha: ahora.toISOString().slice(0,10),
     hora: pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2),
     lat:"", lon:"", altitud:null, referencia:"", tipo:"coleccion",
@@ -830,6 +968,22 @@ function cargarDraftEnFormulario(){
   poblarSugerencias("dl-sustrato","sustrato");
   poblarSugerencias("dl-taxon","taxonLibre");
   poblarSugerencias("dl-referencia","referencia");
+  actualizarBannerSesionRegistro();
+}
+function actualizarBannerSesionRegistro(){
+  var d = state.draft;
+  var banner = document.getElementById("banner-sesion-registro");
+  if(!d || !d._editando){ banner.style.display = "none"; return; }
+  var s = sesionPorId(d.sesionId);
+  if(!s){ banner.style.display = "none"; return; }
+  banner.style.display = "block";
+  if(s.id === state.sesionActivaId){
+    banner.className = "banner-sesion-registro activa";
+    banner.textContent = "🟢 Este registro pertenece a la sesión activa: " + (s.proyecto || "sin nombre");
+  } else {
+    banner.className = "banner-sesion-registro archivada";
+    banner.textContent = "📁 Estás editando un registro de una sesión archivada: " + (s.proyecto || "sin nombre") + " — no afecta la numeración de la sesión activa.";
+  }
 }
 function actualizarGpsBox(){
   var d = state.draft;
@@ -898,7 +1052,8 @@ function actualizarResumenDg(){
 
 /* ---------------- Colector: prellenado o selección múltiple según participantes ---------------- */
 function listaParticipantes(){
-  return (state.sesion.participantes||"").split(",").map(function(s){return s.trim();}).filter(Boolean);
+  var s = sesionActiva();
+  return (s && s.participantes || "").split(",").map(function(s){return s.trim();}).filter(Boolean);
 }
 function renderColectorWrap(seleccionActual){
   var participantes = listaParticipantes();
@@ -1258,8 +1413,9 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     descargarFotosPendientes(r).then(function(){ guardarRegistros(); });
   } else {
     state.registros.push(r);
-    state.sesion.contador = state.sesion.contador + 1;
-    guardarSesion();
+    var sAct = sesionActiva();
+    if(sAct) sAct.contador = sAct.contador + 1;
+    guardarListaSesiones();
     var ok = guardarRegistros();
     if(ok) toast("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo());
     state.draft = null; guardarDraft();
@@ -1270,14 +1426,31 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
 
 /* ---------------- Exportar ---------------- */
 function renderExportar(){
-  document.getElementById("stat-total").textContent = state.registros.length;
-  var hoy = new Date().toISOString().slice(0,10);
-  document.getElementById("stat-hoy").textContent = state.registros.filter(function(r){return r.fecha===hoy;}).length;
+  var sel = document.getElementById("exp-selector-sesion");
+  var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
+  var valorPrevio = sel.value;
+  sel.innerHTML = ordenadas.map(function(s){
+    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + (s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10));
+    return '<option value="'+s.id+'">'+escapeHtml(etiqueta)+'</option>';
+  }).join("");
+  sel.value = ordenadas.some(function(s){return s.id===valorPrevio;}) ? valorPrevio : state.sesionActivaId;
+  actualizarStatsExportar();
 }
+function actualizarStatsExportar(){
+  var sid = document.getElementById("exp-selector-sesion").value;
+  var deLaSesion = state.registros.filter(function(r){ return r.sesionId===sid; });
+  document.getElementById("stat-total").textContent = deLaSesion.length;
+  var hoy = new Date().toISOString().slice(0,10);
+  document.getElementById("stat-hoy").textContent = deLaSesion.filter(function(r){return r.fecha===hoy;}).length;
+}
+document.getElementById("exp-selector-sesion").addEventListener("change", actualizarStatsExportar);
 document.getElementById("btn-export-xlsx").addEventListener("click", function(){
-  if(state.registros.length===0){ toast("No hay registros para exportar"); return; }
+  var sid = document.getElementById("exp-selector-sesion").value;
+  var s = sesionPorId(sid);
+  if(!s){ toast("Selecciona una sesión válida"); return; }
+  var registrosSesion = state.registros.filter(function(r){ return r.sesionId===sid; });
+  if(registrosSesion.length===0){ toast("Esa sesión no tiene registros para exportar"); return; }
   var wb = XLSX.utils.book_new();
-  var s = state.sesion;
   var sesionRows = [
     {campo:"Proyecto / campaña", valor:s.proyecto}, {campo:"Objetivo", valor:s.objetivo},
     {campo:"Fecha inicio", valor:s.fechaIni}, {campo:"Fecha término", valor:s.fechaFin},
@@ -1291,7 +1464,7 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
   XLSX.utils.book_append_sheet(wb, wsSesion, "Sesión");
 
   var filas = [];
-  state.registros.forEach(function(r){
+  registrosSesion.forEach(function(r){
     var base = {
       codigo:r.codigo, tipo:(TIPOS[r.tipo]||{}).label||r.tipo, fecha:r.fecha, hora:r.hora,
       lat:r.lat, lon:r.lon, altitud:r.altitud!=null?r.altitud:"", referencia:r.referencia, colector:r.colector,
@@ -1314,11 +1487,11 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
   XLSX.utils.sheet_add_aoa(ws, [["Código","Tipo","Fecha","Hora","Latitud","Longitud","Altitud (m)","Referencia","Colector","Taxón","N° individuos","Método","Condición","Hábitat","Sustrato","Unidad muestral","Esfuerzo","Fotos","Notas"]], {origin:"A1"});
   ws['!cols'] = cols.map(function(){return {wch:16};});
   XLSX.utils.book_append_sheet(wb, ws, "Registros");
-  XLSX.writeFile(wb, "LibretaDeCampo_"+state.sesion.prefijo+".xlsx");
+  XLSX.writeFile(wb, "LibretaDeCampo_"+s.prefijo+".xlsx");
   toast("Planilla generada");
 });
 document.getElementById("btn-export-json").addEventListener("click", function(){
-  var data = {sesion:state.sesion, registros:state.registros};
+  var data = {sesiones:state.sesiones, sesionActivaId:state.sesionActivaId, registros:state.registros};
   var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   var url = URL.createObjectURL(blob); var a = document.createElement("a");
   a.href=url; a.download="LibretaDeCampo_respaldo.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
@@ -1330,9 +1503,24 @@ document.getElementById("input-import-json").addEventListener("change", function
   reader.onload = function(evt){
     try{
       var data = JSON.parse(evt.target.result);
-      if(data.sesion) state.sesion = data.sesion;
-      if(data.registros) state.registros = data.registros;
-      guardarSesion(); guardarRegistros();
+      if(data.sesiones){
+        // Formato nuevo (multi-sesión): fusiona sin duplicar por id
+        var existentes = {}; state.sesiones.forEach(function(s){ existentes[s.id]=true; });
+        data.sesiones.forEach(function(s){ if(!existentes[s.id]) state.sesiones.push(s); });
+        if(data.sesionActivaId && sesionPorId(data.sesionActivaId)) state.sesionActivaId = data.sesionActivaId;
+      } else if(data.sesion){
+        // Formato antiguo (una sola sesión): se agrega como sesión archivada nueva
+        var migrada = Object.assign(sesionVacia(), data.sesion, {archivada:true});
+        state.sesiones.push(migrada);
+        if(data.registros) data.registros.forEach(function(r){ if(!r.sesionId) r.sesionId = migrada.id; });
+      }
+      if(data.registros){
+        var idsExistentes = {}; state.registros.forEach(function(r){ idsExistentes[r.id]=true; });
+        var agregados = 0;
+        data.registros.forEach(function(r){ if(!idsExistentes[r.id]){ state.registros.push(r); agregados++; } });
+      }
+      state.sesionEnPantallaId = state.sesionActivaId;
+      guardarListaSesiones(); guardarRegistros(); setLS(LSK.act, state.sesionActivaId);
       toast("Respaldo importado"); renderExportar();
     }catch(err){ toast("Archivo inválido"); }
   };
