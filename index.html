@@ -134,6 +134,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 /* ---- Libreta narrativa ---- */
 .narr-entrada{background:var(--card); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:16px; margin-bottom:16px;}
 .narr-entrada.draft{border-left-color:var(--ambar); background:#fdf6e8;}
+.narr-sesion-badge{display:inline-block; font-size:.7rem; font-weight:800; padding:3px 10px; border-radius:20px; margin-bottom:8px;}
 .narr-cabecera{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
 .narr-fecha{font-size:.82rem; color:var(--texto-sec); font-weight:700;}
 .narr-codigo{font-family:ui-monospace,monospace; font-weight:800; color:var(--verde-osc); font-size:.9rem;}
@@ -145,6 +146,10 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .narr-foto{text-align:center;}
 .narr-foto img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; background:#eee;}
 .narr-foto .cap{font-size:.68rem; color:var(--texto-sec); margin-top:3px; line-height:1.3;}
+.narr-foto-bg{align-items:center; justify-content:center; padding:24px;}
+.narr-foto-inner{width:100%; max-width:520px; max-height:88vh; background:#111; border-radius:16px; overflow:hidden; display:flex; flex-direction:column;}
+.narr-foto-inner img{width:100%; max-height:76vh; object-fit:contain; background:#000;}
+.narr-foto-cap{color:#fff; font-size:.85rem; padding:12px 14px; text-align:center;}
 .version-info{font-size:.75rem; color:var(--texto-sec); text-align:center; margin:8px 0 4px;}
 .empty .ic{font-size:2.8rem; margin-bottom:10px;}
 
@@ -180,6 +185,7 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .dg-box.abierto .dg-body{display:block;}
 .dg-box .field label{color:var(--texto-sec);}
 .colector-chip{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
+.chip-borrar{color:var(--rojo); font-weight:800; margin-left:2px; padding:2px 4px;}
 .colector-chip.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 
 .btnfull{width:100%; padding:14px; border-radius:10px; border:none; font-weight:700; font-size:1rem; text-align:center; margin-bottom:9px; cursor:pointer;}
@@ -330,8 +336,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div id="lista-narrativa" style="display:none;"></div>
     <div class="lista-footer-acciones">
       <button type="button" class="btnfull btn-secondary" id="btn-exportar-narrativa" style="display:none;">⬇️ Exportar libreta (.html)</button>
-      <button type="button" class="btnfull btn-secondary" id="btn-descargar-fotos-pendientes">📥 Descargar fotos</button>
-      <button type="button" class="btnfull btn-secondary" id="btn-descargar-json-lista">💾 Descargar registros (.json)</button>
+      <button type="button" class="btnfull btn-secondary" id="btn-descargar-todo">💾 Descargar fotos + respaldo (.json)</button>
       <button type="button" class="btnfull btn-amber" id="btn-finalizar-sesion">🏁 Finalizar sesión</button>
     </div>
   </div>
@@ -514,6 +519,14 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" id="btn-lightbox-cerrar">Cerrar</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Visor de fotos de solo lectura, para la vista narrativa (Libreta) -->
+<div class="modal-bg narr-foto-bg" id="modal-narr-foto">
+  <div class="narr-foto-inner">
+    <img id="narr-foto-img">
+    <div class="narr-foto-cap" id="narr-foto-cap"></div>
   </div>
 </div>
 
@@ -3299,9 +3312,25 @@ function renderSesionModo(){
     banner.innerHTML = '🟢 Sesión activa — los registros nuevos se guardan aquí';
   } else {
     banner.className = "sesion-modo-banner modo-archivada";
-    banner.innerHTML = '📁 Viendo una sesión archivada (' + escapeHtml(s.proyecto||"sin nombre") + ') — puedes revisar y editar sus datos generales, pero los registros nuevos seguirán yendo a la sesión activa. <button type="button" id="btn-volver-activa">Volver a la sesión activa</button>';
+    banner.innerHTML = '📁 Viendo una sesión archivada (' + escapeHtml(s.proyecto||"sin nombre") + ') — puedes revisar y editar sus datos generales. <button type="button" id="btn-volver-activa">Volver a la activa</button> <button type="button" id="btn-reactivar-sesion">▶️ Reactivar esta sesión</button>';
     var btnVolver = document.getElementById("btn-volver-activa");
     if(btnVolver) btnVolver.addEventListener("click", function(){ state.sesionEnPantallaId = state.sesionActivaId; renderSesion(); });
+    var btnReactivar = document.getElementById("btn-reactivar-sesion");
+    if(btnReactivar) btnReactivar.addEventListener("click", function(){
+      if(!confirm('¿Reactivar "'+ (s.proyecto||"esta sesión") +'"? Los registros nuevos volverán a numerarse dentro de ella, y la sesión activa actual quedará archivada.')) return;
+      var actualAntes = sesionActiva();
+      if(actualAntes) actualAntes.archivada = true;
+      if(state.draft && state.draft.sesionId === (actualAntes && actualAntes.id)){
+        state.draft = null; guardarDraft();
+        toast("Se descartó un registro sin guardar de la sesión anterior");
+      }
+      s.archivada = false;
+      state.sesionActivaId = s.id;
+      guardarListaSesiones();
+      setLS(LSK.act, state.sesionActivaId);
+      renderSesion();
+      toast("✅ Sesión reactivada");
+    });
   }
 }
 function renderSelectorSesiones(){
@@ -3410,6 +3439,12 @@ document.getElementById("lista-selector-sesion").addEventListener("change", func
   renderLista();
 });
 var ICONOS_SESION = ["🟩","🟦","🟪","🟧","🟨","🟥","🟫","🔷","🔶","🔵","🟣","🟠"];
+var COLORES_SESION = ["#2d5f3f","#2f6690","#7b4fa0","#c9762c","#b59a1f","#b5473a","#7a5230","#1f6ba0","#c98a1f","#2f7fb5","#8f3fa0","#c96a1f"];
+function colorSesion(sesionId){
+  var idx = state.sesiones.findIndex(function(s){ return s.id===sesionId; });
+  if(idx<0) return "#999";
+  return COLORES_SESION[idx % COLORES_SESION.length];
+}
 function iconoSesion(sesionId){
   var idx = state.sesiones.findIndex(function(s){ return s.id===sesionId; });
   if(idx<0) return "📁";
@@ -3490,8 +3525,9 @@ function renderListaTarjetas(lista, justSavedId){
 function textoEntradaNarrativa(r){
   var ti = TIPOS[r.tipo]||TIPOS.nota;
   var partes = [];
+  partes.push('<div class="narr-sesion-badge" style="background:'+colorSesion(r.sesionId)+'22; color:'+colorSesion(r.sesionId)+';">'+iconoSesion(r.sesionId)+' '+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>');
   partes.push('<div class="narr-cabecera"><span class="narr-fecha">'+escapeHtml(r.fecha||"")+' · '+escapeHtml(r.hora||"")+'</span><span class="narr-codigo">'+escapeHtml(r.codigo)+'</span></div>');
-  partes.push('<div class="narr-tipo">'+ti.ic+' '+ti.label+' · '+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>');
+  partes.push('<div class="narr-tipo">'+ti.ic+' '+ti.label+'</div>');
   if(r.lat && r.lon){
     partes.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+'</div>');
   }
@@ -3512,8 +3548,15 @@ function textoEntradaNarrativa(r){
   if(r.notas) partes.push('<div class="narr-notas">"'+escapeHtml(r.notas)+'"</div>');
   return partes.join("");
 }
-function renderListaNarrativa(lista){
-  var cont = document.getElementById("lista-narrativa");
+function abrirFotoNarrativa(dataURL, caption){
+  document.getElementById("narr-foto-img").src = dataURL;
+  document.getElementById("narr-foto-cap").textContent = caption||"";
+  document.getElementById("modal-narr-foto").classList.add("on");
+}
+document.getElementById("modal-narr-foto").addEventListener("click", function(e){
+  if(e.target===this) this.classList.remove("on");
+});
+function renderListaNarrativa(lista){  var cont = document.getElementById("lista-narrativa");
   if(lista.length===0){
     cont.innerHTML = '<div class="empty"><div class="ic">📖</div>Aún no hay registros para mostrar en la libreta.</div>';
     return;
@@ -3522,13 +3565,17 @@ function renderListaNarrativa(lista){
     var fotosHtml = (r.fotos||[]).length ? ('<div class="narr-fotos">'+r.fotos.map(function(f){
       return '<div class="narr-foto"><img id="narr-thumb-'+f.id+'" src=""><div class="cap">'+escapeHtml(f.comentario||f.nombre)+'</div></div>';
     }).join("")+'</div>') : "";
-    return '<div class="narr-entrada">'+textoEntradaNarrativa(r)+fotosHtml+'</div>';
+    return '<div class="narr-entrada" style="border-left-color:'+colorSesion(r.sesionId)+'">'+textoEntradaNarrativa(r)+fotosHtml+'</div>';
   }).join("");
   lista.forEach(function(r){
     (r.fotos||[]).forEach(function(f){
       leerFotoDB(f.id).then(function(dataURL){
         var img = document.getElementById("narr-thumb-"+f.id);
-        if(img && dataURL) img.src = dataURL;
+        if(img && dataURL){
+          img.src = dataURL;
+          img.style.cursor = "pointer";
+          img.addEventListener("click", function(){ abrirFotoNarrativa(dataURL, f.comentario||f.nombre); });
+        }
       });
     });
   });
@@ -3561,15 +3608,19 @@ function exportarLibretaHTML(lista){
     var cuerpo = lista.map(function(r){
       var fotosHtml = (r.fotos||[]).length ? ('<div class="narr-fotos">'+r.fotos.map(function(f){
         var src = fotosDataUrls[f.id] || "";
-        return '<div class="narr-foto"><img src="'+src+'"><div class="cap">'+escapeHtml(f.comentario||f.nombre)+'</div></div>';
+        var cap = escapeHtml(f.comentario||f.nombre);
+        return '<div class="narr-foto"><img src="'+src+'" onclick="verFoto(this.src,\''+cap.replace(/'/g,"&#39;")+'\')"><div class="cap">'+cap+'</div></div>';
       }).join("")+'</div>') : "";
-      return '<div class="narr-entrada">'+textoEntradaNarrativa(r)+fotosHtml+'</div>';
+      return '<div class="narr-entrada" style="border-left-color:'+colorSesion(r.sesionId)+'">'+textoEntradaNarrativa(r)+fotosHtml+'</div>';
     }).join("");
     var estilos = document.querySelector("style").textContent;
+    var visorHtml = '<div class="modal-bg narr-foto-bg" id="modal-narr-foto" onclick="if(event.target===this)this.classList.remove(\'on\')">'+
+      '<div class="narr-foto-inner"><img id="narr-foto-img"><div class="narr-foto-cap" id="narr-foto-cap"></div></div></div>'+
+      '<script>function verFoto(src,cap){document.getElementById("narr-foto-img").src=src;document.getElementById("narr-foto-cap").textContent=cap;document.getElementById("modal-narr-foto").classList.add("on");}<\/script>';
     var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Libreta de Campo</title><style>'+estilos+
-      'body{background:#f7f5f0; padding:20px; max-width:700px; margin:0 auto;} .narr-entrada{page-break-inside:avoid;}</style></head><body>'+
+      'body{background:#f7f5f0; padding:20px; max-width:700px; margin:0 auto;} .narr-entrada{page-break-inside:avoid;} .narr-foto img{cursor:pointer;}</style></head><body>'+
       '<h1 style="color:#1e4029;">🔬 Libreta de Campo</h1><p style="color:#6b6b64;">'+escapeHtml((s&&s.proyecto)||"")+' · Generado '+new Date().toLocaleString("es-CL")+'</p>'+
-      cuerpo+'</body></html>';
+      cuerpo+visorHtml+'</body></html>';
     var blob = new Blob([html], {type:"text/html"});
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
@@ -3581,7 +3632,7 @@ function exportarLibretaHTML(lista){
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 
-document.getElementById("btn-descargar-fotos-pendientes").addEventListener("click", function(){
+document.getElementById("btn-descargar-todo").addEventListener("click", function(){
   var btn = this;
   var pendientesPorRegistro = state.registros.filter(function(r){
     return (r.fotos||[]).some(function(f){ return !f.descargada || f.nombreDescargado !== f.nombre; });
@@ -3589,16 +3640,19 @@ document.getElementById("btn-descargar-fotos-pendientes").addEventListener("clic
   var totalFotos = pendientesPorRegistro.reduce(function(n,r){
     return n + r.fotos.filter(function(f){ return !f.descargada || f.nombreDescargado !== f.nombre; }).length;
   }, 0);
-  if(totalFotos===0){ toast("No hay fotos pendientes de descargar"); return; }
-  btn.disabled = true; btn.textContent = "📥 Descargando "+totalFotos+" foto(s)...";
+  btn.disabled = true;
+  btn.textContent = totalFotos>0 ? ("📥 Descargando "+totalFotos+" foto(s)...") : "💾 Descargando respaldo...";
   var p = Promise.resolve();
   pendientesPorRegistro.forEach(function(r){
     p = p.then(function(){ return descargarFotosPendientes(r); });
   });
   p.then(function(){
     guardarRegistros();
-    btn.disabled = false; btn.textContent = "📥 Descargar fotos pendientes";
-    toast("✅ "+totalFotos+" foto(s) descargadas a tu carpeta de Descargas");
+    return new Promise(function(res){ setTimeout(res, totalFotos>0?400:0); });
+  }).then(function(){
+    exportarRespaldoJSON();
+    btn.disabled = false; btn.textContent = "💾 Descargar fotos + respaldo (.json)";
+    toast(totalFotos>0 ? ("✅ "+totalFotos+" foto(s) y el respaldo quedaron en tu carpeta de Descargas") : "✅ Respaldo descargado");
   });
 });
 
@@ -4139,10 +4193,25 @@ function renderExportar(){
   var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId];
   box.innerHTML = ordenadas.map(function(s){
     var etiqueta = iconoSesion(s.id)+" "+(s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10)) + (s.id===state.sesionActivaId?" · activa":"");
-    return '<span class="colector-chip'+(seleccion.indexOf(s.id)>=0?" on":"")+'" data-id="'+s.id+'">'+escapeHtml(etiqueta)+'</span>';
+    var numRegistros = state.registros.filter(function(r){return r.sesionId===s.id;}).length;
+    var puedeBorrar = numRegistros===0 && s.id!==state.sesionActivaId;
+    var borrarHtml = puedeBorrar ? ' <span class="chip-borrar" data-del="'+s.id+'" title="Eliminar sesión vacía">🗑</span>' : "";
+    return '<span class="colector-chip'+(seleccion.indexOf(s.id)>=0?" on":"")+'" data-id="'+s.id+'">'+escapeHtml(etiqueta)+borrarHtml+'</span>';
   }).join("");
   box.querySelectorAll(".colector-chip").forEach(function(c){
-    c.addEventListener("click", function(){ c.classList.toggle("on"); actualizarStatsExportar(); });
+    c.addEventListener("click", function(e){ if(e.target.classList.contains("chip-borrar")) return; c.classList.toggle("on"); actualizarStatsExportar(); });
+  });
+  box.querySelectorAll(".chip-borrar").forEach(function(x){
+    x.addEventListener("click", function(e){
+      e.stopPropagation();
+      var id = x.dataset.del;
+      var s = sesionPorId(id);
+      if(!confirm('¿Eliminar la sesión "'+(s.proyecto||"sin nombre")+'"? No tiene registros asociados. Esta acción no se puede deshacer.')) return;
+      state.sesiones = state.sesiones.filter(function(x){return x.id!==id;});
+      guardarListaSesiones();
+      renderExportar();
+      toast("Sesión eliminada");
+    });
   });
   actualizarStatsExportar();
 }
@@ -4212,7 +4281,7 @@ function exportarRespaldoJSON(){
   toast("Respaldo exportado");
 }
 document.getElementById("btn-export-json").addEventListener("click", exportarRespaldoJSON);
-document.getElementById("btn-descargar-json-lista").addEventListener("click", exportarRespaldoJSON);
+
 document.getElementById("input-import-json").addEventListener("change", function(e){
   var file = e.target.files[0]; if(!file) return;
   var reader = new FileReader();
@@ -4273,6 +4342,34 @@ document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   renderConfig();
 });
 
+
+/* ---------------- Deslizar para cambiar de pestaña ---------------- */
+(function(){
+  var navOrder = ["sesion","form","lista","exportar","config"];
+  var touchStartX=0, touchStartY=0, touchStartTarget=null;
+  document.addEventListener("touchstart", function(e){
+    if(e.touches.length!==1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTarget = e.target;
+  }, {passive:true});
+  document.addEventListener("touchend", function(e){
+    if(!touchStartTarget) return;
+    var t = touchStartTarget; touchStartTarget=null;
+    if(t.closest && (t.closest(".chipbar") || t.closest("select") || t.closest("input") || t.closest("textarea") || t.closest(".modal-bg.on"))) return;
+    var touch = e.changedTouches[0];
+    var dx = touch.clientX - touchStartX;
+    var dy = touch.clientY - touchStartY;
+    if(Math.abs(dx) < 70 || Math.abs(dy) > 60) return;
+    var idx = navOrder.indexOf(state.currentView);
+    if(idx<0) return;
+    if(dx<0 && idx < navOrder.length-1){
+      if(navOrder[idx+1]==="form") abrirRegistro(); else irA(navOrder[idx+1]);
+    } else if(dx>0 && idx>0){
+      if(navOrder[idx-1]==="form") abrirRegistro(); else irA(navOrder[idx-1]);
+    }
+  }, {passive:true});
+})();
 
 /* ---------------- Init ---------------- */
 var TEMAS = [{v:"", label:"☀️ Normal"}, {v:"sol", label:"🔆 Alto contraste (sol)"}, {v:"noche", label:"🌙 Modo oscuro"}];
