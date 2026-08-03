@@ -71,6 +71,10 @@ input,select,textarea{font-family:inherit; font-size:1.05rem; color:var(--texto)
 .topbar .ic{font-size:1.55rem;}
 .topbar h2{font-size:1.08rem; margin:0;}
 .topbar .sub{font-size:.74rem; opacity:.9; margin:0;}
+.topbar-hero{padding:20px 16px 22px;}
+.topbar-hero .ic{font-size:2.1rem;}
+.app-title{font-size:1.55rem; font-weight:800; margin:0 0 6px; color:#fff; letter-spacing:-.2px;}
+.wikitaxa-tag{display:inline-block; background:rgba(255,255,255,.2); color:#fff; font-size:.72rem; font-weight:700; padding:4px 11px; border-radius:20px; letter-spacing:.2px;}
 
 /* ---- Banner de registro en curso (dentro de Nuevo) ---- */
 .banner-curso{
@@ -104,6 +108,8 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .reg-meta{font-size:.8rem; color:var(--texto-sec); margin-top:3px;}
 .tag{display:inline-block; font-size:.66rem; font-weight:700; padding:2px 8px; border-radius:20px; background:var(--verde-cl); color:var(--verde-osc); text-transform:uppercase;}
 .card.nuevo-highlight{animation:flash 1.6s ease-out;}
+.card.card-draft{background:#fdf6e8; border:1.5px dashed var(--ambar); margin-top:14px;}
+.card.card-draft:active{background:#fbeecb;}
 @keyframes flash{0%{background:#d3ecd8;}100%{background:var(--card);}}
 .reg-actions{display:flex; flex-direction:column; gap:6px; flex-shrink:0;}
 .btn-icon{width:38px; height:38px; border-radius:9px; border:1.5px solid var(--borde); background:var(--fondo); font-size:1.1rem; display:flex; align-items:center; justify-content:center; cursor:pointer;}
@@ -230,7 +236,15 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
 <!-- ===================== SESIÓN ===================== -->
 <div class="screen on" id="s-sesion">
-  <div class="topbar"><div class="brand"><span class="ic">🧭</span><div><h2>Sesión de terreno</h2><p class="sub">Se autoguarda al escribir</p></div></div></div>
+  <div class="topbar topbar-hero">
+    <div class="brand">
+      <span class="ic">🔬</span>
+      <div>
+        <h1 class="app-title">Libreta de Campo</h1>
+        <span class="wikitaxa-tag">🧬 Proyecto WikiTaxa</span>
+      </div>
+    </div>
+  </div>
   <div class="pad">
     <div class="section-title">Datos generales de la salida</div>
     <div class="field"><label>Proyecto / campaña</label><input type="text" id="ss-proyecto" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
@@ -484,6 +498,7 @@ var TIPOS = {
 };
 
 var state = {
+  currentView: "sesion",
   sesion: {
     proyecto:"", objetivo:"", fechaIni:"", fechaFin:"", participantes:"",
     zona:"", paisaje:"", institucion:"", clima:"", notas:"",
@@ -639,10 +654,12 @@ function irA(view){
   var btn = document.querySelector('.navbtn[data-s="'+view+'"]'); if(btn) btn.classList.add("on");
   document.getElementById("savebar").classList.toggle("on", view==="form");
   document.getElementById("fab").style.display = (view==="lista") ? "flex" : "none";
+  state.currentView = view;
   if(view==="lista") renderLista();
   if(view==="sesion") renderSesion();
   if(view==="exportar") renderExportar();
   if(view==="config") renderConfig();
+  renderDraftPill();
   irSubirInicio();
 }
 function irSubirInicio(){
@@ -720,33 +737,44 @@ function renderLista(justSavedId){
   if(state.filtroTipo) lista = lista.filter(function(r){ return r.tipo===state.filtroTipo; });
   if(q) lista = lista.filter(function(r){ return [r.codigo,r.referencia,r.notas,(r.especies||[]).map(function(e){return e.nombre;}).join(" ")].join(" ").toLowerCase().indexOf(q)>=0; });
   var cont = document.getElementById("lista-registros");
-  if(lista.length===0){ cont.innerHTML = '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca el botón + para comenzar.</div>'; return; }
-  cont.innerHTML = lista.map(function(r){
-    var ti = TIPOS[r.tipo]||TIPOS.nota;
-    var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
-    return '<div class="card'+cls+'" data-id="'+r.id+'">'+
-      '<div class="reg-ic">'+ti.ic+'</div>'+
+  var htmlDraft = state.draft ? ('<div class="card card-draft" id="card-draft-pendiente">'+
+      '<div class="reg-ic" style="background:var(--ambar); color:#fff;">✏️</div>'+
       '<div class="reg-info" style="flex:1; min-width:0;">'+
-        '<div class="reg-title">'+escapeHtml(r.codigo)+' · '+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
-        '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(r.taxonLibre||r.referencia||"")+'</div>'+
-      '</div>'+
-      '<div class="reg-actions">'+
-        '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver / editar">👁</button>'+
-        '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
-      '</div></div>';
-  }).join("");
+        '<div class="reg-title">Registro en curso: '+escapeHtml(state.draft.codigo)+'</div>'+
+        '<div class="reg-meta">Toca para continuar y completarlo</div>'+
+      '</div><div class="reg-actions"><span class="btn-icon" style="border-color:var(--ambar); color:var(--ambar);">▸</span></div></div>') : "";
+  if(lista.length===0){
+    cont.innerHTML = '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca el botón + para comenzar.</div>' + htmlDraft;
+  } else {
+    cont.innerHTML = lista.map(function(r){
+      var ti = TIPOS[r.tipo]||TIPOS.nota;
+      var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
+      return '<div class="card'+cls+'" data-id="'+r.id+'">'+
+        '<div class="reg-ic">'+ti.ic+'</div>'+
+        '<div class="reg-info" style="flex:1; min-width:0;">'+
+          '<div class="reg-title">'+escapeHtml(r.codigo)+' · '+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
+          '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(r.taxonLibre||r.referencia||"")+'</div>'+
+        '</div>'+
+        '<div class="reg-actions">'+
+          '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver / editar">👁</button>'+
+          '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
+        '</div></div>';
+    }).join("") + htmlDraft;
+  }
   cont.querySelectorAll('.btn-icon[data-action="ver"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); editarRegistroExistente(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
-  cont.querySelectorAll(".card").forEach(function(c){ c.addEventListener("click", function(){ editarRegistroExistente(c.dataset.id); }); });
+  cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ editarRegistroExistente(c.dataset.id); }); });
+  var draftCard = document.getElementById("card-draft-pendiente");
+  if(draftCard) draftCard.addEventListener("click", function(){ cargarDraftEnFormulario(); irA("form"); });
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 document.getElementById("buscador").addEventListener("input", renderLista);
 
 /* ---------------- DRAFT (registro en curso) ---------------- */
 function renderDraftPill(){
-  var on = !!state.draft;
+  var on = !!state.draft && state.currentView === "form";
   document.getElementById("draftpill").classList.toggle("on", on);
-  if(on) document.getElementById("draft-codigo").textContent = state.draft.codigo;
+  if(state.draft) document.getElementById("draft-codigo").textContent = state.draft.codigo;
 }
 document.getElementById("btn-continuar-draft").addEventListener("click", function(){ cargarDraftEnFormulario(); irA("form"); });
 
