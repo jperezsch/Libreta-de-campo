@@ -125,6 +125,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .chip.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 .search{width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); font-size:1rem; margin-bottom:12px; color:var(--texto);}
 .empty{text-align:center; padding:50px 20px; color:var(--texto-sec); font-size:1rem;}
+.lista-footer-acciones{margin-top:22px; padding-top:16px; border-top:1px solid var(--borde);}
 .empty .ic{font-size:2.8rem; margin-bottom:10px;}
 
 .gpsbox{background:var(--verde-cl); border-radius:10px; padding:13px; font-size:.85rem; margin-bottom:8px; color:var(--texto-sec); transition:background .2s;}
@@ -208,14 +209,6 @@ html[data-tema="noche"] .especie-item .cant{color:var(--verde);}
 html[data-tema="noche"] .navbtn.on{color:var(--verde);}
 .navbtn.on .ic{background:var(--verde-cl);}
 .navbtn.on:before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:3px;background:var(--verde);border-radius:0 0 4px 4px;}
-
-/* ---- Botón flotante + (arrastrable) ---- */
-#fab{
-  position:fixed; width:64px; height:64px; border-radius:50%; background:var(--ambar); color:#fff;
-  font-size:2rem; display:flex; align-items:center; justify-content:center; border:none;
-  box-shadow:0 4px 14px rgba(0,0,0,.3); z-index:40; touch-action:none; user-select:none;
-}
-#fab:active{background:var(--ambar-osc);}
 
 /* ---- Modal genérico ---- */
 .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:80; display:none; align-items:flex-end; justify-content:center;}
@@ -310,6 +303,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
     <div class="chipbar" id="chipbar"></div>
     <div id="lista-registros"></div>
+    <div class="lista-footer-acciones">
+      <button type="button" class="btnfull btn-secondary" id="btn-descargar-fotos-pendientes">📥 Descargar fotos pendientes</button>
+      <button type="button" class="btnfull btn-amber" id="btn-finalizar-sesion">🏁 Finalizar sesión</button>
+    </div>
   </div>
 </div>
 
@@ -439,7 +436,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   <div class="pad">
     <div class="section-title">Preferencias</div>
     <div class="field"><label>Colector por defecto</label><input type="text" id="cfg-colector"></div>
-    <div class="switch-row"><div>Posición del botón +<span>Restablecer a la esquina inferior derecha</span></div><button class="btnfull btn-secondary" style="width:auto; margin:0; padding:8px 14px;" id="btn-reset-fab">Restablecer</button></div>
     <div class="section-title">Datos</div>
     <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros</button>
   </div>
@@ -453,7 +449,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   <button class="navbtn" data-s="config"><span class="ic">⚙️</span>Config</button>
 </div>
 
-<button id="fab" title="Agregar registro">+</button>
 
 <!-- Modal: confirmación de guardado de sesión -->
 <div class="modal-bg" id="modal-confirm-sesion">
@@ -726,7 +721,6 @@ function irA(view){
   document.getElementById("s-"+view).classList.add("on");
   var btn = document.querySelector('.navbtn[data-s="'+view+'"]'); if(btn) btn.classList.add("on");
   document.getElementById("savebar").classList.toggle("on", view==="form");
-  document.getElementById("fab").style.display = (view==="lista") ? "flex" : "none";
   state.currentView = view;
   if(view==="lista") renderLista();
   if(view==="sesion") renderSesion();
@@ -796,11 +790,23 @@ document.getElementById("ss-selector-sesion").addEventListener("change", functio
  ["ss-zona","dl-ss-zona","zona"],["ss-institucion","dl-ss-institucion","institucion"],["ss-prefijo","dl-ss-prefijo","prefijo"]].forEach(function(p){
   ligarSugerencia(p[0], p[1], p[2]);
 });
+function sincronizarCodigoDraftConSesion(){
+  if(!state.draft || state.draft._editando) return;
+  if(state.draft.sesionId !== state.sesionActivaId) return;
+  state.draft.codigo = proximoCodigo(sesionActiva());
+  guardarDraft();
+  if(state.currentView === "form"){
+    document.getElementById("f-codigo").value = state.draft.codigo;
+  }
+}
 Object.keys(SS_MAP).forEach(function(id){
   document.getElementById(id).addEventListener("input", function(){
     var s = sesionEnPantalla();
     s[SS_MAP[id]] = this.value;
-    if(id==="ss-prefijo") document.getElementById("ss-proximo").value = proximoCodigo(s);
+    if(id==="ss-prefijo"){
+      document.getElementById("ss-proximo").value = proximoCodigo(s);
+      if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
+    }
     guardarSesion();
   });
 });
@@ -812,6 +818,7 @@ document.getElementById("ss-inicio").addEventListener("input", function(){
   if(misRegistros.length===0) s.contador = v;
   document.getElementById("ss-proximo").value = proximoCodigo(s);
   guardarSesion();
+  if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
 });
 document.getElementById("btn-guardar-sesion").addEventListener("click", function(){
   guardarSesion();
@@ -919,6 +926,33 @@ function renderLista(justSavedId){
   if(draftCard) draftCard.addEventListener("click", function(){ cargarDraftEnFormulario(); irA("form"); });
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
+
+document.getElementById("btn-descargar-fotos-pendientes").addEventListener("click", function(){
+  var btn = this;
+  var pendientesPorRegistro = state.registros.filter(function(r){
+    return (r.fotos||[]).some(function(f){ return !f.descargada || f.nombreDescargado !== f.nombre; });
+  });
+  var totalFotos = pendientesPorRegistro.reduce(function(n,r){
+    return n + r.fotos.filter(function(f){ return !f.descargada || f.nombreDescargado !== f.nombre; }).length;
+  }, 0);
+  if(totalFotos===0){ toast("No hay fotos pendientes de descargar"); return; }
+  btn.disabled = true; btn.textContent = "📥 Descargando "+totalFotos+" foto(s)...";
+  var p = Promise.resolve();
+  pendientesPorRegistro.forEach(function(r){
+    p = p.then(function(){ return descargarFotosPendientes(r); });
+  });
+  p.then(function(){
+    guardarRegistros();
+    btn.disabled = false; btn.textContent = "📥 Descargar fotos pendientes";
+    toast("✅ "+totalFotos+" foto(s) descargadas a tu carpeta de Descargas");
+  });
+});
+
+document.getElementById("btn-finalizar-sesion").addEventListener("click", function(){
+  if(!confirm("¿Finalizar la sesión actual e iniciar una nueva?\n\nLos datos generales se limpiarán para la siguiente salida. Esta sesión y todos sus registros quedan guardados y accesibles desde el selector de la pestaña Sesión.")) return;
+  crearNuevaSalida();
+  irA("sesion");
+});
 document.getElementById("buscador").addEventListener("input", renderLista);
 
 function iniciarNuevoRegistro(){
@@ -1157,10 +1191,6 @@ function abrirRegistro(){
   if(!state.draft){ iniciarNuevoRegistro(); }
   else { cargarDraftEnFormulario(); irA("form"); }
 }
-document.getElementById("fab").addEventListener("click", function(e){
-  if(fab._arrastrado) { fab._arrastrado=false; return; }
-  abrirRegistro();
-});
 
 function editarRegistroExistente(id){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
@@ -1410,7 +1440,6 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     if(okE) toast("✅ Registro "+r.codigo+" actualizado");
     irA("lista");
     renderLista(r.id);
-    descargarFotosPendientes(r).then(function(){ guardarRegistros(); });
   } else {
     state.registros.push(r);
     var sAct = sesionActiva();
@@ -1420,7 +1449,6 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     if(ok) toast("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo());
     state.draft = null; guardarDraft();
     iniciarNuevoRegistro();
-    descargarFotosPendientes(r).then(function(){ guardarRegistros(); });
   }
 });
 
@@ -1534,46 +1562,7 @@ document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   if(!confirm("Esto eliminará todos los registros de esta prueba. ¿Continuar?")) return;
   state.registros = []; guardarRegistros(); toast("Registros eliminados"); renderConfig();
 });
-document.getElementById("btn-reset-fab").addEventListener("click", function(){
-  localStorage.removeItem(LSK.fab); posicionarFabDefault(); toast("Posición del botón restablecida");
-});
 
-/* ---------------- Botón flotante arrastrable ---------------- */
-var fab = document.getElementById("fab");
-function posicionarFabDefault(){
-  fab.style.right = "18px"; fab.style.bottom = "84px"; fab.style.left="auto"; fab.style.top="auto";
-}
-function cargarPosicionFab(){
-  try{
-    var p = JSON.parse(localStorage.getItem(LSK.fab));
-    if(p){ fab.style.left=p.left; fab.style.top=p.top; fab.style.right="auto"; fab.style.bottom="auto"; }
-    else posicionarFabDefault();
-  }catch(e){ posicionarFabDefault(); }
-}
-(function(){
-  var dragging=false, startX,startY, origLeft, origTop, moved=false;
-  function pos(el){ var r = el.getBoundingClientRect(); return {left:r.left, top:r.top}; }
-  fab.addEventListener("pointerdown", function(e){
-    dragging=true; moved=false; fab.setPointerCapture(e.pointerId);
-    var p = pos(fab); origLeft=p.left; origTop=p.top; startX=e.clientX; startY=e.clientY;
-  });
-  fab.addEventListener("pointermove", function(e){
-    if(!dragging) return;
-    var dx = e.clientX-startX, dy = e.clientY-startY;
-    if(Math.abs(dx)>6 || Math.abs(dy)>6) moved=true;
-    if(!moved) return;
-    var nl = Math.min(Math.max(origLeft+dx, 6), window.innerWidth-66);
-    var nt = Math.min(Math.max(origTop+dy, 30), window.innerHeight-130);
-    fab.style.left = nl+"px"; fab.style.top = nt+"px"; fab.style.right="auto"; fab.style.bottom="auto";
-  });
-  fab.addEventListener("pointerup", function(e){
-    dragging=false;
-    if(moved){
-      fab._arrastrado = true;
-      setLS(LSK.fab, JSON.stringify({left:fab.style.left, top:fab.style.top}));
-    }
-  });
-})();
 
 /* ---------------- Init ---------------- */
 var TEMAS = [{v:"", label:"☀️ Normal"}, {v:"sol", label:"🔆 Alto contraste (sol)"}, {v:"noche", label:"🌙 Modo oscuro"}];
@@ -1596,7 +1585,6 @@ function init(){
   document.getElementById("modal-confirm-sesion").classList.remove("on");
   aplicarTema(localStorage.getItem("libretacampo_tema") || "");
   cargar();
-  cargarPosicionFab();
   irA("sesion");
 }
 init();
