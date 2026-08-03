@@ -502,13 +502,20 @@ var state = {
 
 function uid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function pad(n,l){ n=String(n); while(n.length<l) n="0"+n; return n; }
-function toast(msg){
+function toast(msg, duracion){
   var t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
-  clearTimeout(toast._tm); toast._tm=setTimeout(function(){t.classList.remove("show");}, 2400);
+  clearTimeout(toast._tm); toast._tm=setTimeout(function(){t.classList.remove("show");}, duracion||2400);
 }
 function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 
 /* ---------------- Persistencia ---------------- */
+function setLS(key, value){
+  try{ localStorage.setItem(key, value); return true; }
+  catch(e){
+    toast("⚠️ Almacenamiento local lleno. Exporta un respaldo (.json) y libera espacio.", 5000);
+    return false;
+  }
+}
 function cargar(){
   try{ var s=JSON.parse(localStorage.getItem(LSK.ses)); if(s) state.sesion=s; }catch(e){}
   try{ var c=JSON.parse(localStorage.getItem(LSK.cfg)); if(c) state.config=c; }catch(e){}
@@ -516,10 +523,82 @@ function cargar(){
   try{ var h=JSON.parse(localStorage.getItem(LSK.hist)); if(h) state.historial=h; }catch(e){}
   try{ var d=JSON.parse(localStorage.getItem(LSK.draft)); if(d) state.draft=d; }catch(e){}
 }
-function guardarSesion(){ localStorage.setItem(LSK.ses, JSON.stringify(state.sesion)); }
-function guardarConfig(){ localStorage.setItem(LSK.cfg, JSON.stringify(state.config)); }
-function guardarRegistros(){ localStorage.setItem(LSK.reg, JSON.stringify(state.registros)); }
-function guardarDraft(){ if(state.draft) localStorage.setItem(LSK.draft, JSON.stringify(state.draft)); else localStorage.removeItem(LSK.draft); }
+function guardarSesion(){ return setLS(LSK.ses, JSON.stringify(state.sesion)); }
+function guardarConfig(){ return setLS(LSK.cfg, JSON.stringify(state.config)); }
+function guardarRegistros(){ return setLS(LSK.reg, JSON.stringify(state.registros)); }
+function guardarDraft(){ if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
+
+/* ---------------- Fotos: almacenamiento en IndexedDB (mucho más espacio que localStorage) ---------------- */
+var FOTOS_DB_NAME = "libretacampo_fotos_db", FOTOS_STORE = "fotos";
+var fotosDbPromise = null;
+var fotoCache = {}; // cache en memoria para la sesión actual, evita relecturas
+function abrirFotosDB(){
+  if(fotosDbPromise) return fotosDbPromise;
+  fotosDbPromise = new Promise(function(resolve, reject){
+    if(!window.indexedDB){ reject(new Error("IndexedDB no disponible")); return; }
+    var req = indexedDB.open(FOTOS_DB_NAME, 1);
+    req.onupgradeneeded = function(e){
+      var db = e.target.result;
+      if(!db.objectStoreNames.contains(FOTOS_STORE)) db.createObjectStore(FOTOS_STORE, {keyPath:"id"});
+    };
+    req.onsuccess = function(e){ resolve(e.target.result); };
+    req.onerror = function(e){ reject(e.target.error); };
+  });
+  return fotosDbPromise;
+}
+function guardarFotoDB(id, dataURL){
+  fotoCache[id] = dataURL;
+  return abrirFotosDB().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(FOTOS_STORE, "readwrite");
+      tx.objectStore(FOTOS_STORE).put({id:id, dataURL:dataURL});
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  });
+}
+function leerFotoDB(id){
+  if(fotoCache[id]) return Promise.resolve(fotoCache[id]);
+  return abrirFotosDB().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(FOTOS_STORE, "readonly");
+      var req = tx.objectStore(FOTOS_STORE).get(id);
+      req.onsuccess = function(){ var v = req.result ? req.result.dataURL : null; if(v) fotoCache[id]=v; resolve(v); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  });
+}
+function borrarFotoDB(id){
+  delete fotoCache[id];
+  return abrirFotosDB().then(function(db){
+    return new Promise(function(resolve){
+      var tx = db.transaction(FOTOS_STORE, "readwrite");
+      tx.objectStore(FOTOS_STORE).delete(id);
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ resolve(); };
+    });
+  }).catch(function(){});
+}
+function comprimirImagen(file, maxDim, calidad){
+  return new Promise(function(resolve, reject){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height;
+      var scale = Math.min(1, maxDim / Math.max(w,h));
+      var cw = Math.max(1, Math.round(w*scale)), ch = Math.max(1, Math.round(h*scale));
+      var canvas = document.createElement("canvas");
+      canvas.width = cw; canvas.height = ch;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, cw, ch);
+      URL.revokeObjectURL(url);
+      try{ resolve(canvas.toDataURL("image/jpeg", calidad)); }
+      catch(e){ reject(e); }
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("No se pudo procesar la imagen")); };
+    img.src = url;
+  });
+}
 
 /* ---------------- Historial de valores: sugerencias basadas en datos anteriores ---------------- */
 function recordarValor(campo, valor){
@@ -530,7 +609,7 @@ function recordarValor(campo, valor){
   if(idx>=0) arr.splice(idx,1);
   arr.unshift(valor);
   if(arr.length>15) arr.length = 15;
-  localStorage.setItem(LSK.hist, JSON.stringify(state.historial));
+  setLS(LSK.hist, JSON.stringify(state.historial));
 }
 function poblarSugerencias(datalistId, campo){
   var dl = document.getElementById(datalistId);
@@ -962,7 +1041,7 @@ function renderEspecies(){
   box.querySelectorAll(".x").forEach(function(x){ x.addEventListener("click", function(){ state.especiesTemp.splice(parseInt(x.dataset.i,10),1); renderEspecies(); sincronizarDraftDesdeFormulario(); }); });
 }
 
-/* ---------------- Fotos: captura + comentario inmediato + lightbox ---------------- */
+/* ---------------- Fotos: captura + comentario inmediato + lightbox (comprimidas, guardadas en IndexedDB) ---------------- */
 document.getElementById("btn-tomar-foto").addEventListener("click", function(){ document.getElementById("f-input-camara").click(); });
 document.getElementById("btn-galeria-foto").addEventListener("click", function(){ document.getElementById("f-input-galeria").click(); });
 
@@ -977,25 +1056,36 @@ document.getElementById("f-input-galeria").addEventListener("change", function(e
 function procesarSiguienteFoto(){
   if(colaFotos.length===0) return;
   var file = colaFotos.shift();
-  var reader = new FileReader();
-  reader.onload = function(e){
-    state.captionPending = {nombre:file.name, dataURL:e.target.result};
-    document.getElementById("caption-preview").src = e.target.result;
+  var nombreOriginal = file.name;
+  toast("Procesando foto...");
+  comprimirImagen(file, 1280, 0.72).then(function(dataURL){
+    state.captionPending = {nombre:nombreOriginal, dataURL:dataURL};
+    document.getElementById("caption-preview").src = dataURL;
     document.getElementById("caption-texto").value = "";
     document.getElementById("modal-caption").classList.add("on");
     document.getElementById("caption-texto").focus();
-  };
-  reader.readAsDataURL(file);
+  }).catch(function(){
+    toast("No se pudo procesar "+nombreOriginal+", se omite.");
+    procesarSiguienteFoto();
+  });
 }
 document.getElementById("btn-caption-guardar").addEventListener("click", function(){
   if(!state.captionPending) return;
-  state.fotosTemp.push({nombre: state.captionPending.nombre, dataURL: state.captionPending.dataURL, comentario: document.getElementById("caption-texto").value.trim()});
-  state.captionPending = null;
-  document.getElementById("modal-caption").classList.remove("on");
-  renderFotosTemp();
-  sincronizarDraftDesdeFormulario();
-  if(colaFotos.length>0) procesarSiguienteFoto();
-  else toast("Foto añadida a la lista del registro");
+  var id = uid();
+  var comentario = document.getElementById("caption-texto").value.trim();
+  var nombre = state.captionPending.nombre;
+  guardarFotoDB(id, state.captionPending.dataURL).then(function(){
+    state.fotosTemp.push({id:id, nombre:nombre, comentario:comentario});
+    state.captionPending = null;
+    document.getElementById("modal-caption").classList.remove("on");
+    renderFotosTemp();
+    sincronizarDraftDesdeFormulario();
+    if(colaFotos.length>0) procesarSiguienteFoto();
+    else toast("Foto añadida a la lista del registro");
+  }).catch(function(){
+    toast("No se pudo guardar la foto. Espacio insuficiente en el dispositivo.");
+    document.getElementById("modal-caption").classList.remove("on");
+  });
 });
 function cerrarModalCaption(){
   state.captionPending = null;
@@ -1008,8 +1098,14 @@ document.getElementById("modal-caption").addEventListener("click", function(e){ 
 function renderFotosTemp(){
   var box = document.getElementById("fotos-lista");
   box.innerHTML = state.fotosTemp.map(function(f,i){
-    return '<div class="foto-item" data-i="'+i+'"><img class="thumb" src="'+f.dataURL+'"><div class="info"><div class="name">'+escapeHtml(f.nombre)+'</div><div class="coment">'+escapeHtml(f.comentario||"(sin observación)")+'</div></div><span class="x" data-x="'+i+'">✕</span></div>';
+    return '<div class="foto-item" data-i="'+i+'"><img class="thumb" id="thumb-'+f.id+'" src=""><div class="info"><div class="name">'+escapeHtml(f.nombre)+'</div><div class="coment">'+escapeHtml(f.comentario||"(sin observación)")+'</div></div><span class="x" data-x="'+i+'">✕</span></div>';
   }).join("");
+  state.fotosTemp.forEach(function(f){
+    leerFotoDB(f.id).then(function(dataURL){
+      var img = document.getElementById("thumb-"+f.id);
+      if(img && dataURL) img.src = dataURL;
+    });
+  });
   box.querySelectorAll(".foto-item").forEach(function(it){
     it.addEventListener("click", function(e){
       if(e.target.classList.contains("x")) return;
@@ -1017,13 +1113,22 @@ function renderFotosTemp(){
     });
   });
   box.querySelectorAll(".x").forEach(function(x){
-    x.addEventListener("click", function(e){ e.stopPropagation(); state.fotosTemp.splice(parseInt(x.dataset.x,10),1); renderFotosTemp(); sincronizarDraftDesdeFormulario(); });
+    x.addEventListener("click", function(e){
+      e.stopPropagation();
+      var idx = parseInt(x.dataset.x,10);
+      var f = state.fotosTemp[idx];
+      if(f) borrarFotoDB(f.id);
+      state.fotosTemp.splice(idx,1);
+      renderFotosTemp();
+      sincronizarDraftDesdeFormulario();
+    });
   });
 }
 function abrirLightbox(i){
   state.lightboxIdx = i;
   var f = state.fotosTemp[i];
-  document.getElementById("lightbox-img").src = f.dataURL;
+  document.getElementById("lightbox-img").src = "";
+  leerFotoDB(f.id).then(function(dataURL){ if(dataURL) document.getElementById("lightbox-img").src = dataURL; });
   document.getElementById("lightbox-name").textContent = f.nombre;
   document.getElementById("lightbox-coment").value = f.comentario||"";
   document.getElementById("modal-lightbox").classList.add("on");
@@ -1046,6 +1151,8 @@ document.getElementById("modal-lightbox").addEventListener("click", function(e){
 });
 document.getElementById("btn-lightbox-eliminar").addEventListener("click", function(){
   if(state.lightboxIdx==null) return;
+  var f = state.fotosTemp[state.lightboxIdx];
+  if(f) borrarFotoDB(f.id);
   state.fotosTemp.splice(state.lightboxIdx,1);
   document.getElementById("modal-lightbox").classList.remove("on");
   renderFotosTemp();
@@ -1062,17 +1169,18 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   if(editando){
     var idx = state.registros.findIndex(function(x){ return x.id===r.id; });
     if(idx>=0) state.registros[idx] = r; else state.registros.push(r);
-    guardarRegistros();
+    var okE = guardarRegistros();
     state.draft = null; guardarDraft();
     renderDraftPill();
-    toast("✅ Registro "+r.codigo+" actualizado");
+    if(okE) toast("✅ Registro "+r.codigo+" actualizado");
     irA("lista");
     renderLista(r.id);
   } else {
     state.registros.push(r);
     state.sesion.contador = state.sesion.contador + 1;
-    guardarSesion(); guardarRegistros();
-    toast("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo());
+    guardarSesion();
+    var ok = guardarRegistros();
+    if(ok) toast("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo());
     state.draft = null; guardarDraft();
     iniciarNuevoRegistro();
   }
@@ -1192,7 +1300,7 @@ function cargarPosicionFab(){
     dragging=false;
     if(moved){
       fab._arrastrado = true;
-      localStorage.setItem(LSK.fab, JSON.stringify({left:fab.style.left, top:fab.style.top}));
+      setLS(LSK.fab, JSON.stringify({left:fab.style.left, top:fab.style.top}));
     }
   });
 })();
@@ -1203,7 +1311,7 @@ function aplicarTema(v){
   document.documentElement.setAttribute("data-tema", v||"");
   var t = TEMAS.filter(function(x){return x.v===v;})[0] || TEMAS[0];
   document.getElementById("temabtn").textContent = t.label;
-  localStorage.setItem("libretacampo_tema", v||"");
+  setLS("libretacampo_tema", v||"");
 }
 document.getElementById("temabtn").addEventListener("click", function(){
   var actual = localStorage.getItem("libretacampo_tema") || "";
