@@ -187,6 +187,11 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .colector-chip{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
 .colector-resumen{background:var(--verde-cl); color:var(--verde-osc); border-radius:10px; padding:11px 13px; font-size:.88rem; margin-bottom:8px;}
 .link-especificar{background:none; border:none; color:var(--azul); font-size:.82rem; padding:4px 0; text-decoration:underline; cursor:pointer;}
+.importado-item{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--borde); border-radius:10px; padding:12px 14px; margin-bottom:8px;}
+.importado-item input[type=checkbox]{width:19px; height:19px; flex-shrink:0;}
+.importado-item .info{flex:1; min-width:0;}
+.importado-item .nombre{font-size:.85rem; font-weight:700; color:var(--texto); word-break:break-all;}
+.importado-item .detalle{font-size:.76rem; color:var(--texto-sec); margin-top:2px;}
 .chip-borrar{color:var(--rojo); font-weight:800; margin-left:2px; padding:2px 4px;}
 .colector-chip.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 
@@ -368,28 +373,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           </select>
         </div>
         <div class="field"><label>Colector / observador</label><div id="colector-wrap"></div></div>
-        <div class="row2">
-          <div class="field"><label>Método</label>
-            <select id="f-metodo">
-              <option value="">—</option>
-              <option>Búsqueda directa</option><option>Cernido de hojarasca</option><option>Trampa pitfall</option>
-              <option>Trampa de luz</option><option>Red de golpeo (beating)</option><option>Red entomológica</option>
-              <option>Bajo rocas / troncos</option><option>Buceo / snorkel</option><option>Draga</option>
-              <option value="__otro__">Otro (especificar)</option>
-            </select>
-            <input type="text" id="f-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;">
-          </div>
-          <div class="field"><label>Hábitat</label>
-            <select id="f-habitat">
-              <option value="">—</option>
-              <option>Bosque siempreverde</option><option>Bosque esclerófilo</option><option>Matorral</option>
-              <option>Pradera / estepa</option><option>Intermareal rocoso</option><option>Intermareal arenoso</option>
-              <option>Submareal</option><option>Cuerpo de agua dulce</option><option>Urbano / antrópico</option>
-              <option value="__otro__">Otro (especificar)</option>
-            </select>
-            <input type="text" id="f-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
-          </div>
-        </div>
         <div id="bloque-especifico"></div>
       </div>
     </div>
@@ -413,7 +396,17 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
     </div>
-    <div class="field" style="margin-top:14px;"><label>Microhábitat</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+    <div class="field" style="margin-top:14px;"><label>Hábitat</label>
+      <select id="f-habitat">
+        <option value="">—</option>
+        <option>Bosque siempreverde</option><option>Bosque esclerófilo</option><option>Matorral</option>
+        <option>Pradera / estepa</option><option>Intermareal rocoso</option><option>Intermareal arenoso</option>
+        <option>Submareal</option><option>Cuerpo de agua dulce</option><option>Urbano / antrópico</option>
+        <option value="__otro__">Otro (especificar)</option>
+      </select>
+      <input type="text" id="f-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
+    </div>
+    <div class="field"><label>Microhábitat</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
 
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
     <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
@@ -435,6 +428,17 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <input type="file" id="f-input-galeria" accept="image/*" multiple style="display:none;">
     <div id="fotos-lista"></div>
 
+    <div class="field" style="margin-top:14px;"><label>Método</label>
+      <select id="f-metodo">
+        <option value="">—</option>
+        <option>Búsqueda directa</option><option>Cernido de hojarasca</option><option>Trampa pitfall</option>
+        <option>Trampa de luz</option><option>Red de golpeo (beating)</option><option>Red entomológica</option>
+        <option>Bajo rocas / troncos</option><option>Buceo / snorkel</option><option>Draga</option>
+        <option value="__otro__">Otro (especificar)</option>
+      </select>
+      <input type="text" id="f-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;">
+    </div>
+
     <div class="section-title"><span class="n">📝</span>Notas</div>
     <div class="field"><textarea id="f-notas" placeholder="Observaciones adicionales..."></textarea></div>
     <div style="height:16px;"></div>
@@ -455,8 +459,13 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx">📊 Generar planilla Excel (.xlsx)</button>
     <div class="section-title">Respaldo de datos</div>
     <button type="button" class="btnfull btn-secondary" id="btn-export-json">⬇️ Exportar respaldo completo (.json)</button>
-    <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo (.json)</label>
-    <input type="file" id="input-import-json" accept="application/json" style="display:none;">
+    <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar uno o más respaldos (.json)</label>
+    <input type="file" id="input-import-json" accept="application/json" multiple style="display:none;">
+    <div id="importados-lista"></div>
+    <div id="importados-acciones" style="display:none;">
+      <button type="button" class="btnfull btn-primary" id="btn-importar-seleccionados">📲 Importar seleccionados a esta app</button>
+      <button type="button" class="btnfull btn-secondary" id="btn-descargar-unificado">💾 Descargar respaldo unificado (.json)</button>
+    </div>
   </div>
 </div>
 
@@ -3419,7 +3428,10 @@ document.getElementById("btn-nueva-salida").addEventListener("click", function()
 function renderChips(){
   var box = document.getElementById("chipbar");
   var html = '<div class="chip'+(state.filtroTipo===""?" on":"")+'" data-t="">Todos</div>';
-  Object.keys(TIPOS).forEach(function(k){ html += '<div class="chip'+(state.filtroTipo===k?" on":"")+'" data-t="'+k+'">'+TIPOS[k].ic+' '+TIPOS[k].label+'</div>'; });
+  Object.keys(TIPOS).forEach(function(k){
+    if(k==="conteo") return;
+    html += '<div class="chip'+(state.filtroTipo===k?" on":"")+'" data-t="'+k+'">'+TIPOS[k].ic+' '+TIPOS[k].label+'</div>';
+  });
   box.innerHTML = html;
   box.querySelectorAll(".chip").forEach(function(c){ c.addEventListener("click", function(){ state.filtroTipo=c.dataset.t; renderLista(); }); });
 }
@@ -3795,7 +3807,8 @@ function actualizarResumenDg(){
 
 /* ---------------- Colector: por defecto todos los participantes; permite especificar solo algunos ---------------- */
 function listaParticipantes(){
-  var s = sesionActiva();
+  var sid = (state.draft && state.draft.sesionId) || state.sesionActivaId;
+  var s = sesionPorId(sid);
   return (s && s.participantes || "").split(",").map(function(s){return s.trim();}).filter(Boolean);
 }
 function esSeleccionTodos(seleccion, participantes){
@@ -3815,7 +3828,7 @@ function renderColectorWrap(seleccionActual){
   var seleccion = (seleccionActual||"").split(",").map(function(s){return s.trim();}).filter(Boolean);
   if(esSeleccionTodos(seleccion, participantes)){
     wrap.innerHTML = '<div class="colector-resumen">👥 Todos los participantes: <b>'+escapeHtml(participantes.join(", "))+'</b></div>'+
-      '<button type="button" class="link-especificar" id="btn-especificar-colector">✎ Especificar que fue solo uno o algunos</button>';
+      '<button type="button" class="link-especificar" id="btn-especificar-colector">✎ Redefinir colector(es)</button>';
     document.getElementById("btn-especificar-colector").addEventListener("click", function(){
       renderColectorChips(participantes, []);
       sincronizarDraftDesdeFormulario(); actualizarResumenDg();
@@ -4329,34 +4342,92 @@ function exportarRespaldoJSON(){
 }
 document.getElementById("btn-export-json").addEventListener("click", exportarRespaldoJSON);
 
+var archivosImportados = []; // {nombre, sesiones:[], registros:[], seleccionado:true, valido:true}
+
 document.getElementById("input-import-json").addEventListener("change", function(e){
-  var file = e.target.files[0]; if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(evt){
-    try{
-      var data = JSON.parse(evt.target.result);
-      if(data.sesiones){
-        // Formato nuevo (multi-sesión): fusiona sin duplicar por id
-        var existentes = {}; state.sesiones.forEach(function(s){ existentes[s.id]=true; });
-        data.sesiones.forEach(function(s){ if(!existentes[s.id]) state.sesiones.push(s); });
-        if(data.sesionActivaId && sesionPorId(data.sesionActivaId)) state.sesionActivaId = data.sesionActivaId;
-      } else if(data.sesion){
-        // Formato antiguo (una sola sesión): se agrega como sesión archivada nueva
-        var migrada = Object.assign(sesionVacia(), data.sesion, {archivada:true});
-        state.sesiones.push(migrada);
-        if(data.registros) data.registros.forEach(function(r){ if(!r.sesionId) r.sesionId = migrada.id; });
-      }
-      if(data.registros){
-        var idsExistentes = {}; state.registros.forEach(function(r){ idsExistentes[r.id]=true; });
-        var agregados = 0;
-        data.registros.forEach(function(r){ if(!idsExistentes[r.id]){ state.registros.push(r); agregados++; } });
-      }
-      state.sesionEnPantallaId = state.sesionActivaId;
-      guardarListaSesiones(); guardarRegistros(); setLS(LSK.act, state.sesionActivaId);
-      toast("Respaldo importado"); renderExportar();
-    }catch(err){ toast("Archivo inválido"); }
-  };
-  reader.readAsText(file); e.target.value="";
+  var files = Array.prototype.slice.call(e.target.files||[]);
+  if(files.length===0) return;
+  var promesas = files.map(function(file){
+    return new Promise(function(resolve){
+      var reader = new FileReader();
+      reader.onload = function(evt){
+        try{
+          var data = JSON.parse(evt.target.result);
+          var sesiones, registros = data.registros || [];
+          if(data.sesiones){
+            sesiones = data.sesiones;
+          } else if(data.sesion){
+            var migrada = Object.assign(sesionVacia(), data.sesion, {archivada:true});
+            sesiones = [migrada];
+            registros.forEach(function(r){ if(!r.sesionId) r.sesionId = migrada.id; });
+          } else {
+            sesiones = [];
+          }
+          resolve({nombre:file.name, sesiones:sesiones, registros:registros, seleccionado:true, valido:true});
+        }catch(err){
+          resolve({nombre:file.name, valido:false});
+        }
+      };
+      reader.readAsText(file);
+    });
+  });
+  Promise.all(promesas).then(function(resultados){
+    resultados.forEach(function(r){
+      if(r.valido) archivosImportados.push(r);
+      else toast('"'+r.nombre+'" no es un respaldo válido, se omitió');
+    });
+    renderImportados();
+  });
+  e.target.value = "";
+});
+
+function renderImportados(){
+  var box = document.getElementById("importados-lista");
+  var acciones = document.getElementById("importados-acciones");
+  if(archivosImportados.length===0){ box.innerHTML=""; acciones.style.display="none"; return; }
+  acciones.style.display = "block";
+  box.innerHTML = archivosImportados.map(function(a, i){
+    return '<div class="importado-item"><input type="checkbox" data-i="'+i+'"'+(a.seleccionado?" checked":"")+'>'+
+      '<div class="info"><div class="nombre">'+escapeHtml(a.nombre)+'</div><div class="detalle">'+a.sesiones.length+' sesión(es) · '+a.registros.length+' registro(s)</div></div></div>';
+  }).join("");
+  box.querySelectorAll("input[type=checkbox]").forEach(function(chk){
+    chk.addEventListener("change", function(){ archivosImportados[parseInt(chk.dataset.i,10)].seleccionado = chk.checked; });
+  });
+}
+
+function combinarConSeleccionados(){
+  var sesionesComb = state.sesiones.slice();
+  var registrosComb = state.registros.slice();
+  var idsSes = {}; sesionesComb.forEach(function(s){ idsSes[s.id]=true; });
+  var idsReg = {}; registrosComb.forEach(function(r){ idsReg[r.id]=true; });
+  archivosImportados.filter(function(a){return a.seleccionado;}).forEach(function(a){
+    a.sesiones.forEach(function(s){ if(!idsSes[s.id]){ sesionesComb.push(s); idsSes[s.id]=true; } });
+    a.registros.forEach(function(r){ if(!idsReg[r.id]){ registrosComb.push(r); idsReg[r.id]=true; } });
+  });
+  return {sesiones:sesionesComb, registros:registrosComb};
+}
+
+document.getElementById("btn-importar-seleccionados").addEventListener("click", function(){
+  var combinado = combinarConSeleccionados();
+  var agregadasSes = combinado.sesiones.length - state.sesiones.length;
+  var agregadosReg = combinado.registros.length - state.registros.length;
+  state.sesiones = combinado.sesiones;
+  state.registros = combinado.registros;
+  guardarListaSesiones(); guardarRegistros();
+  archivosImportados = [];
+  renderImportados();
+  toast("Importado: "+agregadasSes+" sesión(es) y "+agregadosReg+" registro(s) nuevos");
+  renderExportar();
+});
+
+document.getElementById("btn-descargar-unificado").addEventListener("click", function(){
+  var combinado = combinarConSeleccionados();
+  var data = {sesiones:combinado.sesiones, sesionActivaId:state.sesionActivaId, registros:combinado.registros};
+  var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+  var url = URL.createObjectURL(blob); var a = document.createElement("a");
+  a.href=url; a.download="LibretaDeCampo_respaldo_unificado_"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast("Respaldo unificado descargado");
 });
 
 /* ---------------- Config ---------------- */
