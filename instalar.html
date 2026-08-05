@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Instalar Libreta de Campo · WikiTaxa</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2d5f3f">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --verde:#2d5f3f; --verde-osc:#1e4029; --verde-cl:#e8f1ea;
+  --ambar:#c9962c; --fondo:#f7f5f0; --card:#ffffff;
+  --texto:#2b2b28; --texto-sec:#6b6b64; --borde:#dedad0; --rojo:#b5473a;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--fondo); color:var(--texto); padding:20px 16px 40px; line-height:1.5;
+}
+.wrap{max-width:480px; margin:0 auto;}
+.brand{display:flex; align-items:center; gap:10px; margin-bottom:20px;}
+.brand .ic{font-size:2rem;}
+.brand h1{font-size:1.3rem; margin:0; color:var(--verde-osc);}
+.brand p{font-size:.78rem; margin:2px 0 0; color:var(--texto-sec);}
+
+.aviso{
+  background:#fdeee9; border:1.5px solid #f0b9a3; border-radius:14px; padding:16px;
+  margin-bottom:20px; display:none;
+}
+.aviso.on{display:block;}
+.aviso b{display:block; color:#8a3a1f; font-size:.95rem; margin-bottom:6px;}
+.aviso p{margin:0; font-size:.88rem; color:#8a3a1f;}
+
+.card{
+  background:var(--card); border:1px solid var(--borde); border-radius:16px;
+  padding:20px; margin-bottom:16px;
+}
+.card.oculto{display:none;}
+.card h2{font-size:1rem; margin:0 0 12px; color:var(--verde-osc); display:flex; align-items:center; gap:8px;}
+.paso{display:flex; gap:12px; margin-bottom:12px; font-size:.9rem;}
+.paso:last-child{margin-bottom:0;}
+.num{
+  flex-shrink:0; width:24px; height:24px; border-radius:50%; background:var(--verde); color:#fff;
+  font-size:.78rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+}
+
+.btn-abrir{
+  display:block; width:100%; padding:16px; border-radius:14px; background:var(--verde); color:#fff;
+  text-align:center; font-weight:700; font-size:1.05rem; text-decoration:none; margin:24px 0 10px;
+  box-shadow:0 4px 14px rgba(45,95,63,.3);
+}
+.btn-abrir:active{background:var(--verde-osc);}
+.nota-btn{text-align:center; font-size:.78rem; color:var(--texto-sec); margin-bottom:24px;}
+
+.selector-os{display:flex; gap:8px; margin-bottom:16px;}
+.selector-os button{
+  flex:1; padding:10px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card);
+  color:var(--texto-sec); font-size:.85rem; font-weight:700; cursor:pointer;
+}
+.selector-os button.on{background:var(--verde); color:#fff; border-color:var(--verde);}
+
+.btn-instalar-directo{
+  width:100%; display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:16px;
+  background:linear-gradient(135deg,#2d5f3f,#1e4029); color:#fff; border:none; cursor:pointer;
+  box-shadow:0 6px 18px rgba(45,95,63,.35); margin-bottom:14px; text-align:left;
+}
+.btn-instalar-directo .ic{font-size:1.6rem; flex-shrink:0;}
+.btn-instalar-directo .t1{display:block; font-size:1.05rem; font-weight:700;}
+.btn-instalar-directo .t2{display:block; font-size:.76rem; opacity:.85; margin-top:2px;}
+.btn-instalar-directo:active{transform:scale(.98);}
+
+.exito-instalacion{
+  background:var(--verde-cl); color:var(--verde-osc); border-radius:14px; padding:16px;
+  text-align:center; font-weight:700; margin-bottom:14px;
+}
+
+.separador-o{text-align:center; font-size:.78rem; color:var(--texto-sec); margin:4px 0 16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <span class="ic">🔬</span>
+    <div><h1>Libreta de Campo</h1><p>🧬 Proyecto WikiTaxa</p></div>
+  </div>
+
+  <div class="aviso" id="aviso-webview">
+    <b>⚠️ Estás dentro de otra app</b>
+    <p>Parece que abriste este enlace desde WhatsApp, Instagram u otra app de mensajería. Esas apps no permiten instalar aplicaciones web. Busca el menú (⋮ o •••) arriba de la pantalla y toca <b>"Abrir en el navegador"</b> o <b>"Abrir en Chrome/Safari"</b> antes de seguir.</p>
+  </div>
+
+  <button type="button" class="btn-instalar-directo" id="btn-instalar-directo" style="display:none;">
+    <span class="ic">⬇️</span>
+    <span><span class="t1">Instalar ahora</span><span class="t2">Un toque, sin pasos extra</span></span>
+  </button>
+  <div class="exito-instalacion" id="exito-instalacion" style="display:none;">
+    ✅ ¡Listo! Búscala en tu pantalla de inicio.
+  </div>
+
+  <div class="separador-o" id="separador-o" style="display:none;">o instala siguiendo estos pasos:</div>
+
+  <div class="selector-os" id="selector-os-wrap">
+    <button type="button" class="os-btn" id="btn-ios">📱 iPhone</button>
+    <button type="button" class="os-btn" id="btn-android">🤖 Android</button>
+  </div>
+
+  <div class="card" id="card-ios">
+    <h2>Instalar en iPhone (Safari)</h2>
+    <div class="paso"><span class="num">1</span>Abre este enlace con <b>Safari</b> (no funciona igual en Chrome en iPhone).</div>
+    <div class="paso"><span class="num">2</span>Toca el ícono de <b>compartir</b> (el cuadrado con la flecha hacia arriba), abajo de la pantalla.</div>
+    <div class="paso"><span class="num">3</span>Busca y toca <b>"Agregar a pantalla de inicio"</b>.</div>
+    <div class="paso"><span class="num">4</span>Confirma tocando <b>"Agregar"</b> arriba a la derecha. Listo, queda con ícono propio.</div>
+  </div>
+
+  <div class="card" id="card-android">
+    <h2>Instalar en Android (Chrome)</h2>
+    <div class="paso"><span class="num">1</span>Abre este enlace con <b>Chrome</b>.</div>
+    <div class="paso"><span class="num">2</span>Espera unos segundos — a veces aparece solo un aviso abajo diciendo "Instalar app". Si aparece, tócalo y listo.</div>
+    <div class="paso"><span class="num">3</span>Si no aparece solo: toca el menú (⋮, tres puntos arriba a la derecha).</div>
+    <div class="paso"><span class="num">4</span>Busca y toca <b>"Instalar app"</b> o <b>"Agregar a pantalla de inicio"</b>, y confirma.</div>
+  </div>
+
+  <a class="btn-abrir" href="./index.html">📱 Abrir la Libreta de Campo</a>
+  <div class="nota-btn">Una vez que sigas los pasos de arriba, este botón te lleva a la app para instalarla.</div>
+
+</div>
+
+<script>
+(function(){
+  var ua = navigator.userAgent || "";
+  var esIOS = /iPad|iPhone|iPod/i.test(ua);
+  var esAndroid = /Android/i.test(ua);
+  var enWebview = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|WhatsApp|; wv\)/i.test(ua);
+
+  if(enWebview){ document.getElementById("aviso-webview").classList.add("on"); }
+
+  function mostrarOS(os){
+    document.getElementById("card-ios").classList.toggle("oculto", os!=="ios");
+    document.getElementById("card-android").classList.toggle("oculto", os!=="android");
+    document.getElementById("btn-ios").classList.toggle("on", os==="ios");
+    document.getElementById("btn-android").classList.toggle("on", os==="android");
+  }
+  document.getElementById("btn-ios").addEventListener("click", function(){ mostrarOS("ios"); });
+  document.getElementById("btn-android").addEventListener("click", function(){ mostrarOS("android"); });
+
+  mostrarOS(esIOS ? "ios" : "android");
+
+  /* ---- Registrar el service worker también desde esta página ----
+     Es necesario para que el navegador evalúe esta página como instalable
+     y ofrezca el evento de instalación directa (solo existe en Android/Chrome). */
+  if("serviceWorker" in navigator && location.protocol === "https:"){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  }
+
+  /* ---- Instalación directa (Android/Chrome y similares) ---- */
+  var promptGuardado = null;
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault();
+    promptGuardado = e;
+    document.getElementById("btn-instalar-directo").style.display = "flex";
+    document.getElementById("separador-o").style.display = "block";
+  });
+
+  document.getElementById("btn-instalar-directo").addEventListener("click", function(){
+    if(!promptGuardado) return;
+    var btn = this;
+    btn.disabled = true;
+    promptGuardado.prompt();
+    promptGuardado.userChoice.then(function(resultado){
+      btn.disabled = false;
+      if(resultado.outcome === "accepted"){
+        btn.style.display = "none";
+        document.getElementById("separador-o").style.display = "none";
+        document.getElementById("card-ios").style.display = "none";
+        document.getElementById("card-android").style.display = "none";
+        document.getElementById("selector-os-wrap").style.display = "none";
+        document.getElementById("exito-instalacion").style.display = "block";
+      }
+      promptGuardado = null;
+    });
+  });
+
+  window.addEventListener("appinstalled", function(){
+    document.getElementById("btn-instalar-directo").style.display = "none";
+    document.getElementById("exito-instalacion").style.display = "block";
+  });
+})();
+</script>
+</body>
+</html>
