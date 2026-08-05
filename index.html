@@ -185,6 +185,8 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .dg-box.abierto .dg-body{display:block;}
 .dg-box .field label{color:var(--texto-sec);}
 .colector-chip{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
+.colector-resumen{background:var(--verde-cl); color:var(--verde-osc); border-radius:10px; padding:11px 13px; font-size:.88rem; margin-bottom:8px;}
+.link-especificar{background:none; border:none; color:var(--azul); font-size:.82rem; padding:4px 0; text-decoration:underline; cursor:pointer;}
 .chip-borrar{color:var(--rojo); font-weight:800; margin-left:2px; padding:2px 4px;}
 .colector-chip.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 
@@ -327,7 +329,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   <div class="pad">
     <div class="field"><label>Sesión</label><select id="lista-selector-sesion"></select></div>
     <div class="vista-toggle">
-      <button type="button" class="vista-btn on" id="btn-vista-tarjetas">📋 Tarjetas</button>
+      <button type="button" class="vista-btn on" id="btn-vista-tarjetas">📋 Lista</button>
       <button type="button" class="vista-btn" id="btn-vista-narrativa">📖 Libreta</button>
     </div>
     <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
@@ -388,16 +390,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
             <input type="text" id="f-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
           </div>
         </div>
-        <div class="row2">
-          <div class="field"><label>Sustrato / microhábitat</label><input type="text" id="f-sustrato" list="dl-sustrato"><datalist id="dl-sustrato"></datalist></div>
-          <div class="field"><label>Condición / conservación</label>
-            <select id="f-condicion">
-              <option value="">—</option>
-              <option>Vivo / liberado</option><option>Preservado en etanol</option><option>Preservado en seco</option>
-              <option>Muestra de tejido</option><option>Fotografiado (sin colecta)</option><option>Muerto / hallado</option>
-            </select>
-          </div>
-        </div>
         <div id="bloque-especifico"></div>
       </div>
     </div>
@@ -426,6 +418,13 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
     <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
+    <div class="field"><label>Condición / conservación</label>
+      <select id="f-condicion">
+        <option value="">—</option>
+        <option>Vivo / liberado</option><option>Preservado en etanol</option><option>Preservado en seco</option>
+        <option>Muestra de tejido</option><option>Fotografiado (sin colecta)</option><option>Muerto / hallado</option>
+      </select>
+    </div>
 
     <div class="section-title"><span class="n">📷</span>Fotografías</div>
     <div class="foto-btns">
@@ -3465,7 +3464,13 @@ function obtenerListaFiltrada(){
   var lista = state.registros.slice().sort(function(a,b){ return a.codigo.localeCompare(b.codigo, undefined, {numeric:true}); });
   if(state.filtroSesionLista) lista = lista.filter(function(r){ return r.sesionId===state.filtroSesionLista; });
   if(state.filtroTipo) lista = lista.filter(function(r){ return r.tipo===state.filtroTipo; });
-  if(q) lista = lista.filter(function(r){ return [r.codigo,r.referencia,r.notas,(r.especies||[]).map(function(e){return e.nombre;}).join(" ")].join(" ").toLowerCase().indexOf(q)>=0; });
+  if(q) lista = lista.filter(function(r){
+    var textoBusqueda = [
+      r.codigo, r.taxonLibre, r.referencia, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
+      (r.especies||[]).map(function(e){return e.nombre;}).join(" ")
+    ].join(" ").toLowerCase();
+    return textoBusqueda.indexOf(q)>=0;
+  });
   return lista;
 }
 function renderLista(justSavedId){
@@ -3691,7 +3696,6 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-tipo").value = d.tipo;
   document.getElementById("f-notas").value = d.notas;
   document.getElementById("f-nind").value = d.nind || "";
-  document.getElementById("f-sustrato").value = d.sustrato || "";
   document.getElementById("f-condicion").value = d.condicion || "";
   document.getElementById("f-taxon-libre").value = d.taxonLibre || "";
   setSelectOtro("f-metodo","f-metodo-otro", d.metodo);
@@ -3707,7 +3711,6 @@ function cargarDraftEnFormulario(){
   document.getElementById("btn-toggle-manual").classList.remove("abierto");
   actualizarGpsBox();
   actualizarResumenDg();
-  poblarSugerencias("dl-sustrato","sustrato");
   poblarSugerencias("dl-taxon","taxonLibre");
   poblarSugerencias("dl-referencia","referencia");
   actualizarBannerSesionRegistro();
@@ -3754,7 +3757,6 @@ function sincronizarDraftDesdeFormulario(){
   d.metodo = valorSelectOtro("f-metodo","f-metodo-otro");
   d.condicion = document.getElementById("f-condicion").value;
   d.habitat = valorSelectOtro("f-habitat","f-habitat-otro");
-  d.sustrato = document.getElementById("f-sustrato").value.trim();
   if(document.getElementById("f-unidad")) d.unidad = document.getElementById("f-unidad").value.trim();
   if(document.getElementById("f-esfuerzo")) d.esfuerzo = document.getElementById("f-esfuerzo").value.trim();
   if(document.getElementById("f-variable")) d.variable = document.getElementById("f-variable").value.trim();
@@ -3765,11 +3767,10 @@ function sincronizarDraftDesdeFormulario(){
   d.especies = state.especiesTemp.slice();
   guardarDraft();
 }
-["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-notas","f-nind","f-sustrato","f-condicion","f-taxon-libre"].forEach(function(id){
+["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-notas","f-nind","f-condicion","f-taxon-libre"].forEach(function(id){
   document.getElementById(id).addEventListener("input", sincronizarDraftDesdeFormulario);
 });
 document.getElementById("f-tipo").addEventListener("change", function(){ renderBloqueEspecifico(); sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
-ligarSugerencia("f-sustrato","dl-sustrato","sustrato");
 ligarSugerencia("f-taxon-libre","dl-taxon","taxonLibre");
 ligarSugerencia("f-referencia","dl-referencia","referencia");
 
@@ -3792,10 +3793,15 @@ function actualizarResumenDg(){
   document.getElementById("dg-resumen").textContent = ti.ic+" "+ti.label+" · "+colectorTxt;
 }
 
-/* ---------------- Colector: prellenado o selección múltiple según participantes ---------------- */
+/* ---------------- Colector: por defecto todos los participantes; permite especificar solo algunos ---------------- */
 function listaParticipantes(){
   var s = sesionActiva();
   return (s && s.participantes || "").split(",").map(function(s){return s.trim();}).filter(Boolean);
+}
+function esSeleccionTodos(seleccion, participantes){
+  if(seleccion.length===0) return true;
+  if(seleccion.length!==participantes.length) return false;
+  return participantes.every(function(p){ return seleccion.indexOf(p)>=0; });
 }
 function renderColectorWrap(seleccionActual){
   var participantes = listaParticipantes();
@@ -3804,20 +3810,38 @@ function renderColectorWrap(seleccionActual){
     var valor = participantes.length===1 ? participantes[0] : (seleccionActual || "");
     wrap.innerHTML = '<input type="text" id="f-colector-input" value="'+escapeHtml(valor)+'">';
     document.getElementById("f-colector-input").addEventListener("input", function(){ sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
+    return;
+  }
+  var seleccion = (seleccionActual||"").split(",").map(function(s){return s.trim();}).filter(Boolean);
+  if(esSeleccionTodos(seleccion, participantes)){
+    wrap.innerHTML = '<div class="colector-resumen">👥 Todos los participantes: <b>'+escapeHtml(participantes.join(", "))+'</b></div>'+
+      '<button type="button" class="link-especificar" id="btn-especificar-colector">✎ Especificar que fue solo uno o algunos</button>';
+    document.getElementById("btn-especificar-colector").addEventListener("click", function(){
+      renderColectorChips(participantes, []);
+      sincronizarDraftDesdeFormulario(); actualizarResumenDg();
+    });
   } else {
-    var seleccion = (seleccionActual||"").split(",").map(function(s){return s.trim();}).filter(Boolean);
+    renderColectorChips(participantes, seleccion);
+  }
+  function renderColectorChips(participantes, seleccion){
     wrap.innerHTML = participantes.map(function(p){
       return '<span class="colector-chip'+(seleccion.indexOf(p)>=0?" on":"")+'" data-p="'+escapeHtml(p)+'">'+escapeHtml(p)+'</span>';
-    }).join("") + '<input type="text" id="f-colector-otro" placeholder="Otro / adicional" style="margin-top:8px;" value="'+escapeHtml(seleccion.filter(function(s){return participantes.indexOf(s)<0;}).join(", "))+'">';
+    }).join("") + '<input type="text" id="f-colector-otro" placeholder="Otro / adicional" style="margin-top:8px;" value="'+escapeHtml(seleccion.filter(function(s){return participantes.indexOf(s)<0;}).join(", "))+'">'+
+      '<button type="button" class="link-especificar" id="btn-todos-colector">↩ Fueron todos los participantes</button>';
     wrap.querySelectorAll(".colector-chip").forEach(function(c){
       c.addEventListener("click", function(){ c.classList.toggle("on"); sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
     });
     document.getElementById("f-colector-otro").addEventListener("input", function(){ sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
+    document.getElementById("btn-todos-colector").addEventListener("click", function(){
+      renderColectorWrap("");
+      sincronizarDraftDesdeFormulario(); actualizarResumenDg();
+    });
   }
 }
 function obtenerColectorSeleccionado(){
   var input = document.getElementById("f-colector-input");
   if(input) return input.value.trim();
+  if(document.querySelector(".colector-resumen")) return listaParticipantes().join(", ");
   var chips = document.querySelectorAll(".colector-chip.on");
   var otro = document.getElementById("f-colector-otro");
   var partes = Array.prototype.map.call(chips, function(c){ return c.dataset.p; });
