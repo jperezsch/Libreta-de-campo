@@ -1,7 +1,7 @@
 // Service Worker de Libreta de Campo (WikiTaxa)
 // Estrategia: network-first, con caché como respaldo solo si no hay conexión.
 // Así los cambios nuevos se ven de inmediato en cuanto hay internet.
-var CACHE_NAME = "libreta-campo-v3";
+var CACHE_NAME = "libreta-campo-v4";
 var ARCHIVOS = [
   "./",
   "./index.html",
