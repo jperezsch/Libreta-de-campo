@@ -140,6 +140,8 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .narr-codigo{font-family:ui-monospace,monospace; font-weight:800; color:var(--verde-osc); font-size:.9rem;}
 .narr-tipo{font-size:.78rem; color:var(--texto-sec); margin-bottom:8px;}
 .narr-linea{font-size:.9rem; line-height:1.6; color:var(--texto); margin-bottom:4px;}
+.narr-especies-lista{margin:2px 0 10px; padding-left:20px; font-size:.88rem; color:var(--texto);}
+.narr-especies-lista li{margin-bottom:3px; line-height:1.5;}
 .narr-linea b{color:var(--texto-sec); font-weight:700;}
 .narr-notas{font-style:italic; color:var(--texto-sec); margin-top:8px; line-height:1.6; font-size:.88rem;}
 .narr-fotos{display:grid; grid-template-columns:repeat(auto-fill, minmax(90px,1fr)); gap:8px; margin-top:10px;}
@@ -183,10 +185,10 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .codigo-inline:focus{outline:none; border-bottom-style:solid; border-bottom-color:var(--rojo);}
 
 /* ---- Sección secundaria colapsable: datos generales del registro ---- */
-.dg-box{background:#eeece4; border:1px solid var(--borde); border-radius:12px; overflow:hidden;}
+.dg-box{background:#eeece4; border:1.5px solid var(--borde); border-radius:14px; overflow:hidden;}
 html[data-tema="noche"] .dg-box{background:#1c1a14;}
-.dg-header{width:100%; background:none; border:none; padding:13px 14px; display:flex; justify-content:space-between; align-items:center; font-size:.9rem; font-weight:700; color:var(--texto-sec); cursor:pointer;}
-.dg-chev{transition:transform .2s; font-size:1rem;}
+.dg-header{width:100%; background:none; border:none; padding:18px 16px; display:flex; justify-content:space-between; align-items:center; font-size:1.05rem; font-weight:800; color:var(--texto); cursor:pointer;}
+.dg-chev{transition:transform .2s; font-size:1.6rem; color:var(--verde); flex-shrink:0; margin-left:10px;}
 .dg-box.abierto .dg-chev{transform:rotate(180deg);}
 .dg-body{display:none; padding:4px 14px 16px;}
 .dg-box.abierto .dg-body{display:block;}
@@ -268,12 +270,12 @@ html[data-tema="noche"] .especie-item .cant{color:var(--verde);}
 
 /* ---- Navbar ---- */
 .navbar{position:fixed; bottom:0; left:0; right:0; height:66px; background:var(--card); border-top:1px solid var(--borde); display:flex; z-index:30;}
-.navbtn{flex:1; border:none; background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:.7rem; color:var(--texto-sec); position:relative; cursor:pointer;}
-.navbtn .ic{font-size:1.3rem; width:34px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:8px;}
-.navbtn.on{color:var(--verde-osc); font-weight:800;}
+.navbtn{flex:1; border:none; background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:.7rem; color:var(--texto-sec); position:relative; cursor:pointer; transition:color .15s;}
+.navbtn .ic{font-size:1.3rem; width:34px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:8px; transition:all .15s;}
+.navbtn.on{color:var(--verde-osc); font-weight:800; font-size:.74rem;}
 html[data-tema="noche"] .navbtn.on{color:var(--verde);}
-.navbtn.on .ic{background:var(--verde-cl);}
-.navbtn.on:before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:3px;background:var(--verde);border-radius:0 0 4px 4px;}
+.navbtn.on .ic{background:var(--verde-cl); transform:scale(1.15); font-size:1.4rem;}
+.navbtn.on:before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:32px;height:4px;background:var(--verde);border-radius:0 0 4px 4px;}
 
 /* ---- Modal genérico ---- */
 .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:80; display:none; align-items:flex-end; justify-content:center;}
@@ -3697,8 +3699,8 @@ function textoEntradaNarrativa(r){
   if(r.sustrato) partes.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
   if(r.metodo) partes.push('<div class="narr-linea"><b>Método:</b> '+escapeHtml(r.metodo)+'</div>');
   if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length){
-    var listaEsp = r.especies.map(function(e){ return e.nombre+" ("+e.cantidad+")"; }).join(", ");
-    partes.push('<div class="narr-linea"><b>Especies:</b> '+escapeHtml(listaEsp)+' — Total: '+sumaEspecies(r)+' individuos</div>');
+    var itemsEsp = r.especies.map(function(e){ return '<li>'+escapeHtml(e.nombre)+' <b>— '+e.cantidad+(e.cantidad==1?' ejemplar':' ejemplares')+'</b></li>'; }).join("");
+    partes.push('<div class="narr-linea"><b>Especies observadas</b> (total: '+sumaEspecies(r)+' individuos):</div><ul class="narr-especies-lista">'+itemsEsp+'</ul>');
   } else {
     var cant = cantidadEjemplares(r);
     if(r.taxonLibre) partes.push('<div class="narr-linea"><b>Taxón:</b> '+escapeHtml(r.taxonLibre)+(cant!=null?(' ('+cant+(cant==1?' ejemplar)':' ejemplares)')):'')+'</div>');
@@ -4134,7 +4136,10 @@ function capturarGPS(){
     errorGPS(msg);
   }, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
 }
-document.getElementById("btn-gps").addEventListener("click", capturarGPS);
+document.getElementById("btn-gps").addEventListener("click", function(){
+  document.querySelector(".dg-box").classList.remove("abierto");
+  capturarGPS();
+});
 document.getElementById("f-lat").addEventListener("input", function(){ document.getElementById("gps-manual-wrap").classList.remove("resaltado"); actualizarGpsBox(); });
 document.getElementById("f-lon").addEventListener("input", function(){ document.getElementById("gps-manual-wrap").classList.remove("resaltado"); actualizarGpsBox(); });
 
@@ -4330,7 +4335,10 @@ function terminarObservacion(){
     navigator.geolocation.getCurrentPosition(conPosicion, function(){ btn.disabled=false; conPosicion(null); }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
   } else { btn.disabled = false; conPosicion(null); }
 }
-document.getElementById("btn-obs-inicio-principal").addEventListener("click", iniciarObservacion);
+document.getElementById("btn-obs-inicio-principal").addEventListener("click", function(){
+  document.querySelector(".dg-box").classList.remove("abierto");
+  iniciarObservacion();
+});
 document.getElementById("btn-obs-termino-principal").addEventListener("click", terminarObservacion);
 function pausarObservacion(){
   var d = state.draft; if(!d || !d.obsInicio || d.obsPausado) return;
@@ -4418,8 +4426,8 @@ function agregarEspecie(){
   var nombre = document.getElementById("esp-nombre").value.trim();
   if(!nombre){ toast("Escribe el nombre de la especie"); return; }
   var existente = state.especiesTemp.filter(function(e){ return e.nombre.toLowerCase()===nombre.toLowerCase(); })[0];
-  if(existente) existente.cantidad = (parseInt(existente.cantidad,10)||0) + 1;
-  else state.especiesTemp.push({nombre:nombre, cantidad:1});
+  if(!existente) state.especiesTemp.push({nombre:nombre, cantidad:0});
+  else toast("Esa especie ya está en la lista — usa +/- para contarla");
   document.getElementById("esp-nombre").value = "";
   document.getElementById("esp-nombre").focus();
   renderEspecies();
@@ -4434,7 +4442,7 @@ function renderEspecies(){
     return '<div class="especie-item"><span class="nombre">'+escapeHtml(e.nombre)+'</span>'+
       '<div class="stepper"><button type="button" class="esp-item-menos" data-i="'+i+'">−</button><span class="cant">'+e.cantidad+'</span><button type="button" class="esp-item-mas" data-i="'+i+'">+</button></div></div>';
   }).join("");
-  var nsp = state.especiesTemp.length;
+  var nsp = state.especiesTemp.filter(function(e){ return (parseInt(e.cantidad,10)||0) > 0; }).length;
   var ntot = state.especiesTemp.reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); },0);
   document.getElementById("esp-nsp").textContent = nsp;
   document.getElementById("esp-ntot").textContent = ntot;
@@ -4662,6 +4670,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   var editando = !!state.draft._editando;
   var r = JSON.parse(JSON.stringify(state.draft));
   delete r._editando;
+  if(r.especies) r.especies = r.especies.filter(function(e){ return (parseInt(e.cantidad,10)||0) > 0; });
   if(editando){
     var idx = state.registros.findIndex(function(x){ return x.id===r.id; });
     if(idx>=0) state.registros[idx] = r; else state.registros.push(r);
