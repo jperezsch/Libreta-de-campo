@@ -228,7 +228,7 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 .foto-item .star.on{color:var(--ambar);}
 
 /* ---- Lista de especies (conteo) ---- */
-.especie-row{display:flex; gap:8px; margin-bottom:8px;}
+.especie-row{display:flex; gap:8px; margin-bottom:8px; margin-top:6px;}
 .stepper-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
 .stepper-label{font-size:.88rem; color:var(--texto-sec); font-weight:700;}
 .stepper{display:flex; align-items:center; gap:0; border:1.5px solid var(--borde); border-radius:12px; overflow:hidden;}
@@ -455,12 +455,12 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div id="obs-principal" style="display:none; margin-top:16px;">
       <button type="button" class="btnfull btn-amber" id="btn-obs-inicio-principal" style="padding:18px; font-size:1.1rem;">📍 Capturar punto de inicio</button>
-      <div class="especie-row" style="margin-top:14px;">
+      <div class="total-box" style="margin-top:14px;"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>
+      <div class="especie-lista" id="especie-lista"></div>
+      <div class="especie-row">
         <input type="text" id="esp-nombre" placeholder="Nombre / taxón">
         <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 18px;" id="btn-esp-add">➕</button>
       </div>
-      <div class="total-box"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>
-      <div class="especie-lista" id="especie-lista"></div>
       <button type="button" class="btnfull btn-amber" id="btn-obs-termino-principal" style="padding:18px; font-size:1.1rem; margin-top:14px;">📍 Capturar punto de término</button>
       <div id="obs-resultado-real" style="display:none;">
         <div class="field" id="obs-campo-duracion-real" style="display:none;"><label>Duración real (min)</label><input type="number" step="any" id="f-duracion-real"></div>
@@ -3707,7 +3707,7 @@ function textoEntradaNarrativa(r){
   }
   if(r.variable) partes.push('<div class="narr-linea"><b>'+escapeHtml(r.variable)+':</b> '+escapeHtml(r.valormed||"")+' '+escapeHtml(r.unidadmed||"")+(r.instrumento?(' ('+escapeHtml(r.instrumento)+')'):'')+'</div>');
   if(r.condicion) partes.push('<div class="narr-linea"><b>Condición:</b> '+escapeHtml(r.condicion)+'</div>');
-  if(r.colector) partes.push('<div class="narr-linea"><b>Colector:</b> '+escapeHtml(r.colector)+'</div>');
+  if(r.colector) partes.push('<div class="narr-linea"><b>'+(r.tipo==="observacion"?"Observador":"Colector")+':</b> '+escapeHtml(r.colector)+'</div>');
   if(r.notas) partes.push('<div class="narr-notas">"'+escapeHtml(r.notas)+'"</div>');
   return partes.join("");
 }
