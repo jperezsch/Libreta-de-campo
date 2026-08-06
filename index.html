@@ -227,6 +227,16 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 
 /* ---- Lista de especies (conteo) ---- */
 .especie-row{display:flex; gap:8px; margin-bottom:8px;}
+.stepper-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+.stepper-label{font-size:.88rem; color:var(--texto-sec); font-weight:700;}
+.stepper{display:flex; align-items:center; gap:0; border:1.5px solid var(--borde); border-radius:12px; overflow:hidden;}
+.stepper button{width:44px; height:44px; border:none; background:var(--card); font-size:1.3rem; font-weight:700; color:var(--verde-osc); cursor:pointer;}
+.stepper button:active{background:var(--verde-cl);}
+.stepper span{min-width:44px; text-align:center; font-size:1.05rem; font-weight:800;}
+#obs-tracking-flotante{position:fixed; left:12px; right:12px; top:64px; z-index:36;}
+.obs-flotante-card{border-radius:14px; padding:14px 16px; font-size:.95rem; line-height:1.5; box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.obs-flotante-card.activo{background:#c9762c; color:#fff;}
+.obs-flotante-card.listo{background:var(--verde); color:#fff;}
 .especie-row input[type=text]{flex:1;}
 .especie-row input[type=number]{width:80px;}
 .especie-lista{border:1.5px solid var(--borde); border-radius:10px; overflow:hidden; margin-bottom:8px;}
@@ -386,10 +396,27 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           </select>
         </div>
         <div class="field"><label id="label-colector">Colector / observador</label><div id="colector-wrap"></div></div>
+        <div id="dg-observacion-extra" style="display:none;">
+          <div class="field"><label>Tipo de observación</label>
+            <select id="f-metodo-obs">
+              <option value="">—</option>
+              <option>Punto fijo por tiempo (minutos)</option>
+              <option>Transecto por tiempo (minutos)</option>
+              <option>Transecto por distancia (metros)</option>
+              <option>Transecto por banda (metros a cada lado)</option>
+              <option>Área por cuadrante (largo/ancho)</option>
+              <option>Área por radio (metros)</option>
+              <option>Búsqueda libre</option>
+              <option>Observación incidental</option>
+            </select>
+          </div>
+          <div id="obs-preconfig"></div>
+        </div>
         <div id="bloque-especifico"></div>
       </div>
     </div>
 
+    <div id="seccion-ubicacion-general">
     <button type="button" class="btnfull btn-amber" id="btn-gps" style="padding:18px; font-size:1.1rem; margin-top:16px;">📍 Capturar ubicación</button>
     <div class="gpsbox" id="gpsbox">
       <b id="gps-estado">📍 Sin capturar</b>
@@ -404,6 +431,32 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       </div>
       <div class="field" style="margin-top:10px;"><label>Altitud (m)</label><input type="text" id="f-altitud"></div>
     </div>
+    </div>
+
+    <div id="obs-principal" style="display:none; margin-top:16px;">
+      <button type="button" class="btnfull btn-amber" id="btn-obs-inicio-principal" style="padding:18px; font-size:1.1rem;">📍 Capturar punto de inicio</button>
+      <div class="especie-row" style="margin-top:14px;">
+        <input type="text" id="esp-nombre" placeholder="Nombre / taxón">
+      </div>
+      <div class="stepper-row">
+        <span class="stepper-label">Cantidad</span>
+        <div class="stepper">
+          <button type="button" id="esp-cant-menos">−</button>
+          <span id="esp-cant-valor">1</span>
+          <button type="button" id="esp-cant-mas">+</button>
+        </div>
+      </div>
+      <button type="button" class="btnfull btn-secondary" id="btn-esp-add">➕ Agregar a la lista</button>
+      <div class="total-box"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>
+      <div class="especie-lista" id="especie-lista"></div>
+      <button type="button" class="btnfull btn-amber" id="btn-obs-termino-principal" style="padding:18px; font-size:1.1rem; margin-top:14px;">📍 Capturar punto de término</button>
+      <div id="obs-resultado-real" style="display:none;">
+        <div class="field" id="obs-campo-duracion-real" style="display:none;"><label>Duración real (min)</label><input type="number" step="any" id="f-duracion-real"></div>
+        <div class="field" id="obs-campo-distancia-real" style="display:none;"><label>Distancia real (m)</label><input type="number" step="any" id="f-distancia-real"></div>
+      </div>
+    </div>
+
+    <div id="obs-tracking-flotante" style="display:none;"></div>
 
     <div class="row2" id="fecha-hora-row" style="margin-top:14px; display:none;">
       <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
@@ -443,7 +496,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <input type="file" id="f-input-galeria" accept="image/*" multiple style="display:none;">
     <div id="fotos-lista"></div>
 
-    <div class="field" style="margin-top:14px;"><label>Método</label>
+    <div id="metodo-principal" class="field" style="margin-top:14px;"><label>Método</label>
       <select id="f-metodo">
         <option value="">—</option>
         <option>Búsqueda directa</option><option>Cernido de hojarasca</option><option>Trampa pitfall</option>
@@ -3813,13 +3866,16 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-taxon-libre").value = d.taxonLibre || "";
   poblarOpcionesMetodo(d.tipo);
   document.getElementById("identificacion-individual").style.display = (d.tipo==="observacion") ? "none" : "block";
+  ajustarPantallaSegunTipo(d.tipo);
   setSelectOtro("f-metodo","f-metodo-otro", d.metodo);
+  document.getElementById("f-metodo-obs").value = d.tipo==="observacion" ? (d.metodo||"") : "";
   setSelectOtro("f-habitat","f-habitat-otro", d.habitat);
   renderColectorWrap(d.colector);
   state.fotosTemp = (d.fotos||[]).slice();
   state.especiesTemp = (d.especies||[]).slice();
   renderFotosTemp();
   renderBloqueEspecifico();
+  if(d.tipo==="observacion"){ renderPreconfigObservacion(); renderEspecies(); actualizarEstadoObsPrincipal(); }
   document.getElementById("gpsbox").classList.remove("error");
   document.getElementById("gps-manual-wrap").classList.remove("resaltado");
   document.getElementById("gps-manual-wrap").classList.remove("abierto");
@@ -3860,16 +3916,20 @@ function sincronizarDraftDesdeFormulario(){
   if(!state.draft) return;
   var d = state.draft;
   d.codigo = document.getElementById("f-codigo").value.trim() || d.codigo;
-  d.lat = document.getElementById("f-lat").value; d.lon = document.getElementById("f-lon").value;
+  d.tipo = document.getElementById("f-tipo").value;
+  if(d.tipo==="observacion"){
+    if(d.obsInicio && d.obsInicio.lat!=null){ d.lat = String(d.obsInicio.lat); d.lon = String(d.obsInicio.lon); }
+  } else {
+    d.lat = document.getElementById("f-lat").value; d.lon = document.getElementById("f-lon").value;
+  }
   d.fecha = document.getElementById("f-fecha").value; d.hora = document.getElementById("f-hora").value;
   d.altitud = document.getElementById("f-altitud").value;
   d.referencia = document.getElementById("f-referencia").value.trim();
-  d.tipo = document.getElementById("f-tipo").value;
   d.colector = obtenerColectorSeleccionado();
   d.notas = document.getElementById("f-notas").value.trim();
   d.taxonLibre = document.getElementById("f-taxon-libre").value.trim();
   d.nind = document.getElementById("f-nind").value;
-  d.metodo = valorSelectOtro("f-metodo","f-metodo-otro");
+  d.metodo = (d.tipo==="observacion") ? document.getElementById("f-metodo-obs").value : valorSelectOtro("f-metodo","f-metodo-otro");
   d.condicion = document.getElementById("f-condicion").value;
   d.habitat = valorSelectOtro("f-habitat","f-habitat-otro");
   if(document.getElementById("f-variable")) d.variable = document.getElementById("f-variable").value.trim();
@@ -3879,8 +3939,10 @@ function sincronizarDraftDesdeFormulario(){
   if(document.getElementById("f-obj-duracion")) d.duracionObjetivo = document.getElementById("f-obj-duracion").value;
   if(document.getElementById("f-obj-distancia")) d.distanciaObjetivo = document.getElementById("f-obj-distancia").value;
   if(document.getElementById("f-ancho-banda")) d.anchoBanda = document.getElementById("f-ancho-banda").value;
-  if(document.getElementById("f-duracion-real")) d.duracionReal = document.getElementById("f-duracion-real").value;
-  if(document.getElementById("f-distancia-real")) d.distanciaReal = document.getElementById("f-distancia-real").value;
+  if(d.tipo==="observacion"){
+    d.duracionReal = document.getElementById("f-duracion-real").value;
+    d.distanciaReal = document.getElementById("f-distancia-real").value;
+  }
   if(document.getElementById("f-area-largo")) d.areaLargo = document.getElementById("f-area-largo").value;
   if(document.getElementById("f-area-ancho")) d.areaAncho = document.getElementById("f-area-ancho").value;
   if(document.getElementById("f-area-radio")) d.areaRadio = document.getElementById("f-area-radio").value;
@@ -3895,7 +3957,9 @@ document.getElementById("f-tipo").addEventListener("change", function(){
   detenerSeguimientoEnVivo();
   poblarOpcionesMetodo(this.value);
   document.getElementById("identificacion-individual").style.display = (this.value==="observacion") ? "none" : "block";
+  ajustarPantallaSegunTipo(this.value);
   renderBloqueEspecifico();
+  if(this.value==="observacion"){ renderPreconfigObservacion(); renderEspecies(); actualizarEstadoObsPrincipal(); }
   sincronizarDraftDesdeFormulario();
   actualizarResumenDg();
 });
@@ -3984,12 +4048,7 @@ function obtenerColectorSeleccionado(){
 function poblarOpcionesMetodo(tipo){
   var sel = document.getElementById("f-metodo");
   var valorPrevio = sel.value;
-  var html = '<option value="">—</option>';
-  if(tipo==="observacion"){
-    html += METODOS_OBSERVACION.map(function(m){ return '<option>'+m+'</option>'; }).join("");
-  } else {
-    html += METODOS_COLECCION.map(function(m){ return '<option>'+m+'</option>'; }).join("") + '<option value="__otro__">Otro (especificar)</option>';
-  }
+  var html = '<option value="">—</option>' + METODOS_COLECCION.map(function(m){ return '<option>'+m+'</option>'; }).join("") + '<option value="__otro__">Otro (especificar)</option>';
   sel.innerHTML = html;
   var opciones = Array.prototype.map.call(sel.options, function(o){return o.value;});
   if(opciones.indexOf(valorPrevio)>=0) sel.value = valorPrevio;
@@ -4096,15 +4155,7 @@ function renderBloqueEspecifico(){
   var box = document.getElementById("bloque-especifico");
   var d = state.draft || {};
   if(tipo === "observacion"){
-    box.innerHTML = '<div id="obs-esfuerzo"></div>'+
-      '<label style="display:block; font-size:.8rem; font-weight:700; color:var(--texto-sec); margin-bottom:6px; text-transform:uppercase;">Construir lista de especies</label>'+
-      '<div class="especie-row"><input type="text" id="esp-nombre" placeholder="Nombre / taxón"><input type="number" id="esp-cant" min="1" value="1"><button type="button" class="btnfull btn-amber" style="width:auto; margin:0; padding:0 18px;" id="btn-esp-add">+</button></div>'+
-      '<div class="total-box"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>'+
-      '<div class="especie-lista" id="especie-lista"></div>';
-    document.getElementById("btn-esp-add").addEventListener("click", agregarEspecie);
-    document.getElementById("esp-nombre").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarEspecie(); } });
-    renderEspecies();
-    renderBloqueObservacionEsfuerzo();
+    box.innerHTML = "";
   } else if(tipo === "medicion"){
     box.innerHTML =
       '<div class="row2"><div class="field"><label>Variable</label><input type="text" id="f-variable" value="'+escapeHtml(d.variable||"")+'" placeholder="Largo, peso, temperatura..."></div>'+
@@ -4117,23 +4168,28 @@ function renderBloqueEspecifico(){
   }
 }
 
-/* ---------------- Observación: bloque de esfuerzo dinámico según método, con seguimiento GPS en vivo ---------------- */
-function renderBloqueObservacionEsfuerzo(){
-  var box = document.getElementById("obs-esfuerzo");
-  if(!box) return;
-  var metodo = document.getElementById("f-metodo").value;
+/* ---------------- Observación: pantalla adaptada según tipo, con desplegable de preconfiguración ---------------- */
+function ajustarPantallaSegunTipo(tipo){
+  var esObs = tipo === "observacion";
+  document.getElementById("dg-observacion-extra").style.display = esObs ? "block" : "none";
+  document.getElementById("seccion-ubicacion-general").style.display = esObs ? "none" : "block";
+  document.getElementById("obs-principal").style.display = esObs ? "block" : "none";
+  document.getElementById("metodo-principal").style.display = esObs ? "none" : "block";
+  if(!esObs){
+    document.getElementById("obs-tracking-flotante").style.display = "none";
+  }
+}
+function renderPreconfigObservacion(){
+  var box = document.getElementById("obs-preconfig");
+  var metodo = document.getElementById("f-metodo-obs").value;
   var d = state.draft || {};
   var html = "";
   if(METODOS_OBS_TIEMPO.indexOf(metodo)>=0){
-    html = '<div class="field"><label>Duración objetivo (min)</label><input type="number" min="1" id="f-obj-duracion" value="'+escapeHtml(d.duracionObjetivo||"")+'"></div>'+
-      '<div id="obs-tracking-box">'+renderEstadoTrackingHtml(d, false)+'</div>'+
-      '<div class="field"><label>Duración real (min)</label><input type="number" step="any" id="f-duracion-real" value="'+escapeHtml(d.duracionReal!=null?d.duracionReal:"")+'"></div>';
+    html = '<div class="field"><label>Duración objetivo (min)</label><input type="number" min="1" id="f-obj-duracion" value="'+escapeHtml(d.duracionObjetivo||"")+'"></div>';
   } else if(METODOS_OBS_DISTANCIA.indexOf(metodo)>=0){
     var esBanda = metodo==="Transecto por banda (metros a cada lado)";
     html = '<div class="field"><label>Distancia objetivo (m)</label><input type="number" min="1" id="f-obj-distancia" value="'+escapeHtml(d.distanciaObjetivo||"")+'"></div>'+
-      (esBanda ? '<div class="field"><label>Ancho de banda a cada lado (m)</label><input type="number" step="any" id="f-ancho-banda" value="'+escapeHtml(d.anchoBanda||"")+'"></div>' : '')+
-      '<div id="obs-tracking-box">'+renderEstadoTrackingHtml(d, true)+'</div>'+
-      '<div class="field"><label>Distancia real (m)</label><input type="number" step="any" id="f-distancia-real" value="'+escapeHtml(d.distanciaReal!=null?d.distanciaReal:"")+'"></div>';
+      (esBanda ? '<div class="field"><label>Ancho de banda a cada lado (m)</label><input type="number" step="any" id="f-ancho-banda" value="'+escapeHtml(d.anchoBanda||"")+'"></div>' : '');
   } else if(metodo==="Área por cuadrante (largo/ancho)"){
     html = '<div class="row2"><div class="field"><label>Largo (m)</label><input type="number" step="any" id="f-area-largo" value="'+escapeHtml(d.areaLargo||"")+'"></div>'+
       '<div class="field"><label>Ancho (m)</label><input type="number" step="any" id="f-area-ancho" value="'+escapeHtml(d.areaAncho||"")+'"></div></div>';
@@ -4141,41 +4197,54 @@ function renderBloqueObservacionEsfuerzo(){
     html = '<div class="field"><label>Radio (m)</label><input type="number" step="any" id="f-area-radio" value="'+escapeHtml(d.areaRadio||"")+'"></div>';
   }
   box.innerHTML = html;
-  ["f-obj-duracion","f-obj-distancia","f-ancho-banda","f-duracion-real","f-distancia-real","f-area-largo","f-area-ancho","f-area-radio"].forEach(function(id){
+  ["f-obj-duracion","f-obj-distancia","f-ancho-banda","f-area-largo","f-area-ancho","f-area-radio"].forEach(function(id){
     var el = document.getElementById(id); if(el) el.addEventListener("input", sincronizarDraftDesdeFormulario);
   });
-  wireTrackingBotones();
-  if(d.obsTrackingActivo) activarSeguimientoEnVivo();
 }
-function renderEstadoTrackingHtml(d, esDistancia){
-  if(d.obsTrackingActivo && d.obsInicio){
-    return '<div class="obs-tracking-box activo"><div id="obs-tracking-vivo">Iniciando…</div>'+
-      '<button type="button" class="btnfull btn-amber" id="btn-obs-terminar" style="margin-top:10px;">⏹ Terminar observación</button></div>';
-  } else if(d.obsInicio && d.obsTermino){
-    var resumen = esDistancia
-      ? ("Recorrido registrado: "+(d.distanciaReal!=null?d.distanciaReal+" m":"—"))
-      : ("Duración registrada: "+(d.duracionReal!=null?d.duracionReal+" min":"—"));
-    return '<div class="obs-tracking-box listo">✅ '+resumen+'<br><button type="button" class="link-especificar" id="btn-obs-reiniciar">🔄 Repetir captura de inicio/término</button></div>';
+document.getElementById("f-metodo-obs").addEventListener("change", function(){
+  detenerSeguimientoEnVivo();
+  renderPreconfigObservacion();
+  sincronizarDraftDesdeFormulario();
+  actualizarEstadoObsPrincipal();
+});
+
+function actualizarEstadoObsPrincipal(){
+  var d = state.draft; if(!d) return;
+  var btnInicio = document.getElementById("btn-obs-inicio-principal");
+  var btnTermino = document.getElementById("btn-obs-termino-principal");
+  btnInicio.textContent = d.obsInicio ? "🔄 Recapturar punto de inicio" : "📍 Capturar punto de inicio";
+  btnTermino.textContent = d.obsTermino ? "🔄 Recapturar punto de término" : "📍 Capturar punto de término";
+  var metodo = document.getElementById("f-metodo-obs").value;
+  var conTiempo = METODOS_OBS_TIEMPO.indexOf(metodo)>=0;
+  var conDistancia = METODOS_OBS_DISTANCIA.indexOf(metodo)>=0;
+  var conTracking = conTiempo || conDistancia;
+  var flot = document.getElementById("obs-tracking-flotante");
+  if(conTracking && d.obsTrackingActivo && d.obsInicio){
+    flot.style.display = "block";
+    actualizarVisorTracking();
+  } else if(conTracking && d.obsInicio && d.obsTermino){
+    var esDist = conDistancia;
+    var resumen = esDist ? ("Recorrido: "+(d.distanciaReal!=null?d.distanciaReal+" m":"—")) : ("Duración: "+(d.duracionReal!=null?d.duracionReal+" min":"—"));
+    flot.style.display = "block";
+    flot.innerHTML = '<div class="obs-flotante-card listo">✅ '+resumen+'</div>';
   } else {
-    return '<button type="button" class="btnfull btn-amber" id="btn-obs-iniciar">▶️ Iniciar observación (captura punto de inicio)</button>';
+    flot.style.display = "none";
+  }
+  var mostrarResultados = d.obsInicio && d.obsTermino;
+  document.getElementById("obs-resultado-real").style.display = mostrarResultados ? "block" : "none";
+  document.getElementById("obs-campo-duracion-real").style.display = mostrarResultados ? "block" : "none";
+  document.getElementById("obs-campo-distancia-real").style.display = (mostrarResultados && d.distanciaReal!=null) ? "block" : "none";
+  if(mostrarResultados){
+    document.getElementById("f-duracion-real").value = d.duracionReal!=null ? d.duracionReal : "";
+    document.getElementById("f-distancia-real").value = d.distanciaReal!=null ? d.distanciaReal : "";
   }
 }
-function wireTrackingBotones(){
-  var bi = document.getElementById("btn-obs-iniciar"); if(bi) bi.addEventListener("click", iniciarObservacion);
-  var bt = document.getElementById("btn-obs-terminar"); if(bt) bt.addEventListener("click", terminarObservacion);
-  var br = document.getElementById("btn-obs-reiniciar"); if(br) br.addEventListener("click", function(){
-    if(!confirm("¿Reiniciar la captura de inicio/término de esta observación?")) return;
-    var d = state.draft;
-    d.obsInicio = null; d.obsTermino = null; d.obsTrackingActivo = false;
-    detenerSeguimientoEnVivo();
-    guardarDraft();
-    renderBloqueObservacionEsfuerzo();
-  });
-}
+document.getElementById("f-duracion-real").addEventListener("input", sincronizarDraftDesdeFormulario);
+document.getElementById("f-distancia-real").addEventListener("input", sincronizarDraftDesdeFormulario);
 function iniciarObservacion(){
   var d = state.draft; if(!d) return;
-  var btn = document.getElementById("btn-obs-iniciar");
-  if(btn){ btn.disabled = true; btn.textContent = "📡 Ubicando..."; }
+  var btn = document.getElementById("btn-obs-inicio-principal");
+  btn.disabled = true; btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
     var ahora = new Date();
     d.obsInicio = {
@@ -4183,23 +4252,29 @@ function iniciarObservacion(){
       accuracy: pos ? pos.coords.accuracy : null, horaTs: Date.now(),
       hora: pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2)+":"+pad(ahora.getSeconds(),2)
     };
-    d.obsTermino = null;
-    d.obsTrackingActivo = true;
+    d.obsTermino = null; d.duracionReal = null; d.distanciaReal = null;
+    var metodo = document.getElementById("f-metodo-obs").value;
+    var conTracking = METODOS_OBS_TIEMPO.indexOf(metodo)>=0 || METODOS_OBS_DISTANCIA.indexOf(metodo)>=0;
+    d.obsTrackingActivo = conTracking;
+    if(d.obsInicio.lat!=null){ d.lat = String(d.obsInicio.lat); d.lon = String(d.obsInicio.lon); }
     guardarDraft();
-    activarSeguimientoEnVivo();
-    renderBloqueObservacionEsfuerzo();
+    btn.disabled = false;
+    if(conTracking) activarSeguimientoEnVivo();
+    actualizarEstadoObsPrincipal();
+    sincronizarDraftDesdeFormulario();
+    toast(conTracking ? "Seguimiento iniciado" : "Punto de inicio capturado");
   }
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(conPosicion, function(){
-      toast("No se pudo obtener el GPS — se registra igual el tiempo, sin distancia.");
-      conPosicion(null);
+      toast("No se pudo obtener el GPS.");
+      btn.disabled = false; btn.textContent = "📍 Capturar punto de inicio";
     }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
-  } else conPosicion(null);
+  } else { btn.disabled = false; conPosicion(null); }
 }
 function terminarObservacion(){
-  var d = state.draft; if(!d || !d.obsInicio) return;
-  var btn = document.getElementById("btn-obs-terminar");
-  if(btn){ btn.disabled = true; btn.textContent = "📡 Ubicando..."; }
+  var d = state.draft; if(!d) return;
+  var btn = document.getElementById("btn-obs-termino-principal");
+  btn.disabled = true; btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
     var ahora = new Date();
     d.obsTermino = {
@@ -4208,21 +4283,26 @@ function terminarObservacion(){
       hora: pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2)+":"+pad(ahora.getSeconds(),2)
     };
     d.obsTrackingActivo = false;
-    var segundos = (d.obsTermino.horaTs - d.obsInicio.horaTs)/1000;
-    d.duracionReal = Math.round((segundos/60)*10)/10;
-    if(d.obsInicio.lat!=null && d.obsTermino.lat!=null){
-      d.distanciaReal = Math.round(haversine(d.obsInicio.lat, d.obsInicio.lon, d.obsTermino.lat, d.obsTermino.lon));
+    if(d.obsInicio){
+      var segundos = (d.obsTermino.horaTs - d.obsInicio.horaTs)/1000;
+      d.duracionReal = Math.round((segundos/60)*10)/10;
+      if(d.obsInicio.lat!=null && d.obsTermino.lat!=null){
+        d.distanciaReal = Math.round(haversine(d.obsInicio.lat, d.obsInicio.lon, d.obsTermino.lat, d.obsTermino.lon));
+      }
     }
     detenerSeguimientoEnVivo();
     guardarDraft();
-    renderBloqueObservacionEsfuerzo();
+    btn.disabled = false;
+    actualizarEstadoObsPrincipal();
     sincronizarDraftDesdeFormulario();
-    toast("Observación terminada");
+    toast("Punto de término capturado");
   }
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(conPosicion, function(){ conPosicion(null); }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
-  } else conPosicion(null);
+    navigator.geolocation.getCurrentPosition(conPosicion, function(){ btn.disabled=false; conPosicion(null); }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+  } else { btn.disabled = false; conPosicion(null); }
 }
+document.getElementById("btn-obs-inicio-principal").addEventListener("click", iniciarObservacion);
+document.getElementById("btn-obs-termino-principal").addEventListener("click", terminarObservacion);
 function activarSeguimientoEnVivo(){
   detenerSeguimientoEnVivo();
   var d = state.draft; if(!d || !d.obsInicio) return;
@@ -4242,10 +4322,11 @@ function detenerSeguimientoEnVivo(){
 }
 function actualizarVisorTracking(){
   var d = state.draft;
-  var el = document.getElementById("obs-tracking-vivo");
-  if(!d || !d.obsInicio || !el) return;
+  var flot = document.getElementById("obs-tracking-flotante");
+  if(!d || !d.obsInicio || !flot) return;
   var segundos = (Date.now() - d.obsInicio.horaTs)/1000;
-  var metodo = document.getElementById("f-metodo") ? document.getElementById("f-metodo").value : d.metodo;
+  var metodo = document.getElementById("f-metodo-obs") ? document.getElementById("f-metodo-obs").value : "";
+  var contenido;
   if(METODOS_OBS_DISTANCIA.indexOf(metodo)>=0){
     var dist = null, precision = null;
     if(trackingRuntime.ultimaPos && d.obsInicio.lat!=null){
@@ -4253,37 +4334,42 @@ function actualizarVisorTracking(){
       precision = trackingRuntime.ultimaPos.coords.accuracy;
     }
     var obj = parseFloat(d.distanciaObjetivo)||0;
-    el.innerHTML = '📏 Recorrido: <b>'+(dist!=null?Math.round(dist):"—")+' m</b>'+(obj?(' / objetivo '+obj+' m'):'')+(precision!=null?('  ·  ±'+Math.round(precision)+' m'):'  ·  buscando señal…')+
+    contenido = '📏 Recorrido: <b>'+(dist!=null?Math.round(dist):"—")+' m</b>'+(obj?(' / objetivo '+obj+' m'):'')+(precision!=null?('  ·  ±'+Math.round(precision)+' m'):'  ·  buscando señal…')+
       '<br><span style="opacity:.8;">⏱ '+formatoMMSS(segundos)+'</span>';
   } else {
     var objMin = parseFloat(d.duracionObjetivo)||0;
-    el.innerHTML = '⏱ Transcurrido: <b>'+formatoMMSS(segundos)+'</b>'+(objMin?(' / objetivo '+formatoMMSS(objMin*60)):'');
+    contenido = '⏱ Transcurrido: <b>'+formatoMMSS(segundos)+'</b>'+(objMin?(' / objetivo '+formatoMMSS(objMin*60)):'');
   }
+  flot.innerHTML = '<div class="obs-flotante-card activo">'+contenido+'</div>';
 }
-document.getElementById("f-metodo").addEventListener("change", function(){
-  if(document.getElementById("f-tipo").value==="observacion"){
-    detenerSeguimientoEnVivo();
-    renderBloqueObservacionEsfuerzo();
-    sincronizarDraftDesdeFormulario();
-  }
-});
 
 
 
 /* ---------------- Lista de especies (conteo) ---------------- */
 function agregarEspecie(){
   var nombre = document.getElementById("esp-nombre").value.trim();
-  var cant = parseInt(document.getElementById("esp-cant").value,10) || 1;
+  var cant = parseInt(document.getElementById("esp-cant-valor").textContent,10) || 1;
   if(!nombre){ toast("Escribe el nombre de la especie"); return; }
   var existente = state.especiesTemp.filter(function(e){ return e.nombre.toLowerCase()===nombre.toLowerCase(); })[0];
   if(existente) existente.cantidad = (parseInt(existente.cantidad,10)||0) + cant;
   else state.especiesTemp.push({nombre:nombre, cantidad:cant});
   document.getElementById("esp-nombre").value = "";
-  document.getElementById("esp-cant").value = "1";
+  document.getElementById("esp-cant-valor").textContent = "1";
   document.getElementById("esp-nombre").focus();
   renderEspecies();
   sincronizarDraftDesdeFormulario();
 }
+document.getElementById("btn-esp-add").addEventListener("click", agregarEspecie);
+document.getElementById("esp-nombre").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarEspecie(); } });
+document.getElementById("esp-cant-menos").addEventListener("click", function(){
+  var el = document.getElementById("esp-cant-valor");
+  var v = Math.max(1, (parseInt(el.textContent,10)||1) - 1);
+  el.textContent = v;
+});
+document.getElementById("esp-cant-mas").addEventListener("click", function(){
+  var el = document.getElementById("esp-cant-valor");
+  el.textContent = (parseInt(el.textContent,10)||1) + 1;
+});
 function renderEspecies(){
   var box = document.getElementById("especie-lista"); if(!box) return;
   box.innerHTML = state.especiesTemp.map(function(e,i){
