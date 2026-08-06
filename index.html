@@ -4429,19 +4429,23 @@ document.getElementById("btn-esp-add").addEventListener("click", agregarEspecie)
 document.getElementById("esp-nombre").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarEspecie(); } });
 function renderEspecies(){
   var box = document.getElementById("especie-lista"); if(!box) return;
+  state.especiesTemp.sort(function(a,b){ return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'}); });
   box.innerHTML = state.especiesTemp.map(function(e,i){
     return '<div class="especie-item"><span class="nombre">'+escapeHtml(e.nombre)+'</span>'+
-      '<div class="stepper"><button type="button" class="esp-item-menos" data-i="'+i+'">−</button><span class="cant">'+e.cantidad+'</span><button type="button" class="esp-item-mas" data-i="'+i+'">+</button></div>'+
-      '<span class="x" data-i="'+i+'">✕</span></div>';
+      '<div class="stepper"><button type="button" class="esp-item-menos" data-i="'+i+'">−</button><span class="cant">'+e.cantidad+'</span><button type="button" class="esp-item-mas" data-i="'+i+'">+</button></div></div>';
   }).join("");
   var nsp = state.especiesTemp.length;
   var ntot = state.especiesTemp.reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); },0);
   document.getElementById("esp-nsp").textContent = nsp;
   document.getElementById("esp-ntot").textContent = ntot;
-  box.querySelectorAll(".x").forEach(function(x){ x.addEventListener("click", function(){ state.especiesTemp.splice(parseInt(x.dataset.i,10),1); renderEspecies(); sincronizarDraftDesdeFormulario(); }); });
   box.querySelectorAll(".esp-item-menos").forEach(function(b){ b.addEventListener("click", function(){
-    var e = state.especiesTemp[parseInt(b.dataset.i,10)];
-    if(e){ e.cantidad = Math.max(1, (parseInt(e.cantidad,10)||1) - 1); renderEspecies(); sincronizarDraftDesdeFormulario(); }
+    var idx = parseInt(b.dataset.i,10);
+    var e = state.especiesTemp[idx];
+    if(!e) return;
+    e.cantidad = (parseInt(e.cantidad,10)||1) - 1;
+    if(e.cantidad<=0) state.especiesTemp.splice(idx,1);
+    renderEspecies();
+    sincronizarDraftDesdeFormulario();
   }); });
   box.querySelectorAll(".esp-item-mas").forEach(function(b){ b.addEventListener("click", function(){
     var e = state.especiesTemp[parseInt(b.dataset.i,10)];
