@@ -143,7 +143,10 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .narr-especies-lista{margin:2px 0 10px; padding-left:20px; font-size:.88rem; color:var(--texto);}
 .narr-especies-lista li{margin-bottom:3px; line-height:1.5;}
 .narr-linea b{color:var(--texto-sec); font-weight:700;}
-.narr-notas{font-style:italic; color:var(--texto-sec); margin-top:8px; line-height:1.6; font-size:.88rem;}
+.narr-notas{color:var(--texto-sec); margin-top:8px; line-height:1.6; font-size:.88rem;}
+.narr-notas p{margin:0 0 6px;}
+.narr-notas-lista{margin:2px 0 8px; padding-left:20px;}
+.narr-notas-lista li{margin-bottom:3px;}
 .narr-fotos{display:grid; grid-template-columns:repeat(auto-fill, minmax(90px,1fr)); gap:8px; margin-top:10px;}
 .narr-portada{margin-top:10px;}
 .narr-portada img{width:100%; max-height:280px; object-fit:cover; border-radius:10px; background:#eee; cursor:pointer;}
@@ -214,6 +217,9 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 
 /* ---- Fotos ---- */
 .foto-btns{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:9px;}
+.notas-toolbar{display:flex; gap:6px; margin-bottom:6px;}
+.notas-toolbar button{padding:7px 13px; border-radius:8px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.85rem; cursor:pointer;}
+.notas-toolbar button:active{background:var(--verde-cl);}
 .foto-item{display:flex; align-items:center; gap:10px; background:var(--verde-cl); border-radius:10px; padding:9px 11px; margin-bottom:8px; cursor:pointer;}
 html[data-tema="noche"] .foto-item{background:#241f14;}
 .foto-item img.thumb{width:50px;height:50px;border-radius:8px; object-fit:cover; flex-shrink:0;}
@@ -452,6 +458,17 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         </div>
         <div id="dg-medicion-extra" style="display:none;">
           <div class="field"><label>Especie a medir</label><input type="text" id="f-especie-medida" list="dl-especie-medida"><datalist id="dl-especie-medida"></datalist></div>
+          <div class="field"><label>Método / instrumento de medición</label>
+            <select id="f-metodo-med">
+              <option value="">—</option>
+              <option>Pie de metro (calibre)</option><option>Regla</option><option>Cinta métrica</option>
+              <option>Ocular graduado (microscopio)</option><option>Micrómetro</option>
+              <option>Termómetro</option><option>Balanza de precisión</option>
+              <option>Software de análisis de imagen</option>
+              <option value="__otro__">Otro (especificar)</option>
+            </select>
+            <input type="text" id="f-metodo-med-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;">
+          </div>
           <div class="switch-row"><div>Identificar sexo<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-sexo"></div>
           <div class="switch-row"><div>Identificar localidad<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-localidad"></div>
           <div class="switch-row"><div>Identificar hábitat<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-habitat"></div>
@@ -516,6 +533,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div id="medicion-principal" style="display:none; margin-top:16px;">
       <button type="button" class="btnfull btn-amber" id="btn-med-add-individuo" style="padding:18px; font-size:1.1rem;">➕ Agregar individuo</button>
       <div id="med-individuos-lista"></div>
+      <datalist id="dl-localidad-individuo"></datalist>
     </div>
 
     <div class="row2" id="fecha-hora-row" style="margin-top:14px; display:none;">
@@ -543,10 +561,20 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="field"><label>Condición / conservación</label>
       <select id="f-condicion">
         <option value="">—</option>
-        <option>Vivo / liberado</option><option>Preservado en etanol</option><option>Preservado en seco</option>
-        <option>Muestra de tejido</option><option>Fotografiado (sin colecta)</option><option>Muerto / hallado</option>
+        <option value="seco">Seco</option>
+        <option value="etanol70">Etanol 70%</option>
+        <option value="etanol96">Etanol 96%</option>
+        <option value="etanol_absoluto">Etanol absoluto</option>
+        <option value="formaldehido">Formaldehído</option>
+        <option value="congelado">Congelado</option>
+        <option value="glicerina">Glicerina</option>
+        <option value="vivo_liberado">Vivo / liberado</option>
+        <option value="fotografiado_sin_coleccion">Fotografiado (sin colecta)</option>
+        <option value="muerto_hallado_sin_coleccion">Muerto / hallado (sin colecta)</option>
+        <option value="otro">Otro</option>
       </select>
     </div>
+    <div class="switch-row"><div>Muestra de tejido<span>Independiente de la conservación — se puede marcar aunque también se haya colectado el espécimen completo</span></div><input type="checkbox" id="f-tejido"></div>
     </div>
 
     <div id="seccion-fotos-notas">
@@ -571,7 +599,18 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
 
     <div class="section-title"><span class="n">📝</span>Notas</div>
-    <div class="field"><textarea id="f-notas" placeholder="Observaciones adicionales..."></textarea></div>
+    <div id="nota-subtipo-wrap" class="vista-toggle" style="display:none; margin-bottom:12px;">
+      <button type="button" class="vista-btn" id="btn-nota-operativo">📌 Operativo</button>
+      <button type="button" class="vista-btn" id="btn-nota-narrativo">📖 Narrativo</button>
+    </div>
+    <div class="field">
+      <div class="notas-toolbar">
+        <button type="button" id="btn-notas-bold" title="Negrita"><b>N</b></button>
+        <button type="button" id="btn-notas-italic" title="Cursiva"><i>C</i></button>
+        <button type="button" id="btn-notas-lista" title="Lista de items">☰ Lista</button>
+      </div>
+      <textarea id="f-notas" placeholder="Observaciones adicionales..."></textarea>
+    </div>
     </div>
     <div style="height:16px;"></div>
   </div>
@@ -3199,7 +3238,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-06 · v10";
+var APP_BUILD = "2026-08-06 · v15";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3210,6 +3249,7 @@ var TIPOS = {
 };
 
 var METODOS_COLECCION = ["Búsqueda directa","Cernido de hojarasca","Trampa pitfall","Trampa de luz","Red de golpeo (beating)","Red entomológica","Bajo rocas / troncos","Buceo / snorkel","Draga"];
+var HABITATS_FIJOS = ["Bosque siempreverde","Bosque esclerófilo","Matorral","Pradera / estepa","Intermareal rocoso","Intermareal arenoso","Submareal","Cuerpo de agua dulce","Urbano / antrópico"];
 var METODOS_OBSERVACION = [
   "Punto fijo por tiempo (minutos)",
   "Transecto por tiempo (minutos)",
@@ -3273,6 +3313,30 @@ function toast(msg, duracion){
   clearTimeout(toast._tm); toast._tm=setTimeout(function(){t.classList.remove("show");}, duracion||2400);
 }
 function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function formatearInlineNotas(textoEscapado){
+  var t = textoEscapado.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  t = t.replace(/\*(.+?)\*/g, "<i>$1</i>");
+  return t;
+}
+function formatearNotasHtml(textoOriginal){
+  if(!textoOriginal) return "";
+  var lineas = String(textoOriginal).split("\n");
+  var html = ""; var enLista = false;
+  lineas.forEach(function(lineaOriginal){
+    var esItem = /^\s*-\s+/.test(lineaOriginal);
+    var contenido = esItem ? lineaOriginal.replace(/^\s*-\s+/, "") : lineaOriginal;
+    var formateado = formatearInlineNotas(escapeHtml(contenido));
+    if(esItem){
+      if(!enLista){ html += '<ul class="narr-notas-lista">'; enLista = true; }
+      html += "<li>"+formateado+"</li>";
+    } else {
+      if(enLista){ html += "</ul>"; enLista = false; }
+      if(contenido.trim()!=="") html += "<p>"+formateado+"</p>";
+    }
+  });
+  if(enLista) html += "</ul>";
+  return html;
+}
 
 /* ---------------- Persistencia ---------------- */
 function setLS(key, value){
@@ -3748,12 +3812,20 @@ function construirIntroSesionHtml(s){
   var filas = campos.map(function(c){ return '<div class="narr-intro-linea"><b>'+escapeHtml(c[0])+':</b> '+escapeHtml(c[1])+'</div>'; }).join("");
   return '<div class="narr-intro"><h2>'+escapeHtml(s.proyecto||"Sesión de terreno")+'</h2>'+filas+'</div>';
 }
+var CONSERVACION_LABELS = {
+  seco:"Seco", etanol70:"Etanol 70%", etanol96:"Etanol 96%", etanol_absoluto:"Etanol absoluto",
+  formaldehido:"Formaldehído", congelado:"Congelado", glicerina:"Glicerina",
+  vivo_liberado:"Vivo / liberado", fotografiado_sin_coleccion:"Fotografiado (sin colecta)",
+  muerto_hallado_sin_coleccion:"Muerto / hallado (sin colecta)", otro:"Otro"
+};
+function etiquetaConservacion(codigo){ return CONSERVACION_LABELS[codigo] || codigo; }
 function textoEntradaNarrativa(r){
   var ti = TIPOS[r.tipo]||TIPOS.nota;
   var partes = [];
   partes.push('<div class="narr-sesion-badge" style="background:'+colorSesion(r.sesionId)+'22; color:'+colorSesion(r.sesionId)+';">'+iconoSesion(r.sesionId)+' '+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>');
   partes.push('<div class="narr-cabecera"><span class="narr-fecha">'+escapeHtml(r.fecha||"")+' · '+escapeHtml(r.hora||"")+'</span><span class="narr-codigo">'+escapeHtml(r.codigo)+'</span></div>');
-  partes.push('<div class="narr-tipo">'+ti.ic+' '+ti.label+'</div>');
+  var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (r.notaSubtipo==="operativo" ? " · 📌 Operativo" : " · 📖 Narrativo") : "";
+  partes.push('<div class="narr-tipo">'+ti.ic+' '+ti.label+subtipoTxt+'</div>');
   if(r.lat && r.lon){
     partes.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+'</div>');
   }
@@ -3786,9 +3858,10 @@ function textoEntradaNarrativa(r){
     partes.push('<div class="narr-linea"><b>Individuos medidos</b> (total: '+r.individuos.length+'):</div><ul class="narr-especies-lista">'+itemsInd+'</ul>');
   }
   if(r.variable) partes.push('<div class="narr-linea"><b>'+escapeHtml(r.variable)+':</b> '+escapeHtml(r.valormed||"")+' '+escapeHtml(r.unidadmed||"")+(r.instrumento?(' ('+escapeHtml(r.instrumento)+')'):'')+'</div>');
-  if(r.condicion) partes.push('<div class="narr-linea"><b>Condición:</b> '+escapeHtml(r.condicion)+'</div>');
-  if(r.colector) partes.push('<div class="narr-linea"><b>'+((r.tipo==="observacion"||r.tipo==="medicion")?"Observador":"Colector")+':</b> '+escapeHtml(r.colector)+'</div>');
-  if(r.notas) partes.push('<div class="narr-notas">"'+escapeHtml(r.notas)+'"</div>');
+  if(r.condicion) partes.push('<div class="narr-linea"><b>Condición:</b> '+escapeHtml(etiquetaConservacion(r.condicion))+'</div>');
+  if(r.tejidoConservado) partes.push('<div class="narr-linea">🧬 Se conservó muestra de tejido</div>');
+  if(r.colector) partes.push('<div class="narr-linea"><b>'+(r.tipo==="coleccion"?"Colector":"Observador")+':</b> '+escapeHtml(r.colector)+'</div>');
+  if(r.notas) partes.push('<div class="narr-notas">'+formatearNotasHtml(r.notas)+'</div>');
   return partes.join("");
 }
 function abrirFotoNarrativa(dataURL, caption){
@@ -3979,6 +4052,7 @@ function iniciarNuevoRegistro(){
     areaLargo:"", areaAncho:"", areaRadio:"", obsInicio:null, obsTermino:null, obsTrackingActivo:false,
     obsAcumuladoMs:0, obsPausado:false,
     especieMedida:especieMedidaDefault, medConSexo:medSexoDefault, medConLocalidad:medLocDefault, medConHabitat:medHabDefault, estructuras:estructurasDefault, individuos:[],
+    notaSubtipo:"narrativo", tejidoConservado:false,
     fotos: [], especies: [], _editando:false
   };
   guardarDraft();
@@ -3999,11 +4073,14 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-notas").value = d.notas;
   document.getElementById("f-nind").value = d.nind || "";
   document.getElementById("f-condicion").value = d.condicion || "";
+  document.getElementById("f-tejido").checked = !!d.tejidoConservado;
   document.getElementById("f-taxon-libre").value = d.taxonLibre || "";
   poblarOpcionesMetodo(d.tipo);
   ajustarPantallaSegunTipo(d.tipo);
+  if(d.tipo==="nota"){ d.notaSubtipo = d.notaSubtipo || "narrativo"; actualizarBotonesNotaSubtipo(); }
   setSelectOtro("f-metodo","f-metodo-otro", d.metodo);
   document.getElementById("f-metodo-obs").value = d.tipo==="observacion" ? (d.metodo||"") : "";
+  setSelectOtro("f-metodo-med","f-metodo-med-otro", d.tipo==="medicion" ? (d.metodo||"") : "");
   document.getElementById("f-especie-medida").value = d.especieMedida || "";
   document.getElementById("f-med-sexo").checked = !!d.medConSexo;
   document.getElementById("f-med-localidad").checked = !!d.medConLocalidad;
@@ -4081,8 +4158,11 @@ function sincronizarDraftDesdeFormulario(){
   d.notas = document.getElementById("f-notas").value.trim();
   d.taxonLibre = document.getElementById("f-taxon-libre").value.trim();
   d.nind = document.getElementById("f-nind").value;
-  d.metodo = (d.tipo==="observacion") ? document.getElementById("f-metodo-obs").value : valorSelectOtro("f-metodo","f-metodo-otro");
+  if(d.tipo==="observacion") d.metodo = document.getElementById("f-metodo-obs").value;
+  else if(d.tipo==="medicion") d.metodo = valorSelectOtro("f-metodo-med","f-metodo-med-otro");
+  else d.metodo = valorSelectOtro("f-metodo","f-metodo-otro");
   d.condicion = document.getElementById("f-condicion").value;
+  d.tejidoConservado = document.getElementById("f-tejido").checked;
   d.habitat = (d.tipo==="observacion") ? valorSelectOtro("f-habitat-obs","f-habitat-obs-otro") : valorSelectOtro("f-habitat","f-habitat-otro");
   if(document.getElementById("f-obj-duracion")) d.duracionObjetivo = document.getElementById("f-obj-duracion").value;
   if(document.getElementById("f-obj-distancia")) d.distanciaObjetivo = document.getElementById("f-obj-distancia").value;
@@ -4101,6 +4181,7 @@ function sincronizarDraftDesdeFormulario(){
 ["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-notas","f-nind","f-condicion","f-taxon-libre"].forEach(function(id){
   document.getElementById(id).addEventListener("input", sincronizarDraftDesdeFormulario);
 });
+document.getElementById("f-tejido").addEventListener("change", sincronizarDraftDesdeFormulario);
 function tipoCompatibleConSesion(nuevoTipo){
   if(nuevoTipo === "nota") return true;
   var sid = state.draft ? state.draft.sesionId : state.sesionActivaId;
@@ -4126,6 +4207,7 @@ document.getElementById("f-tipo").addEventListener("change", function(){
   renderBloqueEspecifico();
   if(this.value==="observacion"){ renderPreconfigObservacion(); renderEspecies(); actualizarEstadoObsPrincipal(); }
   if(this.value==="medicion"){ renderEstructuras(); renderIndividuosMedicion(); }
+  if(this.value==="nota"){ state.draft.notaSubtipo = state.draft.notaSubtipo || "narrativo"; actualizarBotonesNotaSubtipo(); }
   sincronizarDraftDesdeFormulario();
   actualizarResumenDg();
 });
@@ -4153,7 +4235,7 @@ function actualizarResumenDg(){
   var ti = TIPOS[tipo]||TIPOS.nota;
   var colectorTxt = obtenerColectorSeleccionado() || "sin colector";
   document.getElementById("dg-resumen").textContent = ti.ic+" "+ti.label+" · "+colectorTxt;
-  var etiquetas = {coleccion:"Colector", observacion:"Observador", medicion:"Observador"};
+  var etiquetas = {coleccion:"Colector", observacion:"Observador", medicion:"Observador", nota:"Observador"};
   document.getElementById("label-colector").textContent = etiquetas[tipo] || "Colector / observador";
 }
 
@@ -4338,14 +4420,16 @@ function renderBloqueEspecifico(){
 function ajustarPantallaSegunTipo(tipo){
   var esObs = tipo === "observacion";
   var esMed = tipo === "medicion";
+  var esNota = tipo === "nota";
   document.getElementById("dg-observacion-extra").style.display = esObs ? "block" : "none";
   document.getElementById("dg-medicion-extra").style.display = esMed ? "block" : "none";
   document.getElementById("seccion-ubicacion-general").style.display = esObs ? "none" : "block";
   document.getElementById("obs-principal").style.display = esObs ? "block" : "none";
   document.getElementById("medicion-principal").style.display = esMed ? "block" : "none";
-  document.getElementById("metodo-principal").style.display = esObs ? "none" : "block";
-  document.getElementById("habitat-microhabitat-principal").style.display = esObs ? "none" : "block";
-  document.getElementById("identificacion-individual").style.display = (esObs||esMed) ? "none" : "block";
+  document.getElementById("metodo-principal").style.display = (esObs||esNota||esMed) ? "none" : "block";
+  document.getElementById("habitat-microhabitat-principal").style.display = (esObs||esNota||esMed) ? "none" : "block";
+  document.getElementById("identificacion-individual").style.display = (esObs||esMed||esNota) ? "none" : "block";
+  document.getElementById("nota-subtipo-wrap").style.display = esNota ? "flex" : "none";
   if(!esObs){
     document.getElementById("obs-tracking-flotante").style.display = "none";
     document.getElementById("seccion-fotos-notas").style.display = "block";
@@ -4491,6 +4575,56 @@ document.getElementById("btn-obs-inicio-principal").addEventListener("click", fu
 document.getElementById("btn-obs-termino-principal").addEventListener("click", terminarObservacion);
 /* ---------------- Medición: estructuras (cada una con sus propias variables/unidades) + individuos con sub-código ---------------- */
 document.getElementById("f-especie-medida").addEventListener("input", sincronizarDraftDesdeFormulario);
+function envolverSeleccionNotas(prefijo, sufijo){
+  var ta = document.getElementById("f-notas");
+  var start = ta.selectionStart, end = ta.selectionEnd;
+  var val = ta.value;
+  var seleccionado = val.slice(start, end);
+  var textoInsertado = seleccionado || "texto";
+  ta.value = val.slice(0,start) + prefijo + textoInsertado + sufijo + val.slice(end);
+  var nuevoStart = start + prefijo.length;
+  var nuevoEnd = nuevoStart + textoInsertado.length;
+  ta.focus();
+  ta.setSelectionRange(nuevoStart, nuevoEnd);
+  sincronizarDraftDesdeFormulario();
+}
+document.getElementById("btn-notas-bold").addEventListener("click", function(){ envolverSeleccionNotas("**","**"); });
+document.getElementById("btn-notas-italic").addEventListener("click", function(){ envolverSeleccionNotas("*","*"); });
+document.getElementById("btn-notas-lista").addEventListener("click", function(){
+  var ta = document.getElementById("f-notas");
+  var start = ta.selectionStart;
+  var val = ta.value;
+  var antes = val.slice(0,start);
+  var necesitaSalto = antes.length>0 && antes.slice(-1)!=="\n";
+  var insercion = (necesitaSalto?"\n":"") + "- ";
+  ta.value = antes + insercion + val.slice(start);
+  var nuevaPos = start + insercion.length;
+  ta.focus();
+  ta.setSelectionRange(nuevaPos, nuevaPos);
+  sincronizarDraftDesdeFormulario();
+});
+function actualizarBotonesNotaSubtipo(){
+  var d = state.draft; if(!d) return;
+  document.getElementById("btn-nota-operativo").classList.toggle("on", d.notaSubtipo==="operativo");
+  document.getElementById("btn-nota-narrativo").classList.toggle("on", d.notaSubtipo!=="operativo");
+}
+document.getElementById("btn-nota-operativo").addEventListener("click", function(){
+  if(!state.draft) return;
+  state.draft.notaSubtipo = "operativo";
+  actualizarBotonesNotaSubtipo();
+  guardarDraft();
+});
+document.getElementById("btn-nota-narrativo").addEventListener("click", function(){
+  if(!state.draft) return;
+  state.draft.notaSubtipo = "narrativo";
+  actualizarBotonesNotaSubtipo();
+  guardarDraft();
+});
+document.getElementById("f-metodo-med").addEventListener("change", function(){
+  document.getElementById("f-metodo-med-otro").style.display = (this.value==="__otro__") ? "block" : "none";
+  sincronizarDraftDesdeFormulario();
+});
+document.getElementById("f-metodo-med-otro").addEventListener("input", sincronizarDraftDesdeFormulario);
 document.getElementById("f-med-sexo").addEventListener("change", sincronizarDraftDesdeFormulario);
 document.getElementById("f-med-localidad").addEventListener("change", sincronizarDraftDesdeFormulario);
 document.getElementById("f-med-habitat").addEventListener("change", function(){ sincronizarDraftDesdeFormulario(); renderIndividuosMedicion(); });
@@ -4561,6 +4695,7 @@ function renderIndividuosMedicion(){
   var d = state.draft; if(!d) return;
   d.individuos = d.individuos || [];
   d.estructuras = d.estructuras || [];
+  poblarSugerencias("dl-localidad-individuo","zona");
   box.innerHTML = d.individuos.map(function(ind, i){
     var camposExtra = "";
     if(d.medConSexo){
@@ -4571,10 +4706,17 @@ function renderIndividuosMedicion(){
         '<option value="Indeterminado"'+(ind.sexo==="Indeterminado"?" selected":"")+'>Indeterminado</option></select></div>';
     }
     if(d.medConLocalidad){
-      camposExtra += '<div class="med-var-row"><label>Localidad</label><input type="text" data-tipo="localidad" data-i="'+i+'" value="'+escapeHtml(ind.localidad||"")+'"></div>';
+      camposExtra += '<div class="med-var-row"><label>Localidad</label><input type="text" data-tipo="localidad" data-i="'+i+'" list="dl-localidad-individuo" value="'+escapeHtml(ind.localidad||"")+'"></div>';
     }
     if(d.medConHabitat){
-      camposExtra += '<div class="med-var-row"><label>Hábitat</label><input type="text" data-tipo="habitat" data-i="'+i+'" value="'+escapeHtml(ind.habitat||"")+'"></div>';
+      var esOtro = ind._habitatOtro || (ind.habitat && HABITATS_FIJOS.indexOf(ind.habitat)<0);
+      camposExtra += '<div class="med-var-row"><label>Hábitat</label><select data-tipo="habitat" data-i="'+i+'">'+
+        '<option value=""'+(!ind.habitat && !esOtro?" selected":"")+'>—</option>'+
+        HABITATS_FIJOS.map(function(h){ return '<option'+(ind.habitat===h?" selected":"")+'>'+h+'</option>'; }).join("")+
+        '<option value="__otro__"'+(esOtro?" selected":"")+'>Otro (especificar)</option></select></div>';
+      if(esOtro){
+        camposExtra += '<div class="med-var-row"><label></label><input type="text" data-tipo="habitatOtro" data-i="'+i+'" placeholder="Especifica el hábitat" value="'+escapeHtml(ind.habitat||"")+'"></div>';
+      }
     }
     var camposEstructuras = d.estructuras.map(function(es){
       var filas = es.variables.map(function(v){
@@ -4585,10 +4727,27 @@ function renderIndividuosMedicion(){
     }).join("");
     return '<div class="med-individuo"><div class="med-individuo-cabecera"><span class="subcodigo">'+escapeHtml(ind.subcodigo)+'</span><span class="x" data-del="'+i+'">✕</span></div>'+camposExtra+camposEstructuras+'</div>';
   }).join("");
-  box.querySelectorAll('[data-tipo="sexo"], [data-tipo="localidad"], [data-tipo="habitat"]').forEach(function(el){
+  box.querySelectorAll('[data-tipo="sexo"], [data-tipo="localidad"]').forEach(function(el){
     el.addEventListener(el.tagName==="SELECT"?"change":"input", function(){
       var ind = d.individuos[parseInt(this.dataset.i,10)];
       if(ind) ind[this.dataset.tipo] = this.value;
+      guardarDraft();
+    });
+  });
+  box.querySelectorAll('[data-tipo="habitat"]').forEach(function(el){
+    el.addEventListener("change", function(){
+      var ind = d.individuos[parseInt(this.dataset.i,10)];
+      if(!ind) return;
+      if(this.value==="__otro__"){ ind.habitat = ""; ind._habitatOtro = true; }
+      else { ind.habitat = this.value; ind._habitatOtro = false; }
+      renderIndividuosMedicion();
+      guardarDraft();
+    });
+  });
+  box.querySelectorAll('[data-tipo="habitatOtro"]').forEach(function(el){
+    el.addEventListener("input", function(){
+      var ind = d.individuos[parseInt(this.dataset.i,10)];
+      if(ind) ind.habitat = this.value;
       guardarDraft();
     });
   });
