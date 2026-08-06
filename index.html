@@ -235,13 +235,13 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 .stepper button{width:44px; height:44px; border:none; background:var(--card); font-size:1.3rem; font-weight:700; color:var(--verde-osc); cursor:pointer;}
 .stepper button:active{background:var(--verde-cl);}
 .stepper span{min-width:44px; text-align:center; font-size:1.05rem; font-weight:800;}
-#obs-tracking-flotante{position:fixed; left:12px; right:12px; top:64px; z-index:36;}
-.obs-flotante-card{border-radius:14px; padding:16px 18px; font-size:1rem; line-height:1.5; box-shadow:0 6px 20px rgba(0,0,0,.25);}
+#obs-tracking-flotante{position:fixed; left:12px; right:12px; top:64px; z-index:36; pointer-events:none;}
+.obs-flotante-card{border-radius:14px; padding:16px 18px; font-size:1rem; line-height:1.5; box-shadow:0 6px 20px rgba(0,0,0,.25); pointer-events:none;}
 .obs-flotante-card.activo{background:#c9762c; color:#fff;}
 .obs-flotante-card.listo{background:var(--verde); color:#fff;}
 .obs-flotante-valor{font-size:1.7rem; font-weight:800; display:block; line-height:1.2;}
 .obs-flotante-obj{font-size:.85rem; opacity:.9;}
-.obs-flotante-controles{display:flex; gap:8px; margin-top:12px;}
+.obs-flotante-controles{display:flex; gap:8px; margin-top:12px; pointer-events:auto;}
 .obs-flotante-controles button{flex:1; padding:9px; border-radius:10px; border:1.5px solid rgba(255,255,255,.5); background:rgba(255,255,255,.15); color:#fff; font-size:.85rem; font-weight:700; cursor:pointer;}
 .especie-row input[type=text]{flex:1;}
 .especie-row input[type=number]{width:80px;}
@@ -249,8 +249,9 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 .especie-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-bottom:1px solid var(--borde); background:var(--card); font-size:1rem;}
 .especie-item .nombre{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .especie-item .stepper{flex-shrink:0;}
-.especie-item .stepper button{width:36px; height:36px; font-size:1.1rem;}
-.especie-item .stepper span{min-width:32px; font-size:.95rem;}
+.especie-item .stepper button{width:40px; height:40px; font-size:1.2rem;}
+.especie-item .stepper .esp-item-mas{width:52px; height:52px; font-size:1.7rem; font-weight:800; background:var(--verde); color:#fff;}
+.especie-item .stepper span{min-width:34px; font-size:1.05rem; font-weight:800;}
 .especie-item:last-child{border-bottom:none;}
 .especie-item .nombre{font-weight:700;}
 .especie-item .cant{color:var(--verde-osc); font-weight:800; font-family:ui-monospace,monospace; margin:0 10px;}
@@ -3136,7 +3137,7 @@ SOFTWARE.
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-03 20:10";
+var APP_BUILD = "2026-08-06 · v7";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
