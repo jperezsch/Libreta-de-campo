@@ -193,6 +193,7 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .dg-body{display:none; padding:4px 14px 16px;}
 .dg-box.abierto .dg-body{display:block;}
 .dg-box .field label{color:var(--texto-sec);}
+.btn-cerrar-dg{width:100%; margin-top:16px; padding:13px; border-radius:12px; border:none; background:var(--verde); color:#fff; font-size:.95rem; font-weight:800; cursor:pointer;}
 .colector-chip{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
 .colector-resumen{background:var(--verde-cl); color:var(--verde-osc); border-radius:10px; padding:11px 13px; font-size:.88rem; margin-bottom:8px;}
 .link-especificar{background:none; border:none; color:var(--azul); font-size:.82rem; padding:4px 0; text-decoration:underline; cursor:pointer;}
@@ -434,6 +435,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           </div>
         </div>
         <div id="bloque-especifico"></div>
+        <button type="button" class="btn-cerrar-dg" id="btn-cerrar-dg">✓ Listo — cerrar</button>
       </div>
     </div>
 
@@ -3988,6 +3990,9 @@ ligarSugerencia("f-referencia","dl-referencia","referencia");
 /* ---------------- Sección colapsable: datos generales del registro ---------------- */
 document.getElementById("btn-toggle-dg").addEventListener("click", function(){
   document.querySelector(".dg-box").classList.toggle("abierto");
+});
+document.getElementById("btn-cerrar-dg").addEventListener("click", function(){
+  document.querySelector(".dg-box").classList.remove("abierto");
 });
 document.getElementById("btn-toggle-manual").addEventListener("click", function(){
   this.classList.toggle("abierto");
