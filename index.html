@@ -240,6 +240,10 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 .med-var-row label{flex:0 0 40%; font-size:.82rem; color:var(--texto-sec);}
 .med-var-row input{flex:1; padding:9px 10px; border-radius:8px; border:1.5px solid var(--borde); font-size:.92rem; background:var(--card); color:var(--texto);}
 .med-variable-item{display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:9px; background:var(--fondo); border:1px solid var(--borde); margin-bottom:6px; font-size:.86rem;}
+.estructura-builder{background:var(--fondo); border:1.5px dashed var(--borde); border-radius:12px; padding:14px; margin-top:8px;}
+.med-estructura-grupo{margin-top:10px; padding-top:10px; border-top:1px dashed var(--borde);}
+.med-estructura-grupo:first-of-type{margin-top:12px; padding-top:0; border-top:none;}
+.med-estructura-titulo{font-size:.8rem; font-weight:800; color:var(--verde-osc); text-transform:uppercase; margin-bottom:8px;}
 .med-variable-item .x{color:var(--rojo); font-weight:800; cursor:pointer; padding:0 4px;}
 .stepper-label{font-size:.88rem; color:var(--texto-sec); font-weight:700;}
 .stepper{display:flex; align-items:center; gap:0; border:1.5px solid var(--borde); border-radius:12px; overflow:hidden;}
@@ -450,19 +454,24 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           <div class="switch-row"><div>Identificar sexo<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-sexo"></div>
           <div class="switch-row"><div>Identificar localidad<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-localidad"></div>
           <div class="switch-row"><div>Identificar hábitat<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-habitat"></div>
-          <label style="display:block; font-size:.8rem; font-weight:700; color:var(--texto-sec); margin:14px 0 6px; text-transform:uppercase;">Variables a medir</label>
-          <div id="med-variables-lista"></div>
-          <div class="especie-row">
-            <input type="text" id="med-var-nombre" placeholder="Nombre (ej: Largo total)" list="dl-var-sugeridas">
-            <input type="text" id="med-var-unidad" placeholder="Unidad" style="max-width:84px;">
-            <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 16px;" id="btn-var-add">➕</button>
+
+          <label style="display:block; font-size:.8rem; font-weight:700; color:var(--texto-sec); margin:14px 0 6px; text-transform:uppercase;">Estructuras y variables a medir</label>
+          <div id="estructuras-lista"></div>
+
+          <div class="estructura-builder">
+            <div class="field"><label>Estructura a medir</label><input type="text" id="f-estructura-nombre" placeholder="Ej: Pata 1, Antena, Cuerpo completo"></div>
+            <div id="estructura-var-lista"></div>
+            <div class="especie-row">
+              <input type="text" id="estructura-var-nombre" list="dl-variable-tipo" placeholder="Variable">
+              <input type="text" id="estructura-var-unidad" placeholder="Unidad" style="max-width:84px;">
+              <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 16px;" id="btn-estructura-var-add">➕</button>
+            </div>
+            <datalist id="dl-variable-tipo">
+              <option>Largo</option><option>Ancho</option><option>Alto</option><option>Diámetro</option>
+              <option>Envergadura</option><option>Peso</option><option>Temperatura</option><option>Otro</option>
+            </datalist>
+            <button type="button" class="btnfull btn-amber" id="btn-estructura-guardar" style="margin-top:10px;">✓ Guardar esta estructura</button>
           </div>
-          <datalist id="dl-var-sugeridas">
-            <option>Largo total</option><option>Ancho</option><option>Alto</option><option>Diámetro</option>
-            <option>Peso</option><option>Longitud del caparazón</option><option>Longitud del cefalotórax</option>
-            <option>Longitud de pata</option><option>Envergadura</option><option>Longitud de antena</option>
-            <option>Longitud de quelícero</option><option>Longitud del pedipalpo</option>
-          </datalist>
         </div>
         <div id="bloque-especifico"></div>
         <button type="button" class="btn-cerrar-dg" id="btn-cerrar-dg">✓ Listo — cerrar</button>
@@ -3765,9 +3774,11 @@ function textoEntradaNarrativa(r){
       if(ind.sexo) partesInd.push("Sexo: "+ind.sexo);
       if(ind.localidad) partesInd.push("Localidad: "+ind.localidad);
       if(ind.habitat) partesInd.push("Hábitat: "+ind.habitat);
-      (r.variables||[]).forEach(function(v){
-        var val = ind.valores && ind.valores[v.nombre];
-        if(val!=null && val!=="") partesInd.push(v.nombre+": "+val+(v.unidad?(" "+v.unidad):""));
+      (r.estructuras||[]).forEach(function(es){
+        (es.variables||[]).forEach(function(v){
+          var val = ind.valores && ind.valores[es.nombre] && ind.valores[es.nombre][v.nombre];
+          if(val!=null && val!=="") partesInd.push(es.nombre+" "+v.nombre+": "+val+(v.unidad?(" "+v.unidad):""));
+        });
       });
       return '<li><b>'+escapeHtml(ind.subcodigo)+'</b> — '+escapeHtml(partesInd.join(" · "))+'</li>';
     }).join("");
@@ -3946,13 +3957,13 @@ function iniciarNuevoRegistro(){
   var tiposSesion = {};
   state.registros.forEach(function(r){ if(r.sesionId===sid && r.tipo!=="nota") tiposSesion[r.tipo]=true; });
   var tipoDefault = tiposSesion["medicion"] ? "medicion" : "coleccion";
-  var especieMedidaDefault = "", variablesDefault = [], medSexoDefault=false, medLocDefault=false, medHabDefault=false;
+  var especieMedidaDefault = "", estructurasDefault = [], medSexoDefault=false, medLocDefault=false, medHabDefault=false;
   if(tipoDefault==="medicion"){
     var registrosMed = state.registros.filter(function(r){ return r.sesionId===sid && r.tipo==="medicion"; });
     var ultimoMed = registrosMed[registrosMed.length-1];
     if(ultimoMed){
       especieMedidaDefault = ultimoMed.especieMedida||"";
-      variablesDefault = (ultimoMed.variables||[]).map(function(v){ return {nombre:v.nombre, unidad:v.unidad}; });
+      estructurasDefault = (ultimoMed.estructuras||[]).map(function(es){ return {nombre:es.nombre, variables:(es.variables||[]).map(function(v){return {nombre:v.nombre, unidad:v.unidad};})}; });
       medSexoDefault = !!ultimoMed.medConSexo; medLocDefault = !!ultimoMed.medConLocalidad; medHabDefault = !!ultimoMed.medConHabitat;
     }
   }
@@ -3966,7 +3977,7 @@ function iniciarNuevoRegistro(){
     duracionObjetivo:"", distanciaObjetivo:"", anchoBanda:"", duracionReal:null, distanciaReal:null,
     areaLargo:"", areaAncho:"", areaRadio:"", obsInicio:null, obsTermino:null, obsTrackingActivo:false,
     obsAcumuladoMs:0, obsPausado:false,
-    especieMedida:especieMedidaDefault, medConSexo:medSexoDefault, medConLocalidad:medLocDefault, medConHabitat:medHabDefault, variables:variablesDefault, individuos:[],
+    especieMedida:especieMedidaDefault, medConSexo:medSexoDefault, medConLocalidad:medLocDefault, medConHabitat:medHabDefault, estructuras:estructurasDefault, individuos:[],
     fotos: [], especies: [], _editando:false
   };
   guardarDraft();
@@ -3996,7 +4007,12 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-med-sexo").checked = !!d.medConSexo;
   document.getElementById("f-med-localidad").checked = !!d.medConLocalidad;
   document.getElementById("f-med-habitat").checked = !!d.medConHabitat;
-  if(d.tipo==="medicion"){ renderVariablesMedicion(); renderIndividuosMedicion(); }
+  estructuraVarTemp = [];
+  document.getElementById("estructura-var-nombre").value = "";
+  document.getElementById("estructura-var-unidad").value = "";
+  document.getElementById("f-estructura-nombre").value = "";
+  if(document.getElementById("estructura-var-lista")) document.getElementById("estructura-var-lista").innerHTML = "";
+  if(d.tipo==="medicion"){ renderEstructuras(); renderIndividuosMedicion(); }
   setSelectOtro("f-habitat","f-habitat-otro", d.tipo==="observacion" ? "" : d.habitat);
   setSelectOtro("f-habitat-obs","f-habitat-obs-otro", d.tipo==="observacion" ? d.habitat : "");
   renderColectorWrap(d.colector);
@@ -4067,10 +4083,6 @@ function sincronizarDraftDesdeFormulario(){
   d.metodo = (d.tipo==="observacion") ? document.getElementById("f-metodo-obs").value : valorSelectOtro("f-metodo","f-metodo-otro");
   d.condicion = document.getElementById("f-condicion").value;
   d.habitat = (d.tipo==="observacion") ? valorSelectOtro("f-habitat-obs","f-habitat-obs-otro") : valorSelectOtro("f-habitat","f-habitat-otro");
-  if(document.getElementById("f-variable")) d.variable = document.getElementById("f-variable").value.trim();
-  if(document.getElementById("f-valormed")) d.valormed = document.getElementById("f-valormed").value;
-  if(document.getElementById("f-unidadmed")) d.unidadmed = document.getElementById("f-unidadmed").value.trim();
-  if(document.getElementById("f-instrumento")) d.instrumento = document.getElementById("f-instrumento").value.trim();
   if(document.getElementById("f-obj-duracion")) d.duracionObjetivo = document.getElementById("f-obj-duracion").value;
   if(document.getElementById("f-obj-distancia")) d.distanciaObjetivo = document.getElementById("f-obj-distancia").value;
   if(document.getElementById("f-ancho-banda")) d.anchoBanda = document.getElementById("f-ancho-banda").value;
@@ -4112,7 +4124,7 @@ document.getElementById("f-tipo").addEventListener("change", function(){
   ajustarPantallaSegunTipo(this.value);
   renderBloqueEspecifico();
   if(this.value==="observacion"){ renderPreconfigObservacion(); renderEspecies(); actualizarEstadoObsPrincipal(); }
-  if(this.value==="medicion"){ renderVariablesMedicion(); renderIndividuosMedicion(); }
+  if(this.value==="medicion"){ renderEstructuras(); renderIndividuosMedicion(); }
   sincronizarDraftDesdeFormulario();
   actualizarResumenDg();
 });
@@ -4314,15 +4326,8 @@ function renderBloqueEspecifico(){
   var tipo = document.getElementById("f-tipo").value;
   var box = document.getElementById("bloque-especifico");
   var d = state.draft || {};
-  if(tipo === "observacion"){
+  if(tipo === "observacion" || tipo === "medicion"){
     box.innerHTML = "";
-  } else if(tipo === "medicion"){
-    box.innerHTML =
-      '<div class="row2"><div class="field"><label>Variable</label><input type="text" id="f-variable" value="'+escapeHtml(d.variable||"")+'" placeholder="Largo, peso, temperatura..."></div>'+
-      '<div class="field"><label>Valor</label><input type="number" step="any" id="f-valormed" value="'+escapeHtml(d.valormed!=null?d.valormed:"")+'"></div></div>'+
-      '<div class="row2"><div class="field"><label>Unidad</label><input type="text" id="f-unidadmed" value="'+escapeHtml(d.unidadmed||"")+'" placeholder="mm, g, °C"></div>'+
-      '<div class="field"><label>Instrumento</label><input type="text" id="f-instrumento" value="'+escapeHtml(d.instrumento||"")+'"></div></div>';
-    ["f-variable","f-valormed","f-unidadmed","f-instrumento"].forEach(function(id){ document.getElementById(id).addEventListener("input", sincronizarDraftDesdeFormulario); });
   } else {
     box.innerHTML = "";
   }
@@ -4483,48 +4488,76 @@ document.getElementById("btn-obs-inicio-principal").addEventListener("click", fu
   iniciarObservacion();
 });
 document.getElementById("btn-obs-termino-principal").addEventListener("click", terminarObservacion);
-/* ---------------- Medición: variables definidas + lista de individuos con sub-código ---------------- */
+/* ---------------- Medición: estructuras (cada una con sus propias variables/unidades) + individuos con sub-código ---------------- */
 document.getElementById("f-especie-medida").addEventListener("input", sincronizarDraftDesdeFormulario);
 document.getElementById("f-med-sexo").addEventListener("change", sincronizarDraftDesdeFormulario);
 document.getElementById("f-med-localidad").addEventListener("change", sincronizarDraftDesdeFormulario);
 document.getElementById("f-med-habitat").addEventListener("change", function(){ sincronizarDraftDesdeFormulario(); renderIndividuosMedicion(); });
-function renderVariablesMedicion(){
-  var box = document.getElementById("med-variables-lista");
-  var d = state.draft; if(!d) return;
-  d.variables = d.variables || [];
-  box.innerHTML = d.variables.map(function(v,i){
+
+var estructuraVarTemp = []; // variables (nombre+unidad) que se van agregando a la estructura que se está construyendo
+
+function renderVariablesTempEstructura(){
+  var box = document.getElementById("estructura-var-lista");
+  box.innerHTML = estructuraVarTemp.map(function(v,i){
     return '<div class="med-variable-item"><span>'+escapeHtml(v.nombre)+(v.unidad?(' <span style="opacity:.7;">('+escapeHtml(v.unidad)+')</span>'):'')+'</span><span class="x" data-i="'+i+'">✕</span></div>';
   }).join("");
   box.querySelectorAll(".x").forEach(function(x){
+    x.addEventListener("click", function(){ estructuraVarTemp.splice(parseInt(x.dataset.i,10),1); renderVariablesTempEstructura(); });
+  });
+}
+function agregarVariableAEstructuraTemp(){
+  var nombre = document.getElementById("estructura-var-nombre").value.trim();
+  var unidad = document.getElementById("estructura-var-unidad").value.trim();
+  if(!nombre){ toast("Escribe o elige la variable"); return; }
+  if(estructuraVarTemp.some(function(v){return v.nombre.toLowerCase()===nombre.toLowerCase();})){ toast("Esa variable ya está en la lista"); return; }
+  estructuraVarTemp.push({nombre:nombre, unidad:unidad});
+  document.getElementById("estructura-var-nombre").value = "";
+  document.getElementById("estructura-var-unidad").value = "";
+  document.getElementById("estructura-var-nombre").focus();
+  renderVariablesTempEstructura();
+}
+document.getElementById("btn-estructura-var-add").addEventListener("click", agregarVariableAEstructuraTemp);
+document.getElementById("estructura-var-unidad").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarVariableAEstructuraTemp(); } });
+
+function renderEstructuras(){
+  var box = document.getElementById("estructuras-lista");
+  var d = state.draft; if(!d) return;
+  d.estructuras = d.estructuras || [];
+  if(d.estructuras.length===0){ box.innerHTML = ""; return; }
+  box.innerHTML = d.estructuras.map(function(es, i){
+    var vars = es.variables.map(function(v){ return v.nombre+(v.unidad?(" ("+v.unidad+")"):""); }).join(", ");
+    return '<div class="med-variable-item"><span><b>'+escapeHtml(es.nombre)+'</b><br><span style="opacity:.75; font-size:.82rem;">'+escapeHtml(vars)+'</span></span><span class="x" data-i="'+i+'">✕</span></div>';
+  }).join("");
+  box.querySelectorAll(".x").forEach(function(x){
     x.addEventListener("click", function(){
-      d.variables.splice(parseInt(x.dataset.i,10),1);
-      renderVariablesMedicion(); renderIndividuosMedicion(); guardarDraft();
+      d.estructuras.splice(parseInt(x.dataset.i,10),1);
+      renderEstructuras(); renderIndividuosMedicion(); guardarDraft();
     });
   });
 }
-function agregarVariable(){
+function guardarEstructura(){
   var d = state.draft; if(!d) return;
-  var nombre = document.getElementById("med-var-nombre").value.trim();
-  var unidad = document.getElementById("med-var-unidad").value.trim();
-  if(!nombre){ toast("Escribe el nombre de la variable"); return; }
-  d.variables = d.variables || [];
-  if(d.variables.some(function(v){return v.nombre.toLowerCase()===nombre.toLowerCase();})){ toast("Esa variable ya está definida"); return; }
-  d.variables.push({nombre:nombre, unidad:unidad});
-  document.getElementById("med-var-nombre").value = "";
-  document.getElementById("med-var-unidad").value = "";
-  document.getElementById("med-var-nombre").focus();
-  renderVariablesMedicion();
+  var nombre = document.getElementById("f-estructura-nombre").value.trim();
+  if(!nombre){ toast("Escribe el nombre de la estructura a medir"); return; }
+  if(estructuraVarTemp.length===0){ toast("Agrega al menos una variable para esta estructura"); return; }
+  d.estructuras = d.estructuras || [];
+  if(d.estructuras.some(function(es){return es.nombre.toLowerCase()===nombre.toLowerCase();})){ toast("Ya existe una estructura con ese nombre"); return; }
+  d.estructuras.push({nombre:nombre, variables: estructuraVarTemp.slice()});
+  estructuraVarTemp = [];
+  document.getElementById("f-estructura-nombre").value = "";
+  renderVariablesTempEstructura();
+  renderEstructuras();
   renderIndividuosMedicion();
   guardarDraft();
+  toast('Estructura "'+nombre+'" guardada — puedes agregar otra, o cerrar el desplegable');
 }
-document.getElementById("btn-var-add").addEventListener("click", agregarVariable);
-document.getElementById("med-var-unidad").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarVariable(); } });
+document.getElementById("btn-estructura-guardar").addEventListener("click", guardarEstructura);
 
 function renderIndividuosMedicion(){
   var box = document.getElementById("med-individuos-lista");
   var d = state.draft; if(!d) return;
   d.individuos = d.individuos || [];
-  d.variables = d.variables || [];
+  d.estructuras = d.estructuras || [];
   box.innerHTML = d.individuos.map(function(ind, i){
     var camposExtra = "";
     if(d.medConSexo){
@@ -4540,11 +4573,14 @@ function renderIndividuosMedicion(){
     if(d.medConHabitat){
       camposExtra += '<div class="med-var-row"><label>Hábitat</label><input type="text" data-tipo="habitat" data-i="'+i+'" value="'+escapeHtml(ind.habitat||"")+'"></div>';
     }
-    var camposVar = d.variables.map(function(v){
-      var val = (ind.valores && ind.valores[v.nombre]!=null) ? ind.valores[v.nombre] : "";
-      return '<div class="med-var-row"><label>'+escapeHtml(v.nombre)+(v.unidad?(' ('+escapeHtml(v.unidad)+')'):'')+'</label><input type="number" step="any" data-tipo="var" data-var="'+escapeHtml(v.nombre)+'" data-i="'+i+'" value="'+escapeHtml(val)+'"></div>';
+    var camposEstructuras = d.estructuras.map(function(es){
+      var filas = es.variables.map(function(v){
+        var val = (ind.valores && ind.valores[es.nombre] && ind.valores[es.nombre][v.nombre]!=null) ? ind.valores[es.nombre][v.nombre] : "";
+        return '<div class="med-var-row"><label>'+escapeHtml(v.nombre)+(v.unidad?(' ('+escapeHtml(v.unidad)+')'):'')+'</label><input type="number" step="any" data-tipo="var" data-estructura="'+escapeHtml(es.nombre)+'" data-var="'+escapeHtml(v.nombre)+'" data-i="'+i+'" value="'+escapeHtml(val)+'"></div>';
+      }).join("");
+      return '<div class="med-estructura-grupo"><div class="med-estructura-titulo">'+escapeHtml(es.nombre)+'</div>'+filas+'</div>';
     }).join("");
-    return '<div class="med-individuo"><div class="med-individuo-cabecera"><span class="subcodigo">'+escapeHtml(ind.subcodigo)+'</span><span class="x" data-del="'+i+'">✕</span></div>'+camposExtra+camposVar+'</div>';
+    return '<div class="med-individuo"><div class="med-individuo-cabecera"><span class="subcodigo">'+escapeHtml(ind.subcodigo)+'</span><span class="x" data-del="'+i+'">✕</span></div>'+camposExtra+camposEstructuras+'</div>';
   }).join("");
   box.querySelectorAll('[data-tipo="sexo"], [data-tipo="localidad"], [data-tipo="habitat"]').forEach(function(el){
     el.addEventListener(el.tagName==="SELECT"?"change":"input", function(){
@@ -4556,7 +4592,11 @@ function renderIndividuosMedicion(){
   box.querySelectorAll('[data-tipo="var"]').forEach(function(el){
     el.addEventListener("input", function(){
       var ind = d.individuos[parseInt(this.dataset.i,10)];
-      if(ind){ ind.valores = ind.valores || {}; ind.valores[this.dataset.var] = this.value; }
+      if(ind){
+        ind.valores = ind.valores || {};
+        ind.valores[this.dataset.estructura] = ind.valores[this.dataset.estructura] || {};
+        ind.valores[this.dataset.estructura][this.dataset.var] = this.value;
+      }
       guardarDraft();
     });
   });
@@ -4570,6 +4610,7 @@ function renderIndividuosMedicion(){
 function agregarIndividuoMedicion(){
   var d = state.draft; if(!d) return;
   d.individuos = d.individuos || [];
+  if((d.estructuras||[]).length===0){ toast("Primero define al menos una estructura a medir (en el desplegable)"); return; }
   var n = d.individuos.length + 1;
   d.individuos.push({subcodigo: d.codigo+"_"+n, sexo:"", localidad:"", habitat:"", valores:{}});
   renderIndividuosMedicion();
