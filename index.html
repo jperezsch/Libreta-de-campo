@@ -230,6 +230,7 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 
 /* ---- Lista de especies (conteo) ---- */
 .especie-row{display:flex; gap:8px; margin-bottom:8px; margin-top:6px;}
+.especie-row input[type=text]{min-width:0;}
 .stepper-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
 .switch-row input[type=checkbox]{width:22px; height:22px; flex-shrink:0;}
 .med-individuo{background:var(--card); border:1px solid var(--borde); border-radius:12px; padding:14px; margin-bottom:12px;}
@@ -462,8 +463,8 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
             <div class="field"><label>Estructura a medir</label><input type="text" id="f-estructura-nombre" placeholder="Ej: Pata 1, Antena, Cuerpo completo"></div>
             <div id="estructura-var-lista"></div>
             <div class="especie-row">
-              <input type="text" id="estructura-var-nombre" list="dl-variable-tipo" placeholder="Variable">
-              <input type="text" id="estructura-var-unidad" placeholder="Unidad" style="max-width:84px;">
+              <input type="text" id="estructura-var-nombre" list="dl-variable-tipo" placeholder="Variable" style="flex:1; min-width:0;">
+              <input type="text" id="estructura-var-unidad" placeholder="Unidad" style="flex:0 0 68px; min-width:0;">
               <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 16px;" id="btn-estructura-var-add">➕</button>
             </div>
             <datalist id="dl-variable-tipo">
@@ -3198,7 +3199,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-06 · v9";
+var APP_BUILD = "2026-08-06 · v10";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4550,6 +4551,8 @@ function guardarEstructura(){
   renderIndividuosMedicion();
   guardarDraft();
   toast('Estructura "'+nombre+'" guardada — puedes agregar otra, o cerrar el desplegable');
+  document.getElementById("f-estructura-nombre").focus();
+  try{ document.getElementById("f-estructura-nombre").scrollIntoView({block:"center"}); }catch(e){}
 }
 document.getElementById("btn-estructura-guardar").addEventListener("click", guardarEstructura);
 
