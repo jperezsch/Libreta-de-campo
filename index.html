@@ -197,6 +197,10 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .dg-box.abierto .dg-body{display:block;}
 .dg-box .field label{color:var(--texto-sec);}
 .btn-cerrar-dg{width:100%; margin-top:16px; padding:13px; border-radius:12px; border:none; background:var(--verde); color:#fff; font-size:.95rem; font-weight:800; cursor:pointer;}
+.aviso-tipo-bloqueado{
+  margin-top:10px; padding:12px 14px; border-radius:12px; background:#fdeaea; border:1.5px solid #e8a8a8;
+  color:#8a2c2c; font-size:.88rem; font-weight:700; line-height:1.5;
+}
 .colector-chip{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
 .colector-resumen{background:var(--verde-cl); color:var(--verde-osc); border-radius:10px; padding:11px 13px; font-size:.88rem; margin-bottom:8px;}
 .link-especificar{background:none; border:none; color:var(--azul); font-size:.82rem; padding:4px 0; text-decoration:underline; cursor:pointer;}
@@ -425,9 +429,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           <select id="f-tipo">
             <option value="coleccion">🧪 Recolección</option>
             <option value="observacion">👁 Observación</option>
-            <option value="medicion">📏 Medición</option>
             <option value="nota">📝 Nota general</option>
+            <option disabled>──────────</option>
+            <option value="medicion">📏 Medición</option>
           </select>
+          <div id="aviso-tipo-bloqueado" class="aviso-tipo-bloqueado" style="display:none;"></div>
         </div>
         <div class="field"><label id="label-colector">Colector / observador</label><div id="colector-wrap"></div></div>
         <div id="dg-observacion-extra" style="display:none;">
@@ -3278,7 +3284,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v1.1";
+var APP_BUILD = "2026-08-07 · v1.2";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4136,6 +4142,7 @@ function iniciarNuevoRegistro(){
 function cargarDraftEnFormulario(){
   if(!state.draft) return;
   var d = state.draft;
+  document.getElementById("aviso-tipo-bloqueado").style.display = "none";
   document.getElementById("f-codigo").value = d.codigo;
   document.getElementById("f-lat").value = d.lat; document.getElementById("f-lon").value = d.lon;
   document.getElementById("f-fecha").value = d.fecha; document.getElementById("f-hora").value = d.hora;
@@ -4270,11 +4277,15 @@ function tipoCompatibleConSesion(nuevoTipo){
   return true;
 }
 document.getElementById("f-tipo").addEventListener("change", function(){
+  var avisoEl = document.getElementById("aviso-tipo-bloqueado");
   if(!tipoCompatibleConSesion(this.value)){
-    toast("⚠️ Esta sesión ya tiene registros de "+(this.value==="medicion"?"Recolección/Observación":"Medición")+". No se pueden mezclar con Medición en la misma sesión — usa \"Nueva Salida\" para empezar otra.", 5500);
+    avisoEl.innerHTML = "⚠️ Esta sesión ya tiene registros de "+(this.value==="medicion"?"Recolección/Observación":"Medición")+", incompatibles con Medición.<br>Cree otra sesión para este tipo de registro.";
+    avisoEl.style.display = "block";
+    toast("⚠️ Cree otra sesión para este tipo de registro", 4000);
     this.value = state.draft.tipo;
     return;
   }
+  avisoEl.style.display = "none";
   detenerSeguimientoEnVivo();
   poblarOpcionesMetodo(this.value);
   ajustarPantallaSegunTipo(this.value);
