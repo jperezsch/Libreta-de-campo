@@ -532,10 +532,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <button type="button" class="btnfull btn-amber" id="btn-obs-inicio-principal" style="padding:18px; font-size:1.1rem;">📍 Capturar punto de inicio</button>
       <div class="plantilla-obs-row" style="display:flex; gap:6px; margin-top:14px;">
         <select id="sel-plantilla-obs" style="flex:1; padding:9px 8px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.82rem;">
-          <option value="">📋 Lista guardada...</option>
+          <option value="">📋 Precargar lista...</option>
         </select>
         <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 12px; font-size:.82rem;" id="btn-plantilla-cargar">Cargar</button>
-        <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 12px; font-size:.82rem;" id="btn-plantilla-guardar">💾 Guardar</button>
+        <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 10px; font-size:.82rem; color:var(--rojo);" id="btn-plantilla-borrar" title="Borrar la lista elegida">🗑</button>
       </div>
       <div class="total-box" style="margin-top:14px;"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>
       <div class="especie-lista" id="especie-lista"></div>
@@ -543,6 +543,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <input type="text" id="esp-nombre" list="dl-esp-nombre" placeholder="Nombre / taxón"><datalist id="dl-esp-nombre"></datalist>
         <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 18px;" id="btn-esp-add">➕</button>
       </div>
+      <button type="button" class="btnfull btn-secondary" id="btn-plantilla-guardar" style="margin-top:10px; font-size:.85rem;">💾 Guardar lista actual para precarga</button>
       <button type="button" class="btnfull btn-amber" id="btn-obs-termino-principal" style="padding:18px; font-size:1.1rem; margin-top:14px;">📍 Capturar punto de término</button>
       <div id="obs-resultado-real" style="display:none;">
         <div class="field" id="obs-campo-duracion-real" style="display:none;"><label>Duración real (min)</label><input type="number" step="any" id="f-duracion-real"></div>
@@ -3277,7 +3278,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v1.0";
+var APP_BUILD = "2026-08-07 · v1.1";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4169,8 +4170,9 @@ function cargarDraftEnFormulario(){
   state.fotosTemp = (d.fotos||[]).slice();
   state.especiesTemp = (d.especies||[]).slice();
   renderFotosTemp();
+  renderEspecies();
   renderBloqueEspecifico();
-  if(d.tipo==="observacion"){ renderPreconfigObservacion(); renderEspecies(); actualizarEstadoObsPrincipal(); renderSelectorPlantillasObs(); }
+  if(d.tipo==="observacion"){ renderPreconfigObservacion(); actualizarEstadoObsPrincipal(); renderSelectorPlantillasObs(); }
   document.getElementById("gpsbox").classList.remove("error");
   document.getElementById("gps-manual-wrap").classList.remove("resaltado");
   document.getElementById("gps-manual-wrap").classList.remove("abierto");
@@ -4988,20 +4990,33 @@ function renderSelectorPlantillasObs(){
   var sel = document.getElementById("sel-plantilla-obs"); if(!sel) return;
   var plantillas = obtenerPlantillasObs();
   var valorActual = sel.value;
-  sel.innerHTML = '<option value="">📋 Lista guardada...</option>' +
+  sel.innerHTML = '<option value="">📋 Precargar lista...</option>' +
     plantillas.map(function(p,i){ return '<option value="'+i+'">'+escapeHtml(p.nombre)+' ('+p.especies.length+')</option>'; }).join("");
   if(plantillas[valorActual]) sel.value = valorActual;
 }
 document.getElementById("btn-plantilla-guardar").addEventListener("click", function(){
   if(!state.especiesTemp || state.especiesTemp.length===0){ toast("No hay especies en la lista para guardar"); return; }
-  var nombre = prompt("Nombre para esta lista (ej. \"Aves ribera Chiloé\"):");
+  var nombre = prompt("Nombre para esta lista de precarga (ej. \"Aves ribera Chiloé\"):");
   if(!nombre || !nombre.trim()) return;
   var plantillas = obtenerPlantillasObs();
   var especies = state.especiesTemp.map(function(e){ return e.nombre; });
   plantillas.push({nombre: nombre.trim(), especies: especies});
   guardarPlantillasObsStorage(plantillas);
   renderSelectorPlantillasObs();
-  toast('Lista "'+nombre.trim()+'" guardada ('+especies.length+' especies)');
+  toast('Lista "'+nombre.trim()+'" guardada para precarga ('+especies.length+' especies)');
+});
+document.getElementById("btn-plantilla-borrar").addEventListener("click", function(){
+  var sel = document.getElementById("sel-plantilla-obs");
+  if(sel.value===""){ toast("Elige una lista primero para borrarla"); return; }
+  var plantillas = obtenerPlantillasObs();
+  var idx = parseInt(sel.value,10);
+  var plantilla = plantillas[idx];
+  if(!plantilla) return;
+  if(!confirm('¿Borrar la lista de precarga "'+plantilla.nombre+'"? Esto no afecta ningún registro ya guardado.')) return;
+  plantillas.splice(idx,1);
+  guardarPlantillasObsStorage(plantillas);
+  renderSelectorPlantillasObs();
+  toast('Lista "'+plantilla.nombre+'" borrada');
 });
 document.getElementById("btn-plantilla-cargar").addEventListener("click", function(){
   var sel = document.getElementById("sel-plantilla-obs");
