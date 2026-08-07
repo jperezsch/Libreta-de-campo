@@ -372,7 +372,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div class="section-title">Contexto adicional</div>
     <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
-    <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima"></div>
+    <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima" list="dl-ss-clima"><datalist id="dl-ss-clima"></datalist></div>
     <div class="field"><label>Notas generales</label><textarea id="ss-notas"></textarea></div>
 
     <div class="section-title">Numeración automática</div>
@@ -448,12 +448,27 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           <div class="field"><label>Hábitat</label>
             <select id="f-habitat-obs">
               <option value="">—</option>
-              <option>Bosque siempreverde</option><option>Bosque esclerófilo</option><option>Matorral</option>
-              <option>Pradera / estepa</option><option>Intermareal rocoso</option><option>Intermareal arenoso</option>
-              <option>Submareal</option><option>Cuerpo de agua dulce</option><option>Urbano / antrópico</option>
+              <optgroup label="Terrestres">
+                <option>Bosque siempreverde</option><option>Bosque caducifolio templado</option>
+                <option>Bosque caducifolio mediterráneo</option><option>Bosque esclerófilo mediterráneo</option>
+                <option>Bosque espinoso mediterráneo</option><option>Bosque resinoso (coníferas)</option>
+                <option>Bosque laurifolio (Valdiviano)</option><option>Matorral esclerófilo</option>
+                <option>Matorral espinoso</option><option>Matorral bajo andino</option>
+                <option>Matorral bajo desértico</option><option>Estepa alto-andina</option>
+                <option>Estepa patagónica</option><option>Desierto absoluto</option><option>Desierto costero</option>
+                <option>Pradera / pastizal</option>
+              </optgroup>
+              <optgroup label="Acuáticos / húmedos">
+                <option>Río / estero</option><option>Lago / laguna</option><option>Ñadi</option>
+                <option>Mallín / vega</option><option>Turbera</option><option>Pitranto</option>
+                <option>Marisma</option><option>Estuario</option><option>Intermareal rocoso</option>
+                <option>Intermareal arenoso</option><option>Submareal</option>
+                <option>Humedal artificial (embalse/tranque/canal)</option>
+              </optgroup>
+              <option>Urbano / antrópico</option>
               <option value="__otro__">Otro (especificar)</option>
             </select>
-            <input type="text" id="f-habitat-obs-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
+            <input type="text" id="f-habitat-obs-otro" list="dl-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
           </div>
         </div>
         <div id="dg-medicion-extra" style="display:none;">
@@ -467,7 +482,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
               <option>Software de análisis de imagen</option>
               <option value="__otro__">Otro (especificar)</option>
             </select>
-            <input type="text" id="f-metodo-med-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;">
+            <input type="text" id="f-metodo-med-otro" list="dl-metodo-med-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-med-otro"></datalist>
           </div>
           <div class="switch-row"><div>Identificar sexo<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-sexo"></div>
           <div class="switch-row"><div>Identificar localidad<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-localidad"></div>
@@ -477,7 +492,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           <div id="estructuras-lista"></div>
 
           <div class="estructura-builder">
-            <div class="field"><label>Estructura a medir</label><input type="text" id="f-estructura-nombre" placeholder="Ej: Pata 1, Antena, Cuerpo completo"></div>
+            <div class="field"><label>Estructura a medir</label><input type="text" id="f-estructura-nombre" list="dl-estructura-nombre" placeholder="Ej: Pata 1, Antena, Cuerpo completo"><datalist id="dl-estructura-nombre"></datalist></div>
             <div id="estructura-var-lista"></div>
             <div class="especie-row">
               <input type="text" id="estructura-var-nombre" list="dl-variable-tipo" placeholder="Variable" style="flex:1; min-width:0;">
@@ -518,7 +533,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="total-box" style="margin-top:14px;"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>
       <div class="especie-lista" id="especie-lista"></div>
       <div class="especie-row">
-        <input type="text" id="esp-nombre" placeholder="Nombre / taxón">
+        <input type="text" id="esp-nombre" list="dl-esp-nombre" placeholder="Nombre / taxón"><datalist id="dl-esp-nombre"></datalist>
         <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 18px;" id="btn-esp-add">➕</button>
       </div>
       <button type="button" class="btnfull btn-amber" id="btn-obs-termino-principal" style="padding:18px; font-size:1.1rem; margin-top:14px;">📍 Capturar punto de término</button>
@@ -544,12 +559,27 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="field" style="margin-top:14px;"><label>Hábitat</label>
       <select id="f-habitat">
         <option value="">—</option>
-        <option>Bosque siempreverde</option><option>Bosque esclerófilo</option><option>Matorral</option>
-        <option>Pradera / estepa</option><option>Intermareal rocoso</option><option>Intermareal arenoso</option>
-        <option>Submareal</option><option>Cuerpo de agua dulce</option><option>Urbano / antrópico</option>
+        <optgroup label="Terrestres">
+          <option>Bosque siempreverde</option><option>Bosque caducifolio templado</option>
+          <option>Bosque caducifolio mediterráneo</option><option>Bosque esclerófilo mediterráneo</option>
+          <option>Bosque espinoso mediterráneo</option><option>Bosque resinoso (coníferas)</option>
+          <option>Bosque laurifolio (Valdiviano)</option><option>Matorral esclerófilo</option>
+          <option>Matorral espinoso</option><option>Matorral bajo andino</option>
+          <option>Matorral bajo desértico</option><option>Estepa alto-andina</option>
+          <option>Estepa patagónica</option><option>Desierto absoluto</option><option>Desierto costero</option>
+          <option>Pradera / pastizal</option>
+        </optgroup>
+        <optgroup label="Acuáticos / húmedos">
+          <option>Río / estero</option><option>Lago / laguna</option><option>Ñadi</option>
+          <option>Mallín / vega</option><option>Turbera</option><option>Pitranto</option>
+          <option>Marisma</option><option>Estuario</option><option>Intermareal rocoso</option>
+          <option>Intermareal arenoso</option><option>Submareal</option>
+          <option>Humedal artificial (embalse/tranque/canal)</option>
+        </optgroup>
+        <option>Urbano / antrópico</option>
         <option value="__otro__">Otro (especificar)</option>
       </select>
-      <input type="text" id="f-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
+      <input type="text" id="f-habitat-otro" list="dl-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;"><datalist id="dl-habitat-otro"></datalist>
     </div>
     <div class="field"><label>Microhábitat</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
     </div>
@@ -595,7 +625,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <option>Bajo rocas / troncos</option><option>Buceo / snorkel</option><option>Draga</option>
         <option value="__otro__">Otro (especificar)</option>
       </select>
-      <input type="text" id="f-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;">
+      <input type="text" id="f-metodo-otro" list="dl-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-otro"></datalist>
     </div>
 
     <div class="section-title"><span class="n">📝</span>Notas</div>
@@ -3238,7 +3268,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-06 · v15";
+var APP_BUILD = "2026-08-06 · v17";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3249,7 +3279,16 @@ var TIPOS = {
 };
 
 var METODOS_COLECCION = ["Búsqueda directa","Cernido de hojarasca","Trampa pitfall","Trampa de luz","Red de golpeo (beating)","Red entomológica","Bajo rocas / troncos","Buceo / snorkel","Draga"];
-var HABITATS_FIJOS = ["Bosque siempreverde","Bosque esclerófilo","Matorral","Pradera / estepa","Intermareal rocoso","Intermareal arenoso","Submareal","Cuerpo de agua dulce","Urbano / antrópico"];
+var HABITATS_FIJOS = [
+  "Bosque siempreverde","Bosque caducifolio templado","Bosque caducifolio mediterráneo",
+  "Bosque esclerófilo mediterráneo","Bosque espinoso mediterráneo","Bosque resinoso (coníferas)",
+  "Bosque laurifolio (Valdiviano)","Matorral esclerófilo","Matorral espinoso","Matorral bajo andino",
+  "Matorral bajo desértico","Estepa alto-andina","Estepa patagónica","Desierto absoluto","Desierto costero",
+  "Pradera / pastizal",
+  "Río / estero","Lago / laguna","Ñadi","Mallín / vega","Turbera","Pitranto","Marisma","Estuario",
+  "Intermareal rocoso","Intermareal arenoso","Submareal","Humedal artificial (embalse/tranque/canal)",
+  "Urbano / antrópico"
+];
 var METODOS_OBSERVACION = [
   "Punto fijo por tiempo (minutos)",
   "Transecto por tiempo (minutos)",
@@ -3496,7 +3535,8 @@ function ligarSugerencia(inputId, datalistId, campo){
 }
 function poblarTodasLasSugerenciasSesion(){
   [["ss-proyecto","dl-ss-proyecto"],["ss-objetivo","dl-ss-objetivo"],["ss-participantes","dl-ss-participantes"],
-   ["ss-zona","dl-ss-zona"],["ss-institucion","dl-ss-institucion"],["ss-prefijo","dl-ss-prefijo"]].forEach(function(p){
+   ["ss-zona","dl-ss-zona"],["ss-institucion","dl-ss-institucion"],["ss-prefijo","dl-ss-prefijo"],
+   ["ss-clima","dl-ss-clima"]].forEach(function(p){
     poblarSugerencias(p[1], p[0]);
   });
 }
@@ -3609,7 +3649,8 @@ document.getElementById("ss-selector-sesion").addEventListener("change", functio
   renderSesion();
 });
 [["ss-proyecto","dl-ss-proyecto","proyecto"],["ss-objetivo","dl-ss-objetivo","objetivo"],["ss-participantes","dl-ss-participantes","participantes"],
- ["ss-zona","dl-ss-zona","zona"],["ss-institucion","dl-ss-institucion","institucion"],["ss-prefijo","dl-ss-prefijo","prefijo"]].forEach(function(p){
+ ["ss-zona","dl-ss-zona","zona"],["ss-institucion","dl-ss-institucion","institucion"],["ss-prefijo","dl-ss-prefijo","prefijo"],
+ ["ss-clima","dl-ss-clima","clima"]].forEach(function(p){
   ligarSugerencia(p[0], p[1], p[2]);
 });
 function sincronizarCodigoDraftConSesion(){
@@ -4214,6 +4255,12 @@ document.getElementById("f-tipo").addEventListener("change", function(){
 ligarSugerencia("f-taxon-libre","dl-taxon","taxonLibre");
 ligarSugerencia("f-referencia","dl-referencia","referencia");
 ligarSugerencia("f-especie-medida","dl-especie-medida","especieMedida");
+ligarSugerencia("f-estructura-nombre","dl-estructura-nombre","estructuraNombre");
+ligarSugerencia("esp-nombre","dl-esp-nombre","especieObservada");
+ligarSugerencia("f-habitat-otro","dl-habitat-otro","habitatOtro");
+ligarSugerencia("f-habitat-obs-otro","dl-habitat-otro","habitatOtro");
+ligarSugerencia("f-metodo-otro","dl-metodo-otro","metodoOtro");
+ligarSugerencia("f-metodo-med-otro","dl-metodo-med-otro","metodoMedOtro");
 
 /* ---------------- Sección colapsable: datos generales del registro ---------------- */
 document.getElementById("btn-toggle-dg").addEventListener("click", function(){
@@ -4653,6 +4700,31 @@ function agregarVariableAEstructuraTemp(){
 }
 document.getElementById("btn-estructura-var-add").addEventListener("click", agregarVariableAEstructuraTemp);
 document.getElementById("estructura-var-unidad").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarVariableAEstructuraTemp(); } });
+
+/* ---------------- Navegación rápida con Enter, en todas las pestañas ---------------- */
+var CAMPOS_ENTER_PROPIO = ["esp-nombre","estructura-var-unidad"];
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Enter") return;
+  var el = e.target;
+  if(!el || !el.matches) return;
+  if(el.tagName === "TEXTAREA") return; // nunca interceptar Enter en campos narrativos (Notas, etc.)
+  if(!el.matches('input[type="text"], input[type="number"], input[type="date"], input[type="time"]')) return;
+  if(CAMPOS_ENTER_PROPIO.indexOf(el.id) >= 0) return; // ya tiene su propia acción al presionar Enter
+  e.preventDefault();
+  moverFocoAlSiguienteCampo(el);
+});
+function moverFocoAlSiguienteCampo(actual){
+  var pantalla = actual.closest(".screen") || document;
+  var selector = 'input:not([type="hidden"]):not([type="checkbox"]):not([type="file"]):not([disabled]), select:not([disabled]), textarea:not([disabled])';
+  var campos = Array.prototype.slice.call(pantalla.querySelectorAll(selector)).filter(function(c){
+    return c.offsetParent !== null; // solo campos realmente visibles
+  });
+  var idx = campos.indexOf(actual);
+  if(idx === -1 || idx === campos.length - 1){ actual.blur(); return; }
+  var siguiente = campos[idx + 1];
+  siguiente.focus();
+  if(siguiente.select && (siguiente.type==="text" || siguiente.type==="number")) siguiente.select();
+}
 
 function renderEstructuras(){
   var box = document.getElementById("estructuras-lista");
