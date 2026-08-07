@@ -45,14 +45,6 @@ body{
   font-size:.78rem; font-weight:700; display:flex; align-items:center; justify-content:center;
 }
 
-.btn-abrir{
-  display:block; width:100%; padding:16px; border-radius:14px; background:var(--verde); color:#fff;
-  text-align:center; font-weight:700; font-size:1.05rem; text-decoration:none; margin:24px 0 10px;
-  box-shadow:0 4px 14px rgba(45,95,63,.3);
-}
-.btn-abrir:active{background:var(--verde-osc);}
-.nota-btn{text-align:center; font-size:.78rem; color:var(--texto-sec); margin-bottom:24px;}
-
 .selector-os{display:flex; gap:8px; margin-bottom:16px;}
 .selector-os button{
   flex:1; padding:10px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card);
@@ -76,6 +68,13 @@ body{
 }
 
 .separador-o{text-align:center; font-size:.78rem; color:var(--texto-sec); margin:4px 0 16px;}
+
+.anexo-toggle{
+  width:100%; background:none; border:1.5px dashed var(--borde); border-radius:12px; padding:13px;
+  color:var(--texto-sec); font-size:.85rem; font-weight:700; cursor:pointer; text-align:center; margin-top:22px;
+}
+.anexo-contenido{display:none; margin-top:14px;}
+.anexo-contenido.on{display:block;}
 </style>
 </head>
 <body>
@@ -99,31 +98,30 @@ body{
     ✅ ¡Listo! Búscala en tu pantalla de inicio.
   </div>
 
-  <div class="separador-o" id="separador-o" style="display:none;">o instala siguiendo estos pasos:</div>
+  <button type="button" class="anexo-toggle" id="anexo-toggle">¿La instalación directa no funcionó? Ver instrucciones manuales ▾</button>
 
-  <div class="selector-os" id="selector-os-wrap">
-    <button type="button" class="os-btn" id="btn-ios">📱 iPhone</button>
-    <button type="button" class="os-btn" id="btn-android">🤖 Android</button>
+  <div class="anexo-contenido" id="anexo-contenido">
+    <div class="selector-os" id="selector-os-wrap">
+      <button type="button" class="os-btn" id="btn-ios">📱 iPhone</button>
+      <button type="button" class="os-btn" id="btn-android">🤖 Android</button>
+    </div>
+
+    <div class="card" id="card-ios">
+      <h2>Instalar en iPhone (Safari)</h2>
+      <div class="paso"><span class="num">1</span>Abre este enlace con <b>Safari</b> (no funciona igual en Chrome en iPhone).</div>
+      <div class="paso"><span class="num">2</span>Toca el ícono de <b>compartir</b> (el cuadrado con la flecha hacia arriba), abajo de la pantalla.</div>
+      <div class="paso"><span class="num">3</span>Busca y toca <b>"Agregar a pantalla de inicio"</b>.</div>
+      <div class="paso"><span class="num">4</span>Confirma tocando <b>"Agregar"</b> arriba a la derecha. Listo, queda con ícono propio.</div>
+    </div>
+
+    <div class="card" id="card-android">
+      <h2>Instalar en Android (Chrome)</h2>
+      <div class="paso"><span class="num">1</span>Abre este enlace con <b>Chrome</b>.</div>
+      <div class="paso"><span class="num">2</span>Espera unos segundos — a veces aparece solo un aviso abajo diciendo "Instalar app". Si aparece, tócalo y listo.</div>
+      <div class="paso"><span class="num">3</span>Si no aparece solo: toca el menú (⋮, tres puntos arriba a la derecha).</div>
+      <div class="paso"><span class="num">4</span>Busca y toca <b>"Instalar app"</b> o <b>"Agregar a pantalla de inicio"</b>, y confirma.</div>
+    </div>
   </div>
-
-  <div class="card" id="card-ios">
-    <h2>Instalar en iPhone (Safari)</h2>
-    <div class="paso"><span class="num">1</span>Abre este enlace con <b>Safari</b> (no funciona igual en Chrome en iPhone).</div>
-    <div class="paso"><span class="num">2</span>Toca el ícono de <b>compartir</b> (el cuadrado con la flecha hacia arriba), abajo de la pantalla.</div>
-    <div class="paso"><span class="num">3</span>Busca y toca <b>"Agregar a pantalla de inicio"</b>.</div>
-    <div class="paso"><span class="num">4</span>Confirma tocando <b>"Agregar"</b> arriba a la derecha. Listo, queda con ícono propio.</div>
-  </div>
-
-  <div class="card" id="card-android">
-    <h2>Instalar en Android (Chrome)</h2>
-    <div class="paso"><span class="num">1</span>Abre este enlace con <b>Chrome</b>.</div>
-    <div class="paso"><span class="num">2</span>Espera unos segundos — a veces aparece solo un aviso abajo diciendo "Instalar app". Si aparece, tócalo y listo.</div>
-    <div class="paso"><span class="num">3</span>Si no aparece solo: toca el menú (⋮, tres puntos arriba a la derecha).</div>
-    <div class="paso"><span class="num">4</span>Busca y toca <b>"Instalar app"</b> o <b>"Agregar a pantalla de inicio"</b>, y confirma.</div>
-  </div>
-
-  <a class="btn-abrir" href="./index.html">📱 Abrir la Libreta de Campo</a>
-  <div class="nota-btn">Una vez que sigas los pasos de arriba, este botón te lleva a la app para instalarla.</div>
 
 </div>
 
@@ -147,6 +145,11 @@ body{
 
   mostrarOS(esIOS ? "ios" : "android");
 
+  document.getElementById("anexo-toggle").addEventListener("click", function(){
+    var abierto = document.getElementById("anexo-contenido").classList.toggle("on");
+    this.textContent = abierto ? "Ocultar instrucciones manuales ▴" : "¿La instalación directa no funcionó? Ver instrucciones manuales ▾";
+  });
+
   /* ---- Registrar el service worker también desde esta página ----
      Es necesario para que el navegador evalúe esta página como instalable
      y ofrezca el evento de instalación directa (solo existe en Android/Chrome). */
@@ -160,7 +163,6 @@ body{
     e.preventDefault();
     promptGuardado = e;
     document.getElementById("btn-instalar-directo").style.display = "flex";
-    document.getElementById("separador-o").style.display = "block";
   });
 
   document.getElementById("btn-instalar-directo").addEventListener("click", function(){
@@ -172,10 +174,10 @@ body{
       btn.disabled = false;
       if(resultado.outcome === "accepted"){
         btn.style.display = "none";
-        document.getElementById("separador-o").style.display = "none";
         document.getElementById("card-ios").style.display = "none";
         document.getElementById("card-android").style.display = "none";
         document.getElementById("selector-os-wrap").style.display = "none";
+        document.getElementById("anexo-toggle").style.display = "none";
         document.getElementById("exito-instalacion").style.display = "block";
       }
       promptGuardado = null;
@@ -184,6 +186,8 @@ body{
 
   window.addEventListener("appinstalled", function(){
     document.getElementById("btn-instalar-directo").style.display = "none";
+    document.getElementById("anexo-toggle").style.display = "none";
+    document.getElementById("anexo-contenido").classList.remove("on");
     document.getElementById("exito-instalacion").style.display = "block";
   });
 })();
