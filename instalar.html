@@ -75,6 +75,12 @@ body{
 }
 .anexo-contenido{display:none; margin-top:14px;}
 .anexo-contenido.on{display:block;}
+
+.nota-info{
+  background:var(--verde-cl); border:1.5px solid #c3ddc9; border-radius:12px; padding:13px 15px;
+  font-size:.84rem; color:var(--verde-osc); margin-bottom:16px; display:none;
+}
+.nota-info.on{display:block;}
 </style>
 </head>
 <body>
@@ -94,6 +100,8 @@ body{
     <span class="ic">⬇️</span>
     <span><span class="t1">Instalar ahora</span><span class="t2">Un toque, sin pasos extra</span></span>
   </button>
+  <div class="nota-info" id="nota-pc">💻 Estás viendo esto desde un computador. Esta app se instala desde el <b>celular</b> — abre este mismo enlace en tu teléfono para ver el botón de instalación.</div>
+  <div class="nota-info" id="nota-sin-boton">ℹ️ Tu navegador no ofrece un botón de instalación directa en este momento — esto es normal en iPhone, o si ya tienes la app instalada. Usa las instrucciones manuales de abajo.</div>
   <div class="exito-instalacion" id="exito-instalacion" style="display:none;">
     ✅ ¡Listo! Búscala en tu pantalla de inicio.
   </div>
@@ -145,6 +153,18 @@ body{
 
   mostrarOS(esIOS ? "ios" : "android");
 
+  var esMovil = esIOS || esAndroid;
+
+  if(!esMovil){
+    document.getElementById("nota-pc").classList.add("on");
+  } else {
+    setTimeout(function(){
+      if(document.getElementById("btn-instalar-directo").style.display !== "flex"){
+        document.getElementById("nota-sin-boton").classList.add("on");
+      }
+    }, 1500);
+  }
+
   document.getElementById("anexo-toggle").addEventListener("click", function(){
     var abierto = document.getElementById("anexo-contenido").classList.toggle("on");
     this.textContent = abierto ? "Ocultar instrucciones manuales ▴" : "¿La instalación directa no funcionó? Ver instrucciones manuales ▾";
@@ -163,6 +183,8 @@ body{
     e.preventDefault();
     promptGuardado = e;
     document.getElementById("btn-instalar-directo").style.display = "flex";
+    document.getElementById("nota-sin-boton").classList.remove("on");
+    document.getElementById("nota-pc").classList.remove("on");
   });
 
   document.getElementById("btn-instalar-directo").addEventListener("click", function(){
@@ -178,6 +200,8 @@ body{
         document.getElementById("card-android").style.display = "none";
         document.getElementById("selector-os-wrap").style.display = "none";
         document.getElementById("anexo-toggle").style.display = "none";
+        document.getElementById("nota-sin-boton").classList.remove("on");
+        document.getElementById("nota-pc").classList.remove("on");
         document.getElementById("exito-instalacion").style.display = "block";
       }
       promptGuardado = null;
@@ -188,6 +212,8 @@ body{
     document.getElementById("btn-instalar-directo").style.display = "none";
     document.getElementById("anexo-toggle").style.display = "none";
     document.getElementById("anexo-contenido").classList.remove("on");
+    document.getElementById("nota-sin-boton").classList.remove("on");
+    document.getElementById("nota-pc").classList.remove("on");
     document.getElementById("exito-instalacion").style.display = "block";
   });
 })();
