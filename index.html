@@ -3284,7 +3284,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v1.2";
+var APP_BUILD = "2026-08-07 · v1.3";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4057,6 +4057,7 @@ function generarPaqueteZip(){
   if(todasLasFotos.length===0 && state.registros.length===0){ toast("No hay registros para empaquetar"); return Promise.reject(); }
   var zip = new JSZip();
   var carpetaFotos = zip.folder("fotos");
+  var carpetaTracks = zip.folder("tracks");
   var nombresUsados = {};
   function nombreUnico(base){
     var nombre = base, n = 2;
@@ -4072,6 +4073,10 @@ function generarPaqueteZip(){
       var filename = nombreUnico(sanitizarNombreArchivo(item.registro.codigo)+"__"+sanitizarNombreArchivo(item.foto.nombre)+".jpg");
       carpetaFotos.file(filename, base64, {base64:true});
     }).catch(function(){});
+  });
+  state.registros.forEach(function(r){
+    var gpx = generarGPX(r);
+    if(gpx) carpetaTracks.file(nombreArchivoTrack(r), gpx);
   });
   return Promise.all(promesas).then(function(){
     var data = {sesiones:state.sesiones, sesionActivaId:state.sesionActivaId, registros:state.registros};
@@ -5101,6 +5106,24 @@ document.getElementById("f-input-galeria").addEventListener("change", function(e
 function sanitizarNombreArchivo(s){
   return String(s||"foto").replace(/\.[a-zA-Z0-9]+$/,"").replace(/[^a-zA-Z0-9_\-]+/g, "_").replace(/_+/g,"_").slice(0,60) || "foto";
 }
+function nombreArchivoTrack(registro){
+  return sanitizarNombreArchivo(registro.codigo)+"__track.gpx";
+}
+function generarGPX(registro){
+  var puntos = registro.trackPuntos || [];
+  if(puntos.length<2) return null;
+  var trkpts = puntos.map(function(p){
+    var iso = new Date(p.horaTs).toISOString();
+    return '      <trkpt lat="'+p.lat+'" lon="'+p.lon+'"><time>'+iso+'</time></trkpt>';
+  }).join("\n");
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'+
+    '<gpx version="1.1" creator="Libreta de Campo - WikiTaxa" xmlns="http://www.topografix.com/GPX/1/1">\n'+
+    '  <trk>\n'+
+    '    <name>'+escapeHtml(registro.codigo)+'</name>\n'+
+    '    <trkseg>\n'+trkpts+'\n    </trkseg>\n'+
+    '  </trk>\n'+
+    '</gpx>\n';
+}
 function incrustarExif(dataURL, comentario, lat, lon, alt){
   if(typeof piexif === "undefined") return dataURL;
   try{
@@ -5449,6 +5472,7 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
     fila.area_radio_m = r.tipo==="observacion" ? (r.areaRadio||"") : "";
     fila.habitat_observacion = r.tipo==="observacion" ? (r.habitat||"") : "";
     fila.microhabitat_observacion = r.tipo==="observacion" ? (r.referencia||"") : "";
+    fila.archivo_track = (r.tipo==="observacion" && r.trackPuntos && r.trackPuntos.length>1) ? nombreArchivoTrack(r) : "";
     fila.subtipo_nota = r.tipo==="nota" ? (r.notaSubtipo==="operativo"?"Operativo":"Narrativo") : "";
     return fila;
   }
@@ -5486,7 +5510,7 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
     ["distancia_real_m","[Observación] Distancia real (m)"],["ancho_banda_m","[Observación] Ancho de banda (m)"],
     ["area_largo_m","[Observación] Área largo (m)"],["area_ancho_m","[Observación] Área ancho (m)"],
     ["area_radio_m","[Observación] Área radio (m)"],["habitat_observacion","[Observación] Hábitat"],
-    ["microhabitat_observacion","[Observación] Microhábitat"]
+    ["microhabitat_observacion","[Observación] Microhábitat"],["archivo_track","[Observación] Archivo de track (.gpx)"]
   ];
   var colsNota = [["subtipo_nota","[Nota] Subtipo (Operativo/Narrativo)"]];
   var todasCols = COLS_SESION_EXPORT.concat(colsEstandar).concat(colsComun).concat(colsRecoleccion).concat(colsObservacion).concat(colsNota);
