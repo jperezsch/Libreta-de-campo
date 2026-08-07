@@ -402,6 +402,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="lista-footer-acciones">
       <button type="button" class="btnfull btn-secondary" id="btn-exportar-narrativa" style="display:none;">⬇️ Exportar libreta (.html)</button>
       <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Descargar registros y fotos (.zip)</button>
+      <button type="button" class="btnfull btn-secondary" id="btn-compartir-zip" style="display:none;">📤 Compartir por WhatsApp</button>
       <button type="button" class="btnfull btn-amber" id="btn-finalizar-sesion">🏁 Finalizar sesión</button>
     </div>
   </div>
@@ -656,8 +657,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="stat"><div class="n" id="stat-hoy">0</div><div class="l">De hoy</div></div>
     </div>
     <div class="field"><label>Sesiones a exportar</label><div id="exp-selector-sesion"></div></div>
+    <div class="field"><label>Tipos de registro (planilla estándar)</label><div id="exp-selector-tipo"></div></div>
     <div class="section-title">Exportar a Excel</div>
-    <button type="button" class="btnfull btn-primary" id="btn-export-xlsx">📊 Generar planilla Excel (.xlsx)</button>
+    <button type="button" class="btnfull btn-primary" id="btn-export-xlsx">📊 Generar planilla estándar (.xlsx)</button>
+    <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Generar planilla de Medición (.xlsx)</button>
     <div class="section-title">Respaldo de datos</div>
     <button type="button" class="btnfull btn-secondary" id="btn-export-json">⬇️ Exportar respaldo completo (.json)</button>
     <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.json o .zip)</label>
@@ -3268,7 +3271,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-06 · v17";
+var APP_BUILD = "2026-08-07 · v18";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4010,26 +4013,22 @@ function exportarLibretaHTML(lista){
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 
-document.getElementById("btn-descargar-zip").addEventListener("click", function(){
-  if(typeof JSZip === "undefined"){ toast("No se pudo cargar el componente de compresión"); return; }
-  var btn = this;
+function generarPaqueteZip(){
+  if(typeof JSZip === "undefined"){ toast("No se pudo cargar el componente de compresión"); return Promise.reject(); }
   var todasLasFotos = [];
   state.registros.forEach(function(r){
     (r.fotos||[]).forEach(function(f){ todasLasFotos.push({foto:f, registro:r}); });
   });
-  if(todasLasFotos.length===0 && state.registros.length===0){ toast("No hay registros para empaquetar"); return; }
-  btn.disabled = true; btn.textContent = "📦 Preparando paquete...";
+  if(todasLasFotos.length===0 && state.registros.length===0){ toast("No hay registros para empaquetar"); return Promise.reject(); }
   var zip = new JSZip();
   var carpetaFotos = zip.folder("fotos");
   var nombresUsados = {};
-
   function nombreUnico(base){
     var nombre = base, n = 2;
     while(nombresUsados[nombre]){ nombre = base.replace(/\.jpg$/,"") + "_" + n + ".jpg"; n++; }
     nombresUsados[nombre] = true;
     return nombre;
   }
-
   var promesas = todasLasFotos.map(function(item){
     return leerFotoDB(item.foto.id).then(function(dataURL){
       if(!dataURL) return;
@@ -4039,12 +4038,16 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
       carpetaFotos.file(filename, base64, {base64:true});
     }).catch(function(){});
   });
-
-  Promise.all(promesas).then(function(){
+  return Promise.all(promesas).then(function(){
     var data = {sesiones:state.sesiones, sesionActivaId:state.sesionActivaId, registros:state.registros};
     zip.file("respaldo.json", JSON.stringify(data, null, 2));
     return zip.generateAsync({type:"blob", compression:"DEFLATE", compressionOptions:{level:6}});
-  }).then(function(blob){
+  });
+}
+document.getElementById("btn-descargar-zip").addEventListener("click", function(){
+  var btn = this;
+  btn.disabled = true; btn.textContent = "📦 Preparando paquete...";
+  generarPaqueteZip().then(function(blob){
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url; a.download = "LibretaDeCampo_paquete_"+new Date().toISOString().slice(0,10)+".zip";
@@ -4054,6 +4057,28 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
     toast("✅ Paquete .zip listo — puedes compartirlo por WhatsApp como documento");
   }).catch(function(err){
     btn.disabled = false; btn.textContent = "📦 Descargar registros y fotos (.zip)";
+    toast("No se pudo generar el paquete");
+  });
+});
+(function(){
+  var puedeCompartirArchivos = typeof navigator!=="undefined" && navigator.share && navigator.canShare &&
+    (function(){ try{ return navigator.canShare({files:[new File(["x"],"x.zip",{type:"application/zip"})]}); }catch(e){ return false; } })();
+  if(puedeCompartirArchivos) document.getElementById("btn-compartir-zip").style.display = "block";
+})();
+document.getElementById("btn-compartir-zip").addEventListener("click", function(){
+  var btn = this;
+  btn.disabled = true; btn.textContent = "📤 Preparando...";
+  generarPaqueteZip().then(function(blob){
+    var nombreArchivo = "LibretaDeCampo_paquete_"+new Date().toISOString().slice(0,10)+".zip";
+    var archivo = new File([blob], nombreArchivo, {type:"application/zip"});
+    btn.disabled = false; btn.textContent = "📤 Compartir por WhatsApp";
+    if(navigator.canShare && navigator.canShare({files:[archivo]})){
+      navigator.share({files:[archivo], title:"Libreta de Campo — paquete de registros"}).catch(function(){});
+    } else {
+      toast("Este dispositivo no permite compartir archivos directamente — usa Descargar y compártelo desde tus archivos");
+    }
+  }).catch(function(){
+    btn.disabled = false; btn.textContent = "📤 Compartir por WhatsApp";
     toast("No se pudo generar el paquete");
   });
 });
@@ -5255,6 +5280,20 @@ function renderExportar(){
     });
   });
   actualizarStatsExportar();
+  renderSelectorTipoExportar();
+}
+function renderSelectorTipoExportar(){
+  var box = document.getElementById("exp-selector-tipo");
+  if(box.children.length===0){
+    var tipos = [["coleccion","🧪 Recolección"],["observacion","👁 Observación"],["nota","📝 Nota general"]];
+    box.innerHTML = tipos.map(function(t){ return '<span class="colector-chip on" data-tipo="'+t[0]+'">'+t[1]+'</span>'; }).join("");
+    box.querySelectorAll(".colector-chip").forEach(function(c){
+      c.addEventListener("click", function(){ c.classList.toggle("on"); actualizarStatsExportar(); });
+    });
+  }
+}
+function tiposSeleccionadosExportar(){
+  return Array.prototype.map.call(document.querySelectorAll("#exp-selector-tipo .colector-chip.on"), function(c){return c.dataset.tipo;});
 }
 function sesionesSeleccionadasExportar(){
   return Array.prototype.map.call(document.querySelectorAll("#exp-selector-sesion .colector-chip.on"), function(c){return c.dataset.id;});
@@ -5266,53 +5305,197 @@ function actualizarStatsExportar(){
   var hoy = new Date().toISOString().slice(0,10);
   document.getElementById("stat-hoy").textContent = seleccionados.filter(function(r){return r.fecha===hoy;}).length;
 }
+var COLS_SESION_EXPORT = [
+  ["sesion_proyecto","[Sesión] Proyecto"],["sesion_objetivo","[Sesión] Objetivo"],
+  ["sesion_fechaInicio","[Sesión] Fecha inicio"],["sesion_fechaTermino","[Sesión] Fecha término"],
+  ["sesion_participantes","[Sesión] Participantes"],["sesion_zona","[Sesión] Zona"],
+  ["sesion_paisaje","[Sesión] Paisaje"],["sesion_institucion","[Sesión] Institución"],
+  ["sesion_clima","[Sesión] Clima"],["sesion_notas","[Sesión] Notas"]
+];
+function filaSesionExport(s){
+  return {sesion_proyecto:s.proyecto||"", sesion_objetivo:s.objetivo||"", sesion_fechaInicio:s.fechaIni||"",
+    sesion_fechaTermino:s.fechaFin||"", sesion_participantes:s.participantes||"", sesion_zona:s.zona||"",
+    sesion_paisaje:s.paisaje||"", sesion_institucion:s.institucion||"", sesion_clima:s.clima||"", sesion_notas:s.notas||""};
+}
+function nombreArchivoFotoExport(codigo, nombreFoto){
+  return sanitizarNombreArchivo(codigo)+"__"+sanitizarNombreArchivo(nombreFoto)+".jpg";
+}
 document.getElementById("btn-export-xlsx").addEventListener("click", function(){
   var ids = sesionesSeleccionadasExportar();
   if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
+  var tipos = tiposSeleccionadosExportar();
+  if(tipos.length===0){ toast("Selecciona al menos un tipo de registro"); return; }
   var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
-  var registrosElegidos = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0; });
-  if(registrosElegidos.length===0){ toast("Las sesiones elegidas no tienen registros para exportar"); return; }
-  var wb = XLSX.utils.book_new();
+  var registrosElegidos = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0 && tipos.indexOf(r.tipo)>=0; });
+  if(registrosElegidos.length===0){ toast("No hay registros que coincidan con la sesión y el tipo elegidos"); return; }
 
-  var filasSesiones = sesionesElegidas.map(function(s){
-    return {proyecto:s.proyecto, objetivo:s.objetivo, fecha_inicio:s.fechaIni, fecha_termino:s.fechaFin,
-      participantes:s.participantes, zona:s.zona, paisaje:s.paisaje, institucion:s.institucion,
-      clima:s.clima, notas:s.notas, prefijo:s.prefijo};
-  });
-  var colsSesion = ["proyecto","objetivo","fecha_inicio","fecha_termino","participantes","zona","paisaje","institucion","clima","notas","prefijo"];
-  var wsSesion = XLSX.utils.json_to_sheet(filasSesiones, {header:colsSesion});
-  XLSX.utils.sheet_add_aoa(wsSesion, [["Proyecto","Objetivo","Fecha inicio","Fecha término","Participantes","Zona","Paisaje","Institución","Clima","Notas","Prefijo"]], {origin:"A1"});
-  wsSesion['!cols'] = colsSesion.map(function(){return {wch:22};});
-  XLSX.utils.book_append_sheet(wb, wsSesion, sesionesElegidas.length===1 ? "Sesión" : "Sesiones");
-
+  var TIPO_ESTANDAR = {coleccion:"colectado", observacion:"observado", nota:"nota"};
+  function filaRegistroExport(r, s, taxonOverride, individuosOverride){
+    var fila = filaSesionExport(s);
+    fila.codigoMuestreo = s.prefijo||""; fila.tipoRegistro = TIPO_ESTANDAR[r.tipo]||r.tipo; fila.catalogo = r.codigo||"";
+    fila.phylum=""; fila.clase=""; fila.orden=""; fila.familia=""; fila.genero="";
+    fila.taxon = taxonOverride!=null ? taxonOverride : (r.taxonLibre||"");
+    fila.determinador=""; fila.determinadorFecha="";
+    fila.individuos = individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:"");
+    fila.sexo=""; fila.estadoDesarrollo=""; fila.region=""; fila.provincia=""; fila.comuna="";
+    fila.localidad = s.zona||""; fila.localidadVerbatim = r.referencia||"";
+    fila.lat = r.lat||""; fila.lng = r.lon||""; fila.fechaColecta = r.fecha||""; fila.colector = r.colector||"";
+    fila.fechaIngreso=""; fila.procedencia=""; fila.destino=""; fila.ubicacionColeccion=""; fila.privacidad="";
+    fila.conservacion = r.tipo==="coleccion" ? (r.condicion||"") : "";
+    fila.preparacion=""; fila.observaciones = r.notas||"";
+    fila.imagenes = (r.fotos||[]).map(function(f){ return nombreArchivoFotoExport(r.codigo, f.nombre); }).join("|");
+    fila.fotoEstado=""; fila.inaturalistUrl=""; fila.fichaEspecimenUrl="";
+    fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
+    fila.metodo_captura = r.tipo==="coleccion" ? (r.metodo||"") : "";
+    fila.habitat_recoleccion = r.tipo==="coleccion" ? (r.habitat||"") : "";
+    fila.microhabitat_recoleccion = r.tipo==="coleccion" ? (r.referencia||"") : "";
+    fila.tejido_conservado = r.tipo==="coleccion" ? (r.tejidoConservado?"Sí":"No") : "";
+    fila.tipo_observacion = r.tipo==="observacion" ? (r.metodo||"") : "";
+    fila.duracion_objetivo_min = r.tipo==="observacion" ? (r.duracionObjetivo||"") : "";
+    fila.duracion_real_min = r.tipo==="observacion" ? (r.duracionReal!=null?r.duracionReal:"") : "";
+    fila.distancia_objetivo_m = r.tipo==="observacion" ? (r.distanciaObjetivo||"") : "";
+    fila.distancia_real_m = r.tipo==="observacion" ? (r.distanciaReal!=null?r.distanciaReal:"") : "";
+    fila.ancho_banda_m = r.tipo==="observacion" ? (r.anchoBanda||"") : "";
+    fila.area_largo_m = r.tipo==="observacion" ? (r.areaLargo||"") : "";
+    fila.area_ancho_m = r.tipo==="observacion" ? (r.areaAncho||"") : "";
+    fila.area_radio_m = r.tipo==="observacion" ? (r.areaRadio||"") : "";
+    fila.habitat_observacion = r.tipo==="observacion" ? (r.habitat||"") : "";
+    fila.microhabitat_observacion = r.tipo==="observacion" ? (r.referencia||"") : "";
+    fila.subtipo_nota = r.tipo==="nota" ? (r.notaSubtipo==="operativo"?"Operativo":"Narrativo") : "";
+    return fila;
+  }
   var filas = [];
   registrosElegidos.forEach(function(r){
-    var sNombre = (sesionPorId(r.sesionId)||{}).proyecto || "";
-    var base = {
-      sesion: sNombre, codigo:r.codigo, tipo:(TIPOS[r.tipo]||{}).label||r.tipo, fecha:r.fecha, hora:r.hora,
-      lat:r.lat, lon:r.lon, altitud:r.altitud!=null?r.altitud:"", referencia:r.referencia, colector:r.colector,
-      taxon: r.taxonLibre||"", n_individuos: r.nind||"", metodo:r.metodo||"", condicion:r.condicion||"",
-      habitat:r.habitat||"", sustrato:r.sustrato||"", unidad_muestral:r.unidad||"", esfuerzo:r.esfuerzo||"",
-      fotos: (r.fotos||[]).map(function(f){return f.nombre+(f.comentario?(" ("+f.comentario+")"):"");}).join("; "),
-      notas:r.notas||""
-    };
-    if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length){
-      r.especies.forEach(function(e){
-        var fila = Object.assign({}, base, {taxon:e.nombre, n_individuos:e.cantidad});
-        filas.push(fila);
-      });
+    var s = sesionPorId(r.sesionId) || {};
+    if(r.tipo==="observacion" && r.especies && r.especies.length){
+      r.especies.forEach(function(e){ filas.push(filaRegistroExport(r, s, e.nombre, e.cantidad)); });
     } else {
-      filas.push(base);
+      filas.push(filaRegistroExport(r, s, null, null));
     }
   });
-  var cols = ["sesion","codigo","tipo","fecha","hora","lat","lon","altitud","colector","metodo","habitat","sustrato","referencia","condicion","taxon","n_individuos","unidad_muestral","esfuerzo","fotos","notas"];
-  var ws = XLSX.utils.json_to_sheet(filas, {header:cols});
-  XLSX.utils.sheet_add_aoa(ws, [["Sesión","Código","Tipo","Fecha","Hora","Latitud","Longitud","Altitud (m)","Colector","Método","Hábitat","Sustrato","Microhábitat","Condición / Conservación","Taxón","N° individuos","Unidad muestral","Esfuerzo","Fotos","Notas"]], {origin:"A1"});
-  ws['!cols'] = cols.map(function(){return {wch:16};});
+
+  var colsEstandar = [
+    ["codigoMuestreo","codigoMuestreo"],["tipoRegistro","tipoRegistro"],["catalogo","catalogo"],
+    ["phylum","phylum"],["clase","clase"],["orden","orden"],["familia","familia"],["genero","genero"],
+    ["taxon","taxon"],["determinador","determinador"],["determinadorFecha","determinadorFecha"],
+    ["individuos","individuos"],["sexo","sexo"],["estadoDesarrollo","estadoDesarrollo"],
+    ["region","region"],["provincia","provincia"],["comuna","comuna"],["localidad","localidad"],
+    ["localidadVerbatim","localidadVerbatim"],["lat","lat"],["lng","lng"],["fechaColecta","fechaColecta"],
+    ["colector","colector"],["fechaIngreso","fechaIngreso"],["procedencia","procedencia"],
+    ["destino","destino"],["ubicacionColeccion","ubicacionColeccion"],["privacidad","privacidad"],
+    ["conservacion","conservacion"],["preparacion","preparacion"],["observaciones","observaciones"],
+    ["imagenes","imagenes"],["fotoEstado","fotoEstado"],["inaturalistUrl","inaturalistUrl"],
+    ["fichaEspecimenUrl","fichaEspecimenUrl"]
+  ];
+  var colsComun = [["hora","[Común] Hora"],["altitud_m","[Común] Altitud (m)"]];
+  var colsRecoleccion = [
+    ["metodo_captura","[Recolección] Método de captura"],["habitat_recoleccion","[Recolección] Hábitat"],
+    ["microhabitat_recoleccion","[Recolección] Microhábitat"],["tejido_conservado","[Recolección] Tejido conservado"]
+  ];
+  var colsObservacion = [
+    ["tipo_observacion","[Observación] Tipo de observación"],["duracion_objetivo_min","[Observación] Duración objetivo (min)"],
+    ["duracion_real_min","[Observación] Duración real (min)"],["distancia_objetivo_m","[Observación] Distancia objetivo (m)"],
+    ["distancia_real_m","[Observación] Distancia real (m)"],["ancho_banda_m","[Observación] Ancho de banda (m)"],
+    ["area_largo_m","[Observación] Área largo (m)"],["area_ancho_m","[Observación] Área ancho (m)"],
+    ["area_radio_m","[Observación] Área radio (m)"],["habitat_observacion","[Observación] Hábitat"],
+    ["microhabitat_observacion","[Observación] Microhábitat"]
+  ];
+  var colsNota = [["subtipo_nota","[Nota] Subtipo (Operativo/Narrativo)"]];
+  var todasCols = COLS_SESION_EXPORT.concat(colsEstandar).concat(colsComun).concat(colsRecoleccion).concat(colsObservacion).concat(colsNota);
+  var claves = todasCols.map(function(c){return c[0];});
+  var etiquetas = todasCols.map(function(c){return c[1];});
+
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.json_to_sheet(filas, {header:claves});
+  XLSX.utils.sheet_add_aoa(ws, [etiquetas], {origin:"A1"});
+  ws['!cols'] = claves.map(function(){return {wch:16};});
   XLSX.utils.book_append_sheet(wb, ws, "Registros");
+
+  var wsInfo = XLSX.utils.aoa_to_sheet([
+    ["Libreta de Campo · WikiTaxa — Planilla estándar"],
+    ["Columnas sin corchetes = exactamente el estándar oficial WikiTaxa (para importar a la herramienta de proyectos)."],
+    ["Columnas con [Sesión] / [Común] / [Recolección] / [Observación] / [Nota] = datos adicionales de la app, agrupados por origen."],
+    ["Cada registro solo llena su propia zona adicional; las demás quedan vacías — es normal, no es un error."],
+    ["imagenes: nombres de archivo separados por | (no son URLs)."],
+    ["Generado el "+new Date().toLocaleString("es-CL")]
+  ]);
+  wsInfo['!cols'] = [{wch:100}];
+  XLSX.utils.book_append_sheet(wb, wsInfo, "Instrucciones");
+
   var nombreArchivo = sesionesElegidas.length===1 ? "LibretaDeCampo_"+sesionesElegidas[0].prefijo+".xlsx" : "LibretaDeCampo_"+sesionesElegidas.length+"_sesiones.xlsx";
   XLSX.writeFile(wb, nombreArchivo);
-  toast("Planilla generada");
+  toast("✅ Planilla estándar generada — "+filas.length+" fila(s)");
+});
+
+document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
+  var ids = sesionesSeleccionadasExportar();
+  if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
+  var registrosMed = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0 && r.tipo==="medicion"; });
+  if(registrosMed.length===0){ toast("Las sesiones elegidas no tienen registros de Medición"); return; }
+
+  var combosMap = {}; var combosOrden = [];
+  registrosMed.forEach(function(r){
+    (r.estructuras||[]).forEach(function(es){
+      (es.variables||[]).forEach(function(v){
+        var key = es.nombre+"|||"+v.nombre;
+        if(!combosMap[key]){ combosMap[key] = {estructura:es.nombre, variable:v.nombre, unidad:v.unidad||""}; combosOrden.push(key); }
+      });
+    });
+  });
+
+  var colsFijas = [
+    ["codigoRegistro","codigoRegistro"],["codigoIndividuo","codigoIndividuo"],["especieMedida","especieMedida"],
+    ["fecha","fecha"],["hora","hora"],["lat","lat"],["lon","lon"],["altitud_m","altitud_m"],
+    ["localidadGeneral","localidadGeneral"],["observador","observador"],["metodoInstrumento","metodoInstrumento"],["notas","notas"]
+  ];
+  var colsOpcionales = [["sexo","sexo"],["localidadIndividuo","localidadIndividuo"],["habitatIndividuo","habitatIndividuo"]];
+  var colsVariables = combosOrden.map(function(key){
+    var c = combosMap[key];
+    return [key, c.estructura+" - "+c.variable+(c.unidad?(" ("+c.unidad+")"):"")];
+  });
+  var todasCols = COLS_SESION_EXPORT.concat(colsFijas).concat(colsOpcionales).concat(colsVariables);
+
+  var filas = [];
+  registrosMed.forEach(function(r){
+    var s = sesionPorId(r.sesionId) || {};
+    (r.individuos||[]).forEach(function(ind){
+      var fila = filaSesionExport(s);
+      fila.codigoRegistro = r.codigo||""; fila.codigoIndividuo = ind.subcodigo||""; fila.especieMedida = r.especieMedida||"";
+      fila.fecha = r.fecha||""; fila.hora = r.hora||""; fila.lat = r.lat||""; fila.lon = r.lon||"";
+      fila.altitud_m = r.altitud!=null?r.altitud:"";
+      fila.localidadGeneral = r.referencia || s.zona || ""; fila.observador = r.colector||""; fila.metodoInstrumento = r.metodo||"";
+      fila.notas = r.notas||"";
+      fila.sexo = ind.sexo||""; fila.localidadIndividuo = ind.localidad||""; fila.habitatIndividuo = ind.habitat||"";
+      combosOrden.forEach(function(key){
+        var c = combosMap[key];
+        var val = ind.valores && ind.valores[c.estructura] && ind.valores[c.estructura][c.variable];
+        fila[key] = (val!=null && val!=="") ? val : "";
+      });
+      filas.push(fila);
+    });
+  });
+
+  var claves = todasCols.map(function(c){return c[0];});
+  var etiquetas = todasCols.map(function(c){return c[1];});
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.json_to_sheet(filas, {header:claves});
+  XLSX.utils.sheet_add_aoa(ws, [etiquetas], {origin:"A1"});
+  ws['!cols'] = claves.map(function(){return {wch:16};});
+  XLSX.utils.book_append_sheet(wb, ws, "Individuos");
+
+  var wsInfo = XLSX.utils.aoa_to_sheet([
+    ["Libreta de Campo · WikiTaxa — Planilla de Medición"],
+    ["Formato ancho: una fila por individuo medido. No es compatible con el estándar WikiTaxa (uso propio)."],
+    ["Las columnas de variables (Estructura - Variable) son dinámicas: solo existen las que aparecen en los registros exportados."],
+    ["Si un individuo no tiene esa estructura medida, la celda queda vacía — es normal, no es un error."],
+    ["Generado el "+new Date().toLocaleString("es-CL")]
+  ]);
+  wsInfo['!cols'] = [{wch:100}];
+  XLSX.utils.book_append_sheet(wb, wsInfo, "Instrucciones");
+
+  var nombreArchivo = "LibretaDeCampo_Medicion_"+new Date().toISOString().slice(0,10)+".xlsx";
+  XLSX.writeFile(wb, nombreArchivo);
+  toast("✅ Planilla de Medición generada — "+filas.length+" individuo(s)");
 });
 function exportarRespaldoJSON(){
   var data = {sesiones:state.sesiones, sesionActivaId:state.sesionActivaId, registros:state.registros};
