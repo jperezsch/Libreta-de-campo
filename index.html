@@ -262,7 +262,7 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 .stepper button{width:44px; height:44px; border:none; background:var(--card); font-size:1.3rem; font-weight:700; color:var(--verde-osc); cursor:pointer;}
 .stepper button:active{background:var(--verde-cl);}
 .stepper span{min-width:44px; text-align:center; font-size:1.05rem; font-weight:800;}
-#obs-tracking-flotante{position:fixed; left:12px; right:12px; top:64px; z-index:36; pointer-events:none;}
+#obs-tracking-flotante{position:fixed; left:12px; right:12px; top:64px; z-index:36; pointer-events:none; transition:top .15s;}
 .obs-flotante-card{border-radius:14px; padding:16px 18px; font-size:1rem; line-height:1.5; box-shadow:0 6px 20px rgba(0,0,0,.25); pointer-events:none;}
 .obs-flotante-card.activo{background:#c9762c; color:#fff;}
 .obs-flotante-card.listo{background:var(--verde); color:#fff;}
@@ -3287,7 +3287,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v1.4";
+var APP_BUILD = "2026-08-07 · v1.5";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4197,7 +4197,26 @@ function cargarDraftEnFormulario(){
   poblarSugerencias("dl-taxon","taxonLibre");
   poblarSugerencias("dl-referencia","referencia");
   actualizarBannerSesionRegistro();
+  posicionarTrackingFlotante();
 }
+function posicionarTrackingFlotante(){
+  var flot = document.getElementById("obs-tracking-flotante");
+  if(!flot || flot.style.display === "none") return;
+  var candidatos = [
+    document.getElementById("banner-sesion-registro"),
+    document.getElementById("banner-sesion-activa-fijo"),
+    document.querySelector("#s-form .banner-curso")
+  ];
+  var maxAbajo = 64; // respaldo si no se encuentra ninguna referencia
+  candidatos.forEach(function(el){
+    if(el && el.offsetParent !== null && el.style.display !== "none"){
+      var abajo = el.getBoundingClientRect().bottom;
+      if(abajo > maxAbajo) maxAbajo = abajo;
+    }
+  });
+  flot.style.top = (maxAbajo + 8) + "px";
+}
+window.addEventListener("resize", posicionarTrackingFlotante);
 function actualizarBannerSesionActivaFijo(){
   var s = sesionActiva();
   var banner = document.getElementById("banner-sesion-activa-fijo");
@@ -4591,11 +4610,13 @@ function actualizarEstadoObsPrincipal(){
     flot.style.display = "block";
     if(!d.obsPausado && trackingRuntime.intervalId==null) activarSeguimientoEnVivo();
     actualizarVisorTracking();
+    posicionarTrackingFlotante();
   } else if(conTracking && d.obsInicio && d.obsTermino){
     var esDist = conDistancia;
     var resumen = esDist ? ("Recorrido: "+(d.distanciaReal!=null?d.distanciaReal+" m":"—")) : ("Duración: "+(d.duracionReal!=null?d.duracionReal+" min":"—"));
     flot.style.display = "block";
     flot.innerHTML = '<div class="obs-flotante-card listo">✅ '+resumen+'</div>';
+    posicionarTrackingFlotante();
   } else {
     flot.style.display = "none";
   }
