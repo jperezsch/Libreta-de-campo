@@ -3287,7 +3287,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v1.5";
+var APP_BUILD = "2026-08-07 · v1.7";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5125,7 +5125,7 @@ function agregarEspecie(){
   var nombre = document.getElementById("esp-nombre").value.trim();
   if(!nombre){ toast("Escribe el nombre de la especie"); return; }
   var existente = state.especiesTemp.filter(function(e){ return e.nombre.toLowerCase()===nombre.toLowerCase(); })[0];
-  if(!existente) state.especiesTemp.push({nombre:nombre, cantidad:0});
+  if(!existente) state.especiesTemp.push({nombre:nombre, cantidad:0, _nuevo:true});
   else toast("Esa especie ya está en la lista — usa +/- para contarla");
   document.getElementById("esp-nombre").value = "";
   document.getElementById("esp-nombre").focus();
@@ -5136,7 +5136,15 @@ document.getElementById("btn-esp-add").addEventListener("click", agregarEspecie)
 document.getElementById("esp-nombre").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarEspecie(); } });
 function renderEspecies(){
   var box = document.getElementById("especie-lista"); if(!box) return;
-  state.especiesTemp.sort(function(a,b){ return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'}); });
+  state.especiesTemp.sort(function(a,b){
+    var ca = parseInt(a.cantidad,10)||0, cb = parseInt(b.cantidad,10)||0;
+    var grupoA = ca>0 ? 0 : (a._nuevo ? 2 : 1);
+    var grupoB = cb>0 ? 0 : (b._nuevo ? 2 : 1);
+    if(grupoA !== grupoB) return grupoA - grupoB;
+    if(grupoA === 0) return cb - ca; // mas abundantes primero
+    if(grupoA === 1) return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'}); // vacias, alfabetico
+    return 0; // recien ingresadas: se mantienen en el orden en que se escribieron (sort estable)
+  });
   box.innerHTML = state.especiesTemp.map(function(e,i){
     return '<div class="especie-item"><span class="nombre">'+escapeHtml(e.nombre)+'</span>'+
       '<div class="stepper"><button type="button" class="esp-item-menos" data-i="'+i+'">−</button><span class="cant">'+e.cantidad+'</span><button type="button" class="esp-item-mas" data-i="'+i+'">+</button></div></div>';
@@ -5156,7 +5164,7 @@ function renderEspecies(){
   }); });
   box.querySelectorAll(".esp-item-mas").forEach(function(b){ b.addEventListener("click", function(){
     var e = state.especiesTemp[parseInt(b.dataset.i,10)];
-    if(e){ e.cantidad = (parseInt(e.cantidad,10)||0) + 1; renderEspecies(); sincronizarDraftDesdeFormulario(); }
+    if(e){ e.cantidad = (parseInt(e.cantidad,10)||0) + 1; delete e._nuevo; renderEspecies(); sincronizarDraftDesdeFormulario(); }
   }); });
 }
 
@@ -5500,6 +5508,16 @@ function filaSesionExport(s){
 function nombreArchivoFotoExport(codigo, nombreFoto){
   return sanitizarNombreArchivo(codigo)+"__"+sanitizarNombreArchivo(nombreFoto)+".jpg";
 }
+function ordenarFotosConPortadaPrimero(r){
+  var fotos = (r.fotos||[]).slice();
+  if(!r.fotoPortadaId) return fotos;
+  var idx = fotos.findIndex(function(f){ return f.id === r.fotoPortadaId; });
+  if(idx > 0){
+    var portada = fotos.splice(idx,1)[0];
+    fotos.unshift(portada);
+  }
+  return fotos;
+}
 document.getElementById("btn-export-xlsx").addEventListener("click", function(){
   var ids = sesionesSeleccionadasExportar();
   if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
@@ -5523,8 +5541,10 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
     fila.fechaIngreso=""; fila.procedencia=""; fila.destino=""; fila.ubicacionColeccion=""; fila.privacidad="";
     fila.conservacion = r.tipo==="coleccion" ? (r.condicion||"") : "";
     fila.preparacion=""; fila.observaciones = r.notas||"";
-    fila.imagenes = (r.fotos||[]).map(function(f){ return nombreArchivoFotoExport(r.codigo, f.nombre); }).join("|");
-    fila.fotoEstado=""; fila.inaturalistUrl=""; fila.fichaEspecimenUrl="";
+    var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
+    fila.imagenes = fotosOrdenadas.map(function(f){ return nombreArchivoFotoExport(r.codigo, f.nombre); }).join("|");
+    fila.fotoEstado = fotosOrdenadas.map(function(f){ return (f.comentario||"").replace(/\|/g,"/"); }).join("|");
+    fila.inaturalistUrl=""; fila.fichaEspecimenUrl="";
     fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
     fila.metodo_captura = r.tipo==="coleccion" ? (r.metodo||"") : "";
     fila.habitat_recoleccion = r.tipo==="coleccion" ? (r.habitat||"") : "";
@@ -5541,6 +5561,7 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
     fila.area_radio_m = r.tipo==="observacion" ? (r.areaRadio||"") : "";
     fila.habitat_observacion = r.tipo==="observacion" ? (r.habitat||"") : "";
     fila.microhabitat_observacion = r.tipo==="observacion" ? (r.referencia||"") : "";
+    fila.hora_termino_observacion = (r.tipo==="observacion" && r.obsTermino && r.obsTermino.hora) ? r.obsTermino.hora : "";
     fila.archivo_track = (r.tipo==="observacion" && r.trackPuntos && r.trackPuntos.length>1) ? nombreArchivoTrack(r) : "";
     fila.subtipo_nota = r.tipo==="nota" ? (r.notaSubtipo==="operativo"?"Operativo":"Narrativo") : "";
     return fila;
@@ -5579,7 +5600,8 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
     ["distancia_real_m","[Observación] Distancia real (m)"],["ancho_banda_m","[Observación] Ancho de banda (m)"],
     ["area_largo_m","[Observación] Área largo (m)"],["area_ancho_m","[Observación] Área ancho (m)"],
     ["area_radio_m","[Observación] Área radio (m)"],["habitat_observacion","[Observación] Hábitat"],
-    ["microhabitat_observacion","[Observación] Microhábitat"],["archivo_track","[Observación] Archivo de track (.gpx)"]
+    ["microhabitat_observacion","[Observación] Microhábitat"],["hora_termino_observacion","[Observación] Hora de término"],
+    ["archivo_track","[Observación] Archivo de track (.gpx)"]
   ];
   var colsNota = [["subtipo_nota","[Nota] Subtipo (Operativo/Narrativo)"]];
   var todasCols = COLS_SESION_EXPORT.concat(colsEstandar).concat(colsComun).concat(colsRecoleccion).concat(colsObservacion).concat(colsNota);
