@@ -3287,7 +3287,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v1.7";
+var APP_BUILD = "2026-08-07 · v1.8";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4084,6 +4084,8 @@ function generarPaqueteZip(){
   return Promise.all(promesas).then(function(){
     var data = {sesiones:state.sesiones, sesionActivaId:state.sesionActivaId, registros:state.registros};
     zip.file("respaldo.json", JSON.stringify(data, null, 2));
+    var filasEstandar = construirFilasEstandar(state.registros);
+    zip.file("planilla_estandar.json", JSON.stringify(filasEstandar, null, 2));
     return zip.generateAsync({type:"blob", compression:"DEFLATE", compressionOptions:{level:6}});
   });
 }
@@ -5518,6 +5520,58 @@ function ordenarFotosConPortadaPrimero(r){
   }
   return fotos;
 }
+var TIPO_ESTANDAR_EXPORT = {coleccion:"colectado", observacion:"observado", nota:"nota"};
+function filaRegistroExport(r, s, taxonOverride, individuosOverride){
+  var fila = filaSesionExport(s);
+  fila.codigoMuestreo = s.prefijo||""; fila.tipoRegistro = TIPO_ESTANDAR_EXPORT[r.tipo]||r.tipo; fila.catalogo = r.codigo||"";
+  fila.phylum=""; fila.clase=""; fila.orden=""; fila.familia=""; fila.genero="";
+  fila.taxon = taxonOverride!=null ? taxonOverride : (r.taxonLibre||"");
+  fila.determinador=""; fila.determinadorFecha="";
+  fila.individuos = individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:"");
+  fila.sexo=""; fila.estadoDesarrollo=""; fila.region=""; fila.provincia=""; fila.comuna="";
+  fila.localidad = s.zona||""; fila.localidadVerbatim = r.referencia||"";
+  fila.lat = r.lat||""; fila.lng = r.lon||""; fila.fechaColecta = r.fecha||""; fila.colector = r.colector||"";
+  fila.fechaIngreso=""; fila.procedencia=""; fila.destino=""; fila.ubicacionColeccion=""; fila.privacidad="";
+  fila.conservacion = r.tipo==="coleccion" ? (r.condicion||"") : "";
+  fila.preparacion=""; fila.observaciones = r.notas||"";
+  var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
+  fila.imagenes = fotosOrdenadas.map(function(f){ return nombreArchivoFotoExport(r.codigo, f.nombre); }).join("|");
+  fila.fotoEstado = fotosOrdenadas.map(function(f){ return (f.comentario||"").replace(/\|/g,"/"); }).join("|");
+  fila.inaturalistUrl=""; fila.fichaEspecimenUrl="";
+  fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
+  fila.metodo_captura = r.tipo==="coleccion" ? (r.metodo||"") : "";
+  fila.habitat_recoleccion = r.tipo==="coleccion" ? (r.habitat||"") : "";
+  fila.microhabitat_recoleccion = r.tipo==="coleccion" ? (r.referencia||"") : "";
+  fila.tejido_conservado = r.tipo==="coleccion" ? (r.tejidoConservado?"Sí":"No") : "";
+  fila.tipo_observacion = r.tipo==="observacion" ? (r.metodo||"") : "";
+  fila.duracion_objetivo_min = r.tipo==="observacion" ? (r.duracionObjetivo||"") : "";
+  fila.duracion_real_min = r.tipo==="observacion" ? (r.duracionReal!=null?r.duracionReal:"") : "";
+  fila.distancia_objetivo_m = r.tipo==="observacion" ? (r.distanciaObjetivo||"") : "";
+  fila.distancia_real_m = r.tipo==="observacion" ? (r.distanciaReal!=null?r.distanciaReal:"") : "";
+  fila.ancho_banda_m = r.tipo==="observacion" ? (r.anchoBanda||"") : "";
+  fila.area_largo_m = r.tipo==="observacion" ? (r.areaLargo||"") : "";
+  fila.area_ancho_m = r.tipo==="observacion" ? (r.areaAncho||"") : "";
+  fila.area_radio_m = r.tipo==="observacion" ? (r.areaRadio||"") : "";
+  fila.habitat_observacion = r.tipo==="observacion" ? (r.habitat||"") : "";
+  fila.microhabitat_observacion = r.tipo==="observacion" ? (r.referencia||"") : "";
+  fila.hora_termino_observacion = (r.tipo==="observacion" && r.obsTermino && r.obsTermino.hora) ? r.obsTermino.hora : "";
+  fila.archivo_track = (r.tipo==="observacion" && r.trackPuntos && r.trackPuntos.length>1) ? nombreArchivoTrack(r) : "";
+  fila.subtipo_nota = r.tipo==="nota" ? (r.notaSubtipo==="operativo"?"Operativo":"Narrativo") : "";
+  return fila;
+}
+function construirFilasEstandar(registros){
+  var filas = [];
+  registros.filter(function(r){ return r.tipo!=="medicion"; }).forEach(function(r){
+    var s = sesionPorId(r.sesionId) || {};
+    if(r.tipo==="observacion" && r.especies && r.especies.length){
+      r.especies.forEach(function(e){ filas.push(filaRegistroExport(r, s, e.nombre, e.cantidad)); });
+    } else {
+      filas.push(filaRegistroExport(r, s, null, null));
+    }
+  });
+  return filas;
+}
+
 document.getElementById("btn-export-xlsx").addEventListener("click", function(){
   var ids = sesionesSeleccionadasExportar();
   if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
@@ -5527,54 +5581,7 @@ document.getElementById("btn-export-xlsx").addEventListener("click", function(){
   var registrosElegidos = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0 && tipos.indexOf(r.tipo)>=0; });
   if(registrosElegidos.length===0){ toast("No hay registros que coincidan con la sesión y el tipo elegidos"); return; }
 
-  var TIPO_ESTANDAR = {coleccion:"colectado", observacion:"observado", nota:"nota"};
-  function filaRegistroExport(r, s, taxonOverride, individuosOverride){
-    var fila = filaSesionExport(s);
-    fila.codigoMuestreo = s.prefijo||""; fila.tipoRegistro = TIPO_ESTANDAR[r.tipo]||r.tipo; fila.catalogo = r.codigo||"";
-    fila.phylum=""; fila.clase=""; fila.orden=""; fila.familia=""; fila.genero="";
-    fila.taxon = taxonOverride!=null ? taxonOverride : (r.taxonLibre||"");
-    fila.determinador=""; fila.determinadorFecha="";
-    fila.individuos = individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:"");
-    fila.sexo=""; fila.estadoDesarrollo=""; fila.region=""; fila.provincia=""; fila.comuna="";
-    fila.localidad = s.zona||""; fila.localidadVerbatim = r.referencia||"";
-    fila.lat = r.lat||""; fila.lng = r.lon||""; fila.fechaColecta = r.fecha||""; fila.colector = r.colector||"";
-    fila.fechaIngreso=""; fila.procedencia=""; fila.destino=""; fila.ubicacionColeccion=""; fila.privacidad="";
-    fila.conservacion = r.tipo==="coleccion" ? (r.condicion||"") : "";
-    fila.preparacion=""; fila.observaciones = r.notas||"";
-    var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
-    fila.imagenes = fotosOrdenadas.map(function(f){ return nombreArchivoFotoExport(r.codigo, f.nombre); }).join("|");
-    fila.fotoEstado = fotosOrdenadas.map(function(f){ return (f.comentario||"").replace(/\|/g,"/"); }).join("|");
-    fila.inaturalistUrl=""; fila.fichaEspecimenUrl="";
-    fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
-    fila.metodo_captura = r.tipo==="coleccion" ? (r.metodo||"") : "";
-    fila.habitat_recoleccion = r.tipo==="coleccion" ? (r.habitat||"") : "";
-    fila.microhabitat_recoleccion = r.tipo==="coleccion" ? (r.referencia||"") : "";
-    fila.tejido_conservado = r.tipo==="coleccion" ? (r.tejidoConservado?"Sí":"No") : "";
-    fila.tipo_observacion = r.tipo==="observacion" ? (r.metodo||"") : "";
-    fila.duracion_objetivo_min = r.tipo==="observacion" ? (r.duracionObjetivo||"") : "";
-    fila.duracion_real_min = r.tipo==="observacion" ? (r.duracionReal!=null?r.duracionReal:"") : "";
-    fila.distancia_objetivo_m = r.tipo==="observacion" ? (r.distanciaObjetivo||"") : "";
-    fila.distancia_real_m = r.tipo==="observacion" ? (r.distanciaReal!=null?r.distanciaReal:"") : "";
-    fila.ancho_banda_m = r.tipo==="observacion" ? (r.anchoBanda||"") : "";
-    fila.area_largo_m = r.tipo==="observacion" ? (r.areaLargo||"") : "";
-    fila.area_ancho_m = r.tipo==="observacion" ? (r.areaAncho||"") : "";
-    fila.area_radio_m = r.tipo==="observacion" ? (r.areaRadio||"") : "";
-    fila.habitat_observacion = r.tipo==="observacion" ? (r.habitat||"") : "";
-    fila.microhabitat_observacion = r.tipo==="observacion" ? (r.referencia||"") : "";
-    fila.hora_termino_observacion = (r.tipo==="observacion" && r.obsTermino && r.obsTermino.hora) ? r.obsTermino.hora : "";
-    fila.archivo_track = (r.tipo==="observacion" && r.trackPuntos && r.trackPuntos.length>1) ? nombreArchivoTrack(r) : "";
-    fila.subtipo_nota = r.tipo==="nota" ? (r.notaSubtipo==="operativo"?"Operativo":"Narrativo") : "";
-    return fila;
-  }
-  var filas = [];
-  registrosElegidos.forEach(function(r){
-    var s = sesionPorId(r.sesionId) || {};
-    if(r.tipo==="observacion" && r.especies && r.especies.length){
-      r.especies.forEach(function(e){ filas.push(filaRegistroExport(r, s, e.nombre, e.cantidad)); });
-    } else {
-      filas.push(filaRegistroExport(r, s, null, null));
-    }
-  });
+  var filas = construirFilasEstandar(registrosElegidos);
 
   var colsEstandar = [
     ["codigoMuestreo","codigoMuestreo"],["tipoRegistro","tipoRegistro"],["catalogo","catalogo"],
