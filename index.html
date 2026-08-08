@@ -365,20 +365,20 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="section-title" style="margin:0;">Datos generales de la sesión</div>
       <button type="button" class="btn-nueva-salida" id="btn-nueva-salida">🆕 Nueva Sesión</button>
     </div>
-    <div class="field"><label>Proyecto / campaña</label><input type="text" id="ss-proyecto" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
-    <div class="field"><label>Objetivo de la salida</label><input type="text" id="ss-objetivo" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
+    <div class="field"><label>Proyecto / campaña</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
+    <div class="field"><label>Objetivo de la salida</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="row2">
       <div class="field"><label>Fecha inicio</label><input type="date" id="ss-fecha-ini"></div>
       <div class="field"><label>Fecha término</label><input type="date" id="ss-fecha-fin"></div>
     </div>
-    <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
-    <div class="field"><label>Localidad general / zona</label><input type="text" id="ss-zona" list="dl-ss-zona"><datalist id="dl-ss-zona"></datalist></div>
-    <div class="field"><label>Descripción del paisaje / ambiente</label><textarea id="ss-paisaje"></textarea></div>
+    <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
+    <div class="field"><label>Localidad general / zona</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona"><datalist id="dl-ss-zona"></datalist></div>
+    <div class="field"><label>Descripción del paisaje / ambiente</label><textarea id="ss-paisaje" spellcheck="true"></textarea></div>
 
     <div class="section-title">Contexto adicional</div>
-    <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
-    <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima" list="dl-ss-clima"><datalist id="dl-ss-clima"></datalist></div>
-    <div class="field"><label>Notas generales</label><textarea id="ss-notas"></textarea></div>
+    <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" spellcheck="true" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
+    <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima" spellcheck="true" list="dl-ss-clima"><datalist id="dl-ss-clima"></datalist></div>
+    <div class="field"><label>Notas generales</label><textarea id="ss-notas" spellcheck="true"></textarea></div>
 
     <div class="section-title">Numeración automática</div>
     <div class="row2">
@@ -406,7 +406,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div id="lista-narrativa" style="display:none;"></div>
     <div class="lista-footer-acciones">
       <button type="button" class="btnfull btn-secondary" id="btn-exportar-narrativa" style="display:none;">⬇️ Exportar libreta (.html)</button>
-      <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Descargar registros y fotos (.zip)</button>
       <button type="button" class="btnfull btn-amber" id="btn-finalizar-sesion">🏁 Finalizar sesión</button>
     </div>
   </div>
@@ -476,11 +475,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
               <option>Urbano / antrópico</option>
               <option value="__otro__">Otro (especificar)</option>
             </select>
-            <input type="text" id="f-habitat-obs-otro" list="dl-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
+            <input type="text" id="f-habitat-obs-otro" spellcheck="true" list="dl-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;">
           </div>
         </div>
         <div id="dg-medicion-extra" style="display:none;">
-          <div class="field"><label>Especie a medir</label><input type="text" id="f-especie-medida" list="dl-especie-medida"><datalist id="dl-especie-medida"></datalist></div>
+          <div class="field"><label>Especie a medir</label><input type="text" id="f-especie-medida" spellcheck="true" list="dl-especie-medida"><datalist id="dl-especie-medida"></datalist></div>
           <div class="field"><label>Método / instrumento de medición</label>
             <select id="f-metodo-med">
               <option value="">—</option>
@@ -490,7 +489,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
               <option>Software de análisis de imagen</option>
               <option value="__otro__">Otro (especificar)</option>
             </select>
-            <input type="text" id="f-metodo-med-otro" list="dl-metodo-med-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-med-otro"></datalist>
+            <input type="text" id="f-metodo-med-otro" spellcheck="true" list="dl-metodo-med-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-med-otro"></datalist>
           </div>
           <div class="switch-row"><div>Identificar sexo<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-sexo"></div>
           <div class="switch-row"><div>Identificar localidad<span>Se pedirá por cada individuo</span></div><input type="checkbox" id="f-med-localidad"></div>
@@ -500,10 +499,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
           <div id="estructuras-lista"></div>
 
           <div class="estructura-builder">
-            <div class="field"><label>Estructura a medir</label><input type="text" id="f-estructura-nombre" list="dl-estructura-nombre" placeholder="Ej: Pata 1, Antena, Cuerpo completo"><datalist id="dl-estructura-nombre"></datalist></div>
+            <div class="field"><label>Estructura a medir</label><input type="text" id="f-estructura-nombre" spellcheck="true" list="dl-estructura-nombre" placeholder="Ej: Pata 1, Antena, Cuerpo completo"><datalist id="dl-estructura-nombre"></datalist></div>
             <div id="estructura-var-lista"></div>
             <div class="especie-row">
-              <input type="text" id="estructura-var-nombre" list="dl-variable-tipo" placeholder="Variable" style="flex:1; min-width:0;">
+              <input type="text" id="estructura-var-nombre" spellcheck="true" list="dl-variable-tipo" placeholder="Variable" style="flex:1; min-width:0;">
               <input type="text" id="estructura-var-unidad" placeholder="Unidad" style="flex:0 0 68px; min-width:0;">
               <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 16px;" id="btn-estructura-var-add">➕</button>
             </div>
@@ -549,7 +548,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="total-box" style="margin-top:14px;"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>
       <div class="especie-lista" id="especie-lista"></div>
       <div class="especie-row">
-        <input type="text" id="esp-nombre" list="dl-esp-nombre" placeholder="Nombre / taxón"><datalist id="dl-esp-nombre"></datalist>
+        <input type="text" id="esp-nombre" spellcheck="true" list="dl-esp-nombre" placeholder="Nombre / taxón"><datalist id="dl-esp-nombre"></datalist>
         <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 18px;" id="btn-esp-add">➕</button>
       </div>
       <button type="button" class="btnfull btn-secondary" id="btn-plantilla-guardar" style="margin-top:10px; font-size:.85rem;">💾 Guardar lista actual para precarga</button>
@@ -596,14 +595,14 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <option>Urbano / antrópico</option>
         <option value="__otro__">Otro (especificar)</option>
       </select>
-      <input type="text" id="f-habitat-otro" list="dl-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;"><datalist id="dl-habitat-otro"></datalist>
+      <input type="text" id="f-habitat-otro" spellcheck="true" list="dl-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;"><datalist id="dl-habitat-otro"></datalist>
     </div>
-    <div class="field"><label>Microhábitat</label><input type="text" id="f-referencia" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+    <div class="field"><label>Microhábitat</label><input type="text" id="f-referencia" spellcheck="true" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
     </div>
 
     <div id="identificacion-individual">
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
+    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label>Condición / conservación</label>
       <select id="f-condicion">
@@ -642,7 +641,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <option>Bajo rocas / troncos</option><option>Buceo / snorkel</option><option>Draga</option>
         <option value="__otro__">Otro (especificar)</option>
       </select>
-      <input type="text" id="f-metodo-otro" list="dl-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-otro"></datalist>
+      <input type="text" id="f-metodo-otro" spellcheck="true" list="dl-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-otro"></datalist>
     </div>
 
     <div class="section-title"><span class="n">📝</span>Notas</div>
@@ -656,7 +655,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" id="btn-notas-italic" title="Cursiva"><i>C</i></button>
         <button type="button" id="btn-notas-lista" title="Lista de items">☰ Lista</button>
       </div>
-      <textarea id="f-notas" placeholder="Observaciones adicionales..."></textarea>
+      <textarea id="f-notas" spellcheck="true" placeholder="Observaciones adicionales..."></textarea>
     </div>
     </div>
     <div style="height:16px;"></div>
@@ -673,13 +672,12 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="stat"><div class="n" id="stat-hoy">0</div><div class="l">De hoy</div></div>
     </div>
     <div class="field"><label>Sesiones a exportar</label><div id="exp-selector-sesion"></div></div>
-    <div class="field"><label>Tipos de registro (planilla estándar)</label><div id="exp-selector-tipo"></div></div>
+    <div class="section-title">Registros, fotos y tracks</div>
+    <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Descargar registros, fotos y tracks (.zip)</button>
     <div class="section-title">Exportar a Excel</div>
-    <button type="button" class="btnfull btn-primary" id="btn-export-xlsx">📊 Generar planilla estándar (.xlsx)</button>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Generar planilla de Medición (.xlsx)</button>
-    <div class="section-title">Respaldo de datos</div>
-    <button type="button" class="btnfull btn-secondary" id="btn-export-json">⬇️ Exportar respaldo completo (.json)</button>
-    <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.json o .zip)</label>
+    <div class="section-title">Respaldo e importación</div>
+    <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.zip)</label>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
     <div id="importados-lista"></div>
     <div id="importados-acciones" style="display:none;">
@@ -728,7 +726,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <button type="button" class="modal-x" id="btn-caption-cerrar-x">✕</button>
     <h3>📷 Observación de la foto</h3>
     <img id="caption-preview" style="width:100%; border-radius:10px; margin-bottom:12px;">
-    <div class="field"><label>¿Qué muestra esta foto?</label><textarea id="caption-texto" placeholder="Ej: vista dorsal, detalle de quelíceros, hábitat general..."></textarea></div>
+    <div class="field"><label>¿Qué muestra esta foto?</label><textarea id="caption-texto" spellcheck="true" placeholder="Ej: vista dorsal, detalle de quelíceros, hábitat general..."></textarea></div>
     <button type="button" class="btnfull btn-primary" id="btn-caption-guardar">Guardar y continuar</button>
     <button type="button" class="btnfull btn-secondary" id="btn-caption-cancelar" style="margin-bottom:0;">Cancelar (no agregar esta foto)</button>
   </div>
@@ -741,7 +739,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <img id="lightbox-img">
     <div class="infobar">
       <div class="name" id="lightbox-name"></div>
-      <textarea id="lightbox-coment" placeholder="Observación..."></textarea>
+      <textarea id="lightbox-coment" spellcheck="true" placeholder="Observación..."></textarea>
       <div class="closebar">
         <button type="button" id="btn-lightbox-eliminar" style="color:var(--rojo);">Eliminar foto</button>
         <button type="button" id="btn-lightbox-cerrar">Cerrar</button>
@@ -3287,7 +3285,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v1.8";
+var APP_BUILD = "2026-08-07 · v2.0";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4382,7 +4380,7 @@ function renderColectorWrap(seleccionActual){
   var wrap = document.getElementById("colector-wrap");
   if(participantes.length <= 1){
     var valor = participantes.length===1 ? participantes[0] : (seleccionActual || "");
-    wrap.innerHTML = '<input type="text" id="f-colector-input" value="'+escapeHtml(valor)+'">';
+    wrap.innerHTML = '<input type="text" id="f-colector-input" spellcheck="true" value="'+escapeHtml(valor)+'">';
     document.getElementById("f-colector-input").addEventListener("input", function(){ sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
     return;
   }
@@ -4400,7 +4398,7 @@ function renderColectorWrap(seleccionActual){
   function renderColectorChips(participantes, seleccion){
     wrap.innerHTML = participantes.map(function(p){
       return '<span class="colector-chip'+(seleccion.indexOf(p)>=0?" on":"")+'" data-p="'+escapeHtml(p)+'">'+escapeHtml(p)+'</span>';
-    }).join("") + '<input type="text" id="f-colector-otro" placeholder="Otro / adicional" style="margin-top:8px;" value="'+escapeHtml(seleccion.filter(function(s){return participantes.indexOf(s)<0;}).join(", "))+'">'+
+    }).join("") + '<input type="text" id="f-colector-otro" spellcheck="true" placeholder="Otro / adicional" style="margin-top:8px;" value="'+escapeHtml(seleccion.filter(function(s){return participantes.indexOf(s)<0;}).join(", "))+'">'+
       '<button type="button" class="link-especificar" id="btn-todos-colector">↩ Fueron todos los participantes</button>';
     wrap.querySelectorAll(".colector-chip").forEach(function(c){
       c.addEventListener("click", function(){ c.classList.toggle("on"); sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
@@ -5470,20 +5468,6 @@ function renderExportar(){
     });
   });
   actualizarStatsExportar();
-  renderSelectorTipoExportar();
-}
-function renderSelectorTipoExportar(){
-  var box = document.getElementById("exp-selector-tipo");
-  if(box.children.length===0){
-    var tipos = [["coleccion","🧪 Recolección"],["observacion","👁 Observación"],["nota","📝 Nota general"]];
-    box.innerHTML = tipos.map(function(t){ return '<span class="colector-chip on" data-tipo="'+t[0]+'">'+t[1]+'</span>'; }).join("");
-    box.querySelectorAll(".colector-chip").forEach(function(c){
-      c.addEventListener("click", function(){ c.classList.toggle("on"); actualizarStatsExportar(); });
-    });
-  }
-}
-function tiposSeleccionadosExportar(){
-  return Array.prototype.map.call(document.querySelectorAll("#exp-selector-tipo .colector-chip.on"), function(c){return c.dataset.tipo;});
 }
 function sesionesSeleccionadasExportar(){
   return Array.prototype.map.call(document.querySelectorAll("#exp-selector-sesion .colector-chip.on"), function(c){return c.dataset.id;});
@@ -5572,71 +5556,6 @@ function construirFilasEstandar(registros){
   return filas;
 }
 
-document.getElementById("btn-export-xlsx").addEventListener("click", function(){
-  var ids = sesionesSeleccionadasExportar();
-  if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
-  var tipos = tiposSeleccionadosExportar();
-  if(tipos.length===0){ toast("Selecciona al menos un tipo de registro"); return; }
-  var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
-  var registrosElegidos = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0 && tipos.indexOf(r.tipo)>=0; });
-  if(registrosElegidos.length===0){ toast("No hay registros que coincidan con la sesión y el tipo elegidos"); return; }
-
-  var filas = construirFilasEstandar(registrosElegidos);
-
-  var colsEstandar = [
-    ["codigoMuestreo","codigoMuestreo"],["tipoRegistro","tipoRegistro"],["catalogo","catalogo"],
-    ["phylum","phylum"],["clase","clase"],["orden","orden"],["familia","familia"],["genero","genero"],
-    ["taxon","taxon"],["determinador","determinador"],["determinadorFecha","determinadorFecha"],
-    ["individuos","individuos"],["sexo","sexo"],["estadoDesarrollo","estadoDesarrollo"],
-    ["region","region"],["provincia","provincia"],["comuna","comuna"],["localidad","localidad"],
-    ["localidadVerbatim","localidadVerbatim"],["lat","lat"],["lng","lng"],["fechaColecta","fechaColecta"],
-    ["colector","colector"],["fechaIngreso","fechaIngreso"],["procedencia","procedencia"],
-    ["destino","destino"],["ubicacionColeccion","ubicacionColeccion"],["privacidad","privacidad"],
-    ["conservacion","conservacion"],["preparacion","preparacion"],["observaciones","observaciones"],
-    ["imagenes","imagenes"],["fotoEstado","fotoEstado"],["inaturalistUrl","inaturalistUrl"],
-    ["fichaEspecimenUrl","fichaEspecimenUrl"]
-  ];
-  var colsComun = [["hora","[Común] Hora"],["altitud_m","[Común] Altitud (m)"]];
-  var colsRecoleccion = [
-    ["metodo_captura","[Recolección] Método de captura"],["habitat_recoleccion","[Recolección] Hábitat"],
-    ["microhabitat_recoleccion","[Recolección] Microhábitat"],["tejido_conservado","[Recolección] Tejido conservado"]
-  ];
-  var colsObservacion = [
-    ["tipo_observacion","[Observación] Tipo de observación"],["duracion_objetivo_min","[Observación] Duración objetivo (min)"],
-    ["duracion_real_min","[Observación] Duración real (min)"],["distancia_objetivo_m","[Observación] Distancia objetivo (m)"],
-    ["distancia_real_m","[Observación] Distancia real (m)"],["ancho_banda_m","[Observación] Ancho de banda (m)"],
-    ["area_largo_m","[Observación] Área largo (m)"],["area_ancho_m","[Observación] Área ancho (m)"],
-    ["area_radio_m","[Observación] Área radio (m)"],["habitat_observacion","[Observación] Hábitat"],
-    ["microhabitat_observacion","[Observación] Microhábitat"],["hora_termino_observacion","[Observación] Hora de término"],
-    ["archivo_track","[Observación] Archivo de track (.gpx)"]
-  ];
-  var colsNota = [["subtipo_nota","[Nota] Subtipo (Operativo/Narrativo)"]];
-  var todasCols = COLS_SESION_EXPORT.concat(colsEstandar).concat(colsComun).concat(colsRecoleccion).concat(colsObservacion).concat(colsNota);
-  var claves = todasCols.map(function(c){return c[0];});
-  var etiquetas = todasCols.map(function(c){return c[1];});
-
-  var wb = XLSX.utils.book_new();
-  var ws = XLSX.utils.json_to_sheet(filas, {header:claves});
-  XLSX.utils.sheet_add_aoa(ws, [etiquetas], {origin:"A1"});
-  ws['!cols'] = claves.map(function(){return {wch:16};});
-  XLSX.utils.book_append_sheet(wb, ws, "Registros");
-
-  var wsInfo = XLSX.utils.aoa_to_sheet([
-    ["Libreta de Campo · WikiTaxa — Planilla estándar"],
-    ["Columnas sin corchetes = exactamente el estándar oficial WikiTaxa (para importar a la herramienta de proyectos)."],
-    ["Columnas con [Sesión] / [Común] / [Recolección] / [Observación] / [Nota] = datos adicionales de la app, agrupados por origen."],
-    ["Cada registro solo llena su propia zona adicional; las demás quedan vacías — es normal, no es un error."],
-    ["imagenes: nombres de archivo separados por | (no son URLs)."],
-    ["Generado el "+new Date().toLocaleString("es-CL")]
-  ]);
-  wsInfo['!cols'] = [{wch:100}];
-  XLSX.utils.book_append_sheet(wb, wsInfo, "Instrucciones");
-
-  var nombreArchivo = sesionesElegidas.length===1 ? "LibretaDeCampo_"+sesionesElegidas[0].prefijo+".xlsx" : "LibretaDeCampo_"+sesionesElegidas.length+"_sesiones.xlsx";
-  XLSX.writeFile(wb, nombreArchivo);
-  toast("✅ Planilla estándar generada — "+filas.length+" fila(s)");
-});
-
 document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
   var ids = sesionesSeleccionadasExportar();
   if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
@@ -5707,15 +5626,6 @@ document.getElementById("btn-export-xlsx-medicion").addEventListener("click", fu
   XLSX.writeFile(wb, nombreArchivo);
   toast("✅ Planilla de Medición generada — "+filas.length+" individuo(s)");
 });
-function exportarRespaldoJSON(){
-  var data = {sesiones:state.sesiones, sesionActivaId:state.sesionActivaId, registros:state.registros};
-  var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
-  var url = URL.createObjectURL(blob); var a = document.createElement("a");
-  a.href=url; a.download="LibretaDeCampo_respaldo_"+new Date().toISOString().slice(0,10)+".json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  toast("Respaldo exportado");
-}
-document.getElementById("btn-export-json").addEventListener("click", exportarRespaldoJSON);
-
 var archivosImportados = []; // {nombre, sesiones:[], registros:[], seleccionado:true, valido:true}
 
 function procesarArchivoZip(file){
