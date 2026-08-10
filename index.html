@@ -273,7 +273,8 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 .especie-row input[type=text]{flex:1;}
 .especie-row input[type=number]{width:80px;}
 .especie-lista{border:1.5px solid var(--borde); border-radius:10px; overflow:hidden; margin-bottom:8px;}
-.especie-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-bottom:1px solid var(--borde); background:var(--card); font-size:1rem;}
+.especie-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-bottom:1px solid var(--borde); background:var(--card); font-size:1rem; transition:background .25s, border-left-color .25s; border-left:3px solid transparent;}
+.especie-item.especie-item-activa{background:var(--verde-cl); border-left:3px solid var(--ambar);}
 .especie-item .nombre{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .especie-item .stepper{flex-shrink:0;}
 .especie-item .stepper button{width:40px; height:40px; font-size:1.2rem;}
@@ -551,7 +552,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <input type="text" id="esp-nombre" spellcheck="true" list="dl-esp-nombre" placeholder="Nombre / taxón"><datalist id="dl-esp-nombre"></datalist>
         <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 18px;" id="btn-esp-add">➕</button>
       </div>
-      <button type="button" class="btnfull btn-secondary" id="btn-plantilla-guardar" style="margin-top:10px; font-size:.85rem;">💾 Guardar lista actual para precarga</button>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button type="button" class="btnfull btn-secondary" style="width:auto; flex:2; margin:0; font-size:.85rem;" id="btn-plantilla-guardar">💾 Guardar lista actual para precarga</button>
+        <button type="button" class="btnfull btn-secondary" style="width:auto; flex:1; margin:0; font-size:.85rem;" id="btn-esp-reiniciar">🗑️ Reiniciar</button>
+      </div>
       <button type="button" class="btnfull btn-amber" id="btn-obs-termino-principal" style="padding:18px; font-size:1.1rem; margin-top:14px;">📍 Capturar punto de término</button>
       <div id="obs-resultado-real" style="display:none;">
         <div class="field" id="obs-campo-duracion-real" style="display:none;"><label>Duración real (min)</label><input type="number" step="any" id="f-duracion-real"></div>
@@ -602,6 +606,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div id="identificacion-individual">
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
+    <div class="nota">Este registro admite un solo taxón. Si la muestra contiene <b>más de una especie</b>, indica aquí el taxón principal o más representativo, y detalla la identificación preliminar en terreno de las demás en el campo <b>Notas</b>.</div>
     <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label>Condición / conservación</label>
@@ -3285,7 +3290,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v2.0";
+var APP_BUILD = "2026-08-07 · v2.1";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5121,6 +5126,18 @@ document.getElementById("btn-plantilla-cargar").addEventListener("click", functi
   toast(agregadas+" especie(s) agregadas desde \""+plantilla.nombre+'"'+((plantilla.especies.length-agregadas)>0 ? " ("+(plantilla.especies.length-agregadas)+" ya estaban en la lista)" : ""));
 });
 
+document.getElementById("btn-esp-reiniciar").addEventListener("click", function(){
+  if(!state.especiesTemp || state.especiesTemp.length===0){ toast("La lista ya está vacía"); return; }
+  if(!confirm("¿Reiniciar la lista de especies? Se perderán todos los conteos ingresados en este registro.")) return;
+  state.especiesTemp = [];
+  especieActivaNombre = null;
+  congelarOrdenEspecies = false;
+  if(timerDescongelarOrden){ clearTimeout(timerDescongelarOrden); timerDescongelarOrden = null; }
+  renderEspecies();
+  sincronizarDraftDesdeFormulario();
+  toast("Lista reiniciada");
+});
+
 function agregarEspecie(){
   var nombre = document.getElementById("esp-nombre").value.trim();
   if(!nombre){ toast("Escribe el nombre de la especie"); return; }
@@ -5134,19 +5151,38 @@ function agregarEspecie(){
 }
 document.getElementById("btn-esp-add").addEventListener("click", agregarEspecie);
 document.getElementById("esp-nombre").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarEspecie(); } });
+var especieActivaNombre = null;
+var congelarOrdenEspecies = false;
+var timerDescongelarOrden = null;
+
+function marcarActividadEspecie(nombre){
+  especieActivaNombre = nombre;
+  congelarOrdenEspecies = true;
+  if(timerDescongelarOrden) clearTimeout(timerDescongelarOrden);
+  timerDescongelarOrden = setTimeout(function(){
+    congelarOrdenEspecies = false;
+    timerDescongelarOrden = null;
+    renderEspecies();
+    sincronizarDraftDesdeFormulario();
+  }, 2000);
+}
+
 function renderEspecies(){
   var box = document.getElementById("especie-lista"); if(!box) return;
-  state.especiesTemp.sort(function(a,b){
-    var ca = parseInt(a.cantidad,10)||0, cb = parseInt(b.cantidad,10)||0;
-    var grupoA = ca>0 ? 0 : (a._nuevo ? 2 : 1);
-    var grupoB = cb>0 ? 0 : (b._nuevo ? 2 : 1);
-    if(grupoA !== grupoB) return grupoA - grupoB;
-    if(grupoA === 0) return cb - ca; // mas abundantes primero
-    if(grupoA === 1) return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'}); // vacias, alfabetico
-    return 0; // recien ingresadas: se mantienen en el orden en que se escribieron (sort estable)
-  });
+  if(!congelarOrdenEspecies){
+    state.especiesTemp.sort(function(a,b){
+      var ca = parseInt(a.cantidad,10)||0, cb = parseInt(b.cantidad,10)||0;
+      var grupoA = ca>0 ? 0 : (a._nuevo ? 2 : 1);
+      var grupoB = cb>0 ? 0 : (b._nuevo ? 2 : 1);
+      if(grupoA !== grupoB) return grupoA - grupoB;
+      if(grupoA === 0) return cb - ca; // mas abundantes primero
+      if(grupoA === 1) return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'}); // vacias, alfabetico
+      return 0; // recien ingresadas: se mantienen en el orden en que se escribieron (sort estable)
+    });
+  }
   box.innerHTML = state.especiesTemp.map(function(e,i){
-    return '<div class="especie-item"><span class="nombre">'+escapeHtml(e.nombre)+'</span>'+
+    var activa = especieActivaNombre && e.nombre === especieActivaNombre;
+    return '<div class="especie-item'+(activa?' especie-item-activa':'')+'"><span class="nombre">'+escapeHtml(e.nombre)+'</span>'+
       '<div class="stepper"><button type="button" class="esp-item-menos" data-i="'+i+'">−</button><span class="cant">'+e.cantidad+'</span><button type="button" class="esp-item-mas" data-i="'+i+'">+</button></div></div>';
   }).join("");
   var nsp = state.especiesTemp.filter(function(e){ return (parseInt(e.cantidad,10)||0) > 0; }).length;
@@ -5157,15 +5193,47 @@ function renderEspecies(){
     var idx = parseInt(b.dataset.i,10);
     var e = state.especiesTemp[idx];
     if(!e) return;
+    var nombrePrevio = e.nombre;
     e.cantidad = (parseInt(e.cantidad,10)||1) - 1;
-    if(e.cantidad<=0) state.especiesTemp.splice(idx,1);
+    if(e.cantidad<=0){
+      state.especiesTemp.splice(idx,1);
+      if(especieActivaNombre===nombrePrevio) especieActivaNombre = null;
+    } else {
+      marcarActividadEspecie(nombrePrevio);
+    }
     renderEspecies();
     sincronizarDraftDesdeFormulario();
   }); });
-  box.querySelectorAll(".esp-item-mas").forEach(function(b){ b.addEventListener("click", function(){
-    var e = state.especiesTemp[parseInt(b.dataset.i,10)];
-    if(e){ e.cantidad = (parseInt(e.cantidad,10)||0) + 1; delete e._nuevo; renderEspecies(); sincronizarDraftDesdeFormulario(); }
-  }); });
+  box.querySelectorAll(".esp-item-mas").forEach(function(b){
+    var timerCorto = null, timerLargo = null, disparadoPorPresion = false;
+    function aplicarSuma(cantidad){
+      var e = state.especiesTemp[parseInt(b.dataset.i,10)];
+      if(!e) return;
+      e.cantidad = (parseInt(e.cantidad,10)||0) + cantidad;
+      delete e._nuevo;
+      marcarActividadEspecie(e.nombre);
+      renderEspecies();
+      sincronizarDraftDesdeFormulario();
+    }
+    function iniciarPresion(){
+      disparadoPorPresion = false;
+      timerCorto = setTimeout(function(){ disparadoPorPresion = true; aplicarSuma(5); }, 1000);
+      timerLargo = setTimeout(function(){ disparadoPorPresion = true; aplicarSuma(5); }, 1500); // +5 adicional = +10 en total
+    }
+    function cancelarPresion(){
+      clearTimeout(timerCorto); clearTimeout(timerLargo);
+    }
+    b.addEventListener("mousedown", iniciarPresion);
+    b.addEventListener("touchstart", iniciarPresion, {passive:true});
+    b.addEventListener("mouseup", cancelarPresion);
+    b.addEventListener("mouseleave", cancelarPresion);
+    b.addEventListener("touchend", cancelarPresion);
+    b.addEventListener("touchcancel", cancelarPresion);
+    b.addEventListener("click", function(){
+      if(disparadoPorPresion){ disparadoPorPresion = false; return; }
+      aplicarSuma(1);
+    });
+  });
 }
 
 /* ---------------- Fotos: captura + comentario inmediato + lightbox (comprimidas, guardadas en IndexedDB) ---------------- */
