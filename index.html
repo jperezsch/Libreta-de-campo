@@ -606,7 +606,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div id="identificacion-individual">
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="nota">Este registro admite un solo taxón. Si la muestra contiene <b>más de una especie</b>, indica aquí el taxón principal o más representativo, y detalla la identificación preliminar en terreno de las demás en el campo <b>Notas</b>.</div>
+    <div class="nota">Si hay más de una especie, identificar la muestra con el taxón más inclusivo que las reúna a todas. Determinaciones preliminares se pueden registrar con más detalle en el campo <b>Notas</b>.</div>
     <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label>Condición / conservación</label>
@@ -3290,7 +3290,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v2.1";
+var APP_BUILD = "2026-08-07 · v2.2";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5164,7 +5164,7 @@ function marcarActividadEspecie(nombre){
     timerDescongelarOrden = null;
     renderEspecies();
     sincronizarDraftDesdeFormulario();
-  }, 2000);
+  }, 1500);
 }
 
 function renderEspecies(){
