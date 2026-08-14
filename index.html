@@ -133,8 +133,16 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .vista-btn.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 
 /* ---- Libreta narrativa ---- */
-.narr-entrada{background:var(--card); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:16px; margin-bottom:16px;}
+.narr-entrada{background:var(--card); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:16px; margin-bottom:16px; position:relative;}
 .narr-entrada.draft{border-left-color:var(--ambar); background:#fdf6e8;}
+.narr-entrada.narr-colapsada{padding:10px 16px; margin-bottom:8px;}
+.narr-sesion-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 4px 8px; margin-top:18px; border-bottom:1.5px solid var(--borde);}
+.narr-sesion-header:first-child{margin-top:0;}
+.narr-sesion-titulo{font-weight:800; font-size:.92rem; color:var(--texto);}
+.btn-colapsar-sesion{font-size:.76rem; padding:5px 12px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto-sec); cursor:pointer; white-space:nowrap;}
+.narr-toggle{position:absolute; top:12px; right:12px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--fondo); color:var(--texto-sec); cursor:pointer; font-size:.85rem; user-select:none;}
+.narr-resumen-colapsado{font-size:.85rem; color:var(--texto); padding-right:32px;}
+.narr-resumen-colapsado .tag{font-size:.72rem; color:var(--texto-sec); margin-right:4px;}
 .narr-sesion-badge{display:inline-block; font-size:.7rem; font-weight:800; padding:3px 10px; border-radius:20px; margin-bottom:8px;}
 .narr-cabecera{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
 .narr-fecha{font-size:.82rem; color:var(--texto-sec); font-weight:700;}
@@ -162,12 +170,22 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .narr-foto-bg{align-items:center; justify-content:center; padding:24px;}
 .narr-foto-inner{width:100%; max-width:520px; max-height:88vh; background:#111; border-radius:16px; overflow:hidden; display:flex; flex-direction:column;}
 .narr-foto-inner img{width:100%; max-height:76vh; object-fit:contain; background:#000;}
+.narr-foto-imgwrap{position:relative;}
+.narr-foto-nav{position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,.45); color:#fff; border:none; width:42px; height:42px; border-radius:50%; font-size:1.6rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+.narr-foto-nav.prev{left:10px;}
+.narr-foto-nav.next{right:10px;}
+.narr-foto-nav:active{background:rgba(0,0,0,.7);}
+.narr-foto-contador{position:absolute; top:10px; right:12px; background:rgba(0,0,0,.5); color:#fff; font-size:.72rem; padding:3px 9px; border-radius:10px;}
 .narr-foto-cap{color:#fff; font-size:.85rem; padding:12px 14px; text-align:center;}
 .version-info{font-size:.75rem; color:var(--texto-sec); text-align:center; margin:8px 0 4px;}
 .empty .ic{font-size:2.8rem; margin-bottom:10px;}
 
 .gpsbox{background:var(--verde-cl); border-radius:10px; padding:13px; font-size:.85rem; margin-bottom:8px; color:var(--texto-sec); transition:background .2s;}
 .gpsbox b{display:block; color:var(--texto); font-size:.92rem; margin-bottom:4px;}
+.precision-moderada{color:var(--ambar);}
+.precision-baja{color:var(--rojo);}
+.gpsbox b.precision-moderada{color:var(--ambar);}
+.gpsbox b.precision-baja{color:var(--rojo);}
 .gpsbox.error{background:#fbe4e0;}
 .gpsbox.error b{color:var(--rojo);}
 .row2 input.manual{width:100%; box-sizing:border-box; padding:13px; border-radius:10px; border:1.5px solid var(--borde); font-size:1.02rem; margin-top:2px; min-width:0;}
@@ -274,7 +292,9 @@ html[data-tema="noche"] .foto-item{background:#241f14;}
 .especie-row input[type=number]{width:80px;}
 .especie-lista{border:1.5px solid var(--borde); border-radius:10px; overflow:hidden; margin-bottom:8px;}
 .especie-item{display:flex; align-items:center; gap:10px; padding:9px 10px; border-bottom:1px solid var(--borde); background:var(--card); font-size:1rem; transition:background .25s, border-left-color .25s; border-left:3px solid transparent;}
+.especie-item.especie-item-contada{background:color-mix(in srgb, var(--azul) 10%, var(--card));}
 .especie-item.especie-item-activa{background:var(--verde-cl); border-left:3px solid var(--ambar);}
+.btn-orden-especies.on{background:var(--verde); border-color:var(--verde); color:#fff;}
 .especie-item .nombre{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .especie-item .stepper{flex-shrink:0;}
 .especie-item .stepper button{width:40px; height:40px; font-size:1.2rem;}
@@ -538,7 +558,9 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div id="obs-principal" style="display:none; margin-top:16px;">
       <button type="button" class="btnfull btn-amber" id="btn-obs-inicio-principal" style="padding:18px; font-size:1.1rem;">📍 Capturar punto de inicio</button>
+      <div class="gpsbox" id="obs-info-inicio" style="display:none;"></div>
       <button type="button" class="btnfull btn-amber" id="btn-obs-incidental" style="padding:18px; font-size:1.1rem; display:none;">📍 Capturar punto</button>
+      <div class="gpsbox" id="obs-info-incidental" style="display:none;"></div>
       <div class="plantilla-obs-row" style="display:flex; gap:6px; margin-top:14px;">
         <select id="sel-plantilla-obs" style="flex:1; padding:9px 8px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.82rem;">
           <option value="">📋 Precargar lista...</option>
@@ -547,6 +569,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" class="btnfull btn-secondary" style="width:auto; margin:0; padding:0 10px; font-size:.82rem; color:var(--rojo);" id="btn-plantilla-borrar" title="Borrar la lista elegida">🗑</button>
       </div>
       <div class="total-box" style="margin-top:14px;"><span>Especies: <b id="esp-nsp">0</b></span><span>Individuos: <b id="esp-ntot">0</b></span></div>
+      <div class="orden-especies-row" style="display:flex; gap:6px; align-items:center; margin:8px 0;">
+        <span style="font-size:.78rem; color:var(--texto-sec);">Ordenar contadas:</span>
+        <button type="button" class="btn-orden-especies on" data-orden="conteo" id="btn-orden-conteo" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔢 Por conteo</button>
+        <button type="button" class="btn-orden-especies" data-orden="alfabetico" id="btn-orden-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
+      </div>
       <div class="especie-lista" id="especie-lista"></div>
       <div class="especie-row">
         <input type="text" id="esp-nombre" spellcheck="true" list="dl-esp-nombre" placeholder="Nombre / taxón"><datalist id="dl-esp-nombre"></datalist>
@@ -557,6 +584,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" class="btnfull btn-secondary" style="width:auto; flex:1; margin:0; font-size:.85rem;" id="btn-esp-reiniciar">🗑️ Reiniciar</button>
       </div>
       <button type="button" class="btnfull btn-amber" id="btn-obs-termino-principal" style="padding:18px; font-size:1.1rem; margin-top:14px;">📍 Capturar punto de término</button>
+      <div class="gpsbox" id="obs-info-termino" style="display:none;"></div>
       <div id="obs-resultado-real" style="display:none;">
         <div class="field" id="obs-campo-duracion-real" style="display:none;"><label>Duración real (min)</label><input type="number" step="any" id="f-duracion-real"></div>
         <div class="field" id="obs-campo-distancia-real" style="display:none;"><label>Distancia real (m)</label><input type="number" step="any" id="f-distancia-real"></div>
@@ -756,7 +784,12 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 <!-- Visor de fotos de solo lectura, para la vista narrativa (Libreta) -->
 <div class="modal-bg narr-foto-bg" id="modal-narr-foto">
   <div class="narr-foto-inner">
-    <img id="narr-foto-img">
+    <div class="narr-foto-imgwrap" id="narr-foto-imgwrap">
+      <img id="narr-foto-img">
+      <button type="button" class="narr-foto-nav prev" id="narr-foto-prev" style="display:none;">‹</button>
+      <button type="button" class="narr-foto-nav next" id="narr-foto-next" style="display:none;">›</button>
+      <div class="narr-foto-contador" id="narr-foto-contador" style="display:none;"></div>
+    </div>
     <div class="narr-foto-cap" id="narr-foto-cap"></div>
   </div>
 </div>
@@ -3290,7 +3323,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v2.2";
+var APP_BUILD = "2026-08-07 · v2.5";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3949,40 +3982,132 @@ function textoEntradaNarrativa(r){
   if(r.notas) partes.push('<div class="narr-notas">'+formatearNotasHtml(r.notas)+'</div>');
   return partes.join("");
 }
-function abrirFotoNarrativa(dataURL, caption){
-  document.getElementById("narr-foto-img").src = dataURL;
-  document.getElementById("narr-foto-cap").textContent = caption||"";
+var narrFotosActuales = [];
+var narrFotoIndiceActual = 0;
+function mostrarFotoNarrativaEnIndice(){
+  var f = narrFotosActuales[narrFotoIndiceActual];
+  if(!f) return;
+  document.getElementById("narr-foto-img").src = f.dataURL;
+  document.getElementById("narr-foto-cap").textContent = f.comentario||f.nombre||"";
+  var multiple = narrFotosActuales.length > 1;
+  document.getElementById("narr-foto-prev").style.display = multiple ? "flex" : "none";
+  document.getElementById("narr-foto-next").style.display = multiple ? "flex" : "none";
+  var contador = document.getElementById("narr-foto-contador");
+  contador.style.display = multiple ? "block" : "none";
+  if(multiple) contador.textContent = (narrFotoIndiceActual+1)+" / "+narrFotosActuales.length;
+}
+function navegarFotoNarrativa(delta){
+  if(narrFotosActuales.length<=1) return;
+  narrFotoIndiceActual = (narrFotoIndiceActual + delta + narrFotosActuales.length) % narrFotosActuales.length;
+  mostrarFotoNarrativaEnIndice();
+}
+function abrirFotoNarrativa(listaFotosDelRegistro, indiceInicial){
+  narrFotosActuales = listaFotosDelRegistro;
+  narrFotoIndiceActual = indiceInicial;
+  mostrarFotoNarrativaEnIndice();
   document.getElementById("modal-narr-foto").classList.add("on");
 }
+document.getElementById("narr-foto-prev").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(-1); });
+document.getElementById("narr-foto-next").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(1); });
+(function(){
+  var wrap = document.getElementById("narr-foto-imgwrap");
+  var xInicioSwipe = null;
+  wrap.addEventListener("touchstart", function(e){ xInicioSwipe = e.touches[0].clientX; }, {passive:true});
+  wrap.addEventListener("touchend", function(e){
+    if(xInicioSwipe==null) return;
+    var dx = e.changedTouches[0].clientX - xInicioSwipe;
+    if(Math.abs(dx) > 40) navegarFotoNarrativa(dx>0 ? -1 : 1);
+    xInicioSwipe = null;
+  });
+})();
 document.getElementById("modal-narr-foto").addEventListener("click", function(e){
   if(e.target===this) this.classList.remove("on");
 });
+var narrColapsadas = new Set(); // ids de registros colapsados en la vista Libreta (no persiste entre recargas)
+function toggleColapsoRegistroNarrativo(id){
+  if(narrColapsadas.has(id)) narrColapsadas.delete(id); else narrColapsadas.add(id);
+  renderLista();
+}
+function toggleColapsoSesionNarrativa(idsDeEsaSesion){
+  var todosColapsados = idsDeEsaSesion.every(function(id){ return narrColapsadas.has(id); });
+  idsDeEsaSesion.forEach(function(id){
+    if(todosColapsados) narrColapsadas.delete(id); else narrColapsadas.add(id);
+  });
+  renderLista();
+}
 function renderListaNarrativa(lista){  var cont = document.getElementById("lista-narrativa");
   if(lista.length===0){
     cont.innerHTML = '<div class="empty"><div class="ic">📖</div>Aún no hay registros para mostrar en la libreta.</div>';
     return;
   }
-  cont.innerHTML = lista.map(function(r){
-    var op = ordenarFotosConPortada(r);
-    var fotosHtml = "";
-    if(op.portada){
-      fotosHtml += '<div class="narr-portada"><img id="narr-thumb-'+op.portada.id+'" src=""><div class="cap">'+escapeHtml(op.portada.comentario||op.portada.nombre)+'</div></div>';
-    }
-    if(op.resto.length){
-      fotosHtml += '<div class="narr-fotos">'+op.resto.map(function(f){
-        return '<div class="narr-foto"><img id="narr-thumb-'+f.id+'" src=""><div class="cap">'+escapeHtml(f.comentario||f.nombre)+'</div></div>';
-      }).join("")+'</div>';
-    }
-    return '<div class="narr-entrada" style="border-left-color:'+colorSesion(r.sesionId)+'">'+textoEntradaNarrativa(r)+fotosHtml+'</div>';
-  }).join("");
+  var grupos = []; var indicePorSesion = {};
   lista.forEach(function(r){
-    (r.fotos||[]).forEach(function(f){
-      leerFotoDB(f.id).then(function(dataURL){
+    if(indicePorSesion[r.sesionId]===undefined){
+      indicePorSesion[r.sesionId] = grupos.length;
+      grupos.push({sesionId:r.sesionId, registros:[]});
+    }
+    grupos[indicePorSesion[r.sesionId]].registros.push(r);
+  });
+  cont.innerHTML = grupos.map(function(g){
+    var idsGrupo = g.registros.map(function(r){return r.id;});
+    var todosColapsados = idsGrupo.every(function(id){ return narrColapsadas.has(id); });
+    var headerHtml = '<div class="narr-sesion-header">' +
+      '<span class="narr-sesion-titulo">'+iconoSesion(g.sesionId)+' '+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
+      '<button type="button" class="btn-colapsar-sesion" data-sesion="'+escapeHtml(g.sesionId)+'">'+(todosColapsados?'▾ Expandir todas':'▸ Colapsar todas')+'</button>' +
+    '</div>';
+    var entradasHtml = g.registros.map(function(r){
+      var colapsada = narrColapsadas.has(r.id);
+      if(colapsada){
+        var ti = TIPOS[r.tipo]||TIPOS.nota;
+        var nombreResumen = r.taxonLibre||r.referencia||"";
+        return '<div class="narr-entrada narr-colapsada" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
+          '<div class="narr-toggle" data-toggle="'+r.id+'">▸</div>' +
+          '<div class="narr-resumen-colapsado"><span class="tag">'+ti.label+'</span><b>'+escapeHtml(r.codigo)+'</b> · '+(r.fecha||"")+' '+(r.hora||"")+(nombreResumen?(' — '+escapeHtml(nombreResumen)):'')+'</div>' +
+        '</div>';
+      }
+      var op = ordenarFotosConPortada(r);
+      var fotosHtml = "";
+      if(op.portada){
+        fotosHtml += '<div class="narr-portada"><img id="narr-thumb-'+op.portada.id+'" src=""><div class="cap">'+escapeHtml(op.portada.comentario||op.portada.nombre)+'</div></div>';
+      }
+      if(op.resto.length){
+        fotosHtml += '<div class="narr-fotos">'+op.resto.map(function(f){
+          return '<div class="narr-foto"><img id="narr-thumb-'+f.id+'" src=""><div class="cap">'+escapeHtml(f.comentario||f.nombre)+'</div></div>';
+        }).join("")+'</div>';
+      }
+      return '<div class="narr-entrada" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
+        '<div class="narr-toggle" data-toggle="'+r.id+'">▾</div>' +
+        textoEntradaNarrativa(r)+fotosHtml +
+      '</div>';
+    }).join("");
+    return headerHtml + entradasHtml;
+  }).join("");
+
+  cont.querySelectorAll(".narr-toggle").forEach(function(t){
+    t.addEventListener("click", function(e){ e.stopPropagation(); toggleColapsoRegistroNarrativo(t.dataset.toggle); });
+  });
+  cont.querySelectorAll(".btn-colapsar-sesion").forEach(function(b){
+    b.addEventListener("click", function(){
+      var sesionId = b.dataset.sesion;
+      var idsDeEsaSesion = lista.filter(function(r){return r.sesionId===sesionId;}).map(function(r){return r.id;});
+      toggleColapsoSesionNarrativa(idsDeEsaSesion);
+    });
+  });
+
+  lista.forEach(function(r){
+    if(narrColapsadas.has(r.id)) return; // no gastar recursos resolviendo fotos de tarjetas colapsadas
+    var op = ordenarFotosConPortada(r);
+    var ordenCompleto = (op.portada ? [op.portada] : []).concat(op.resto);
+    if(ordenCompleto.length===0) return;
+    Promise.all(ordenCompleto.map(function(f){
+      return leerFotoDB(f.id).then(function(dataURL){ return {id:f.id, nombre:f.nombre, comentario:f.comentario, dataURL:dataURL}; });
+    })).then(function(fotosConDatos){
+      fotosConDatos.forEach(function(f, idx){
         var img = document.getElementById("narr-thumb-"+f.id);
-        if(img && dataURL){
-          img.src = dataURL;
+        if(img && f.dataURL){
+          img.src = f.dataURL;
           img.style.cursor = "pointer";
-          img.addEventListener("click", function(){ abrirFotoNarrativa(dataURL, f.comentario||f.nombre); });
+          img.addEventListener("click", function(){ abrirFotoNarrativa(fotosConDatos, idx); });
         }
       });
     });
@@ -4054,13 +4179,14 @@ function exportarLibretaHTML(lista){
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 
-function generarPaqueteZip(){
+function generarPaqueteZip(idsSesiones){
   if(typeof JSZip === "undefined"){ toast("No se pudo cargar el componente de compresión"); return Promise.reject(); }
+  var registrosFiltrados = idsSesiones ? state.registros.filter(function(r){ return idsSesiones.indexOf(r.sesionId)>=0; }) : state.registros;
   var todasLasFotos = [];
-  state.registros.forEach(function(r){
+  registrosFiltrados.forEach(function(r){
     (r.fotos||[]).forEach(function(f){ todasLasFotos.push({foto:f, registro:r}); });
   });
-  if(todasLasFotos.length===0 && state.registros.length===0){ toast("No hay registros para empaquetar"); return Promise.reject(); }
+  if(todasLasFotos.length===0 && registrosFiltrados.length===0){ toast("No hay registros para empaquetar en la(s) sesión(es) elegida(s)"); return Promise.reject(); }
   var zip = new JSZip();
   var carpetaFotos = zip.folder("fotos");
   var carpetaTracks = zip.folder("tracks");
@@ -4080,25 +4206,30 @@ function generarPaqueteZip(){
       carpetaFotos.file(filename, base64, {base64:true});
     }).catch(function(){});
   });
-  state.registros.forEach(function(r){
+  registrosFiltrados.forEach(function(r){
     var gpx = generarGPX(r);
     if(gpx) carpetaTracks.file(nombreArchivoTrack(r), gpx);
   });
   return Promise.all(promesas).then(function(){
-    var data = {sesiones:state.sesiones, sesionActivaId:state.sesionActivaId, registros:state.registros};
+    var sesionesFiltradas = idsSesiones ? state.sesiones.filter(function(s){ return idsSesiones.indexOf(s.id)>=0; }) : state.sesiones;
+    var data = {sesiones:sesionesFiltradas, sesionActivaId:state.sesionActivaId, registros:registrosFiltrados};
     zip.file("respaldo.json", JSON.stringify(data, null, 2));
-    var filasEstandar = construirFilasEstandar(state.registros);
+    var filasEstandar = construirFilasEstandar(registrosFiltrados);
     zip.file("planilla_estandar.json", JSON.stringify(filasEstandar, null, 2));
     return zip.generateAsync({type:"blob", compression:"DEFLATE", compressionOptions:{level:6}});
   });
 }
 document.getElementById("btn-descargar-zip").addEventListener("click", function(){
+  var ids = sesionesSeleccionadasExportar();
+  if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return; }
   var btn = this;
   btn.disabled = true; btn.textContent = "📦 Preparando paquete...";
-  generarPaqueteZip().then(function(blob){
+  generarPaqueteZip(ids).then(function(blob){
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    a.href = url; a.download = "LibretaDeCampo_paquete_"+new Date().toISOString().slice(0,10)+".zip";
+    var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
+    var sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
+    a.href = url; a.download = "LibretaDeCampo_"+sufijo+"_"+new Date().toISOString().slice(0,10)+".zip";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     btn.disabled = false; btn.textContent = "📦 Descargar registros y fotos (.zip)";
@@ -4248,7 +4379,15 @@ function actualizarGpsBox(){
   var d = state.draft;
   if(!d) return;
   if(d.lat && d.lon){
-    document.getElementById("gps-estado").textContent = "📍 Ubicación capturada";
+    var acc = d.precisionGps;
+    var colorClase = "";
+    var calidad = "";
+    if(acc==null){ calidad = "precisión desconocida"; }
+    else if(acc<=10){ calidad = "buena"; }
+    else if(acc<=25){ calidad = "moderada"; colorClase = "precision-moderada"; }
+    else { calidad = "baja"; colorClase = "precision-baja"; }
+    var textoAcc = acc!=null ? ("±"+Math.round(acc)+" m, "+calidad) : "desconocida";
+    document.getElementById("gps-estado").innerHTML = '📍 Ubicación capturada — '+(d.hora||"")+' <span class="'+colorClase+'" style="font-weight:600;">· Precisión: '+textoAcc+'</span>';
     document.getElementById("gps-coords-txt").textContent = "Lat: "+d.lat+"  ·  Lon: "+d.lon+(d.altitud!=null?("  ·  Alt: "+d.altitud+" m"):"");
   } else {
     document.getElementById("gps-estado").textContent = "📍 Sin capturar";
@@ -4459,11 +4598,12 @@ function capturarGPS(){
   if(!state.draft) return;
   var btn = document.getElementById("btn-gps");
   btn.disabled = true; btn.textContent = "📡 Buscando...";
-  function aplicar(lat, lon, alt){
+  function aplicar(lat, lon, alt, accuracy){
     var ahora = new Date();
     state.draft.lat = lat.toFixed(6);
     state.draft.lon = lon.toFixed(6);
     state.draft.altitud = alt!=null ? Math.round(alt) : null;
+    state.draft.precisionGps = accuracy!=null ? accuracy : null;
     state.draft.fecha = ahora.toISOString().slice(0,10);
     state.draft.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
     guardarDraft();
@@ -4492,7 +4632,7 @@ function capturarGPS(){
     return;
   }
   navigator.geolocation.getCurrentPosition(function(pos){
-    aplicar(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude);
+    aplicar(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude, pos.coords.accuracy);
   }, function(err){
     var msg = "No se pudo obtener la ubicación. Ingresa las coordenadas manualmente abajo.";
     if(err && err.code===1) msg = "Permiso de ubicación denegado. Actívalo en los ajustes del navegador, o ingresa las coordenadas manualmente.";
@@ -4594,6 +4734,18 @@ document.getElementById("f-metodo-obs").addEventListener("change", function(){
   actualizarEstadoObsPrincipal();
 });
 
+function htmlInfoPrecisionGps(punto, etiqueta){
+  if(!punto || punto.lat==null) return '<b>⚠️ Sin datos de ubicación</b><span>No se pudo obtener el GPS en esta captura — el registro quedará sin coordenadas.</span>';
+  var acc = punto.accuracy;
+  var colorClase = "";
+  var calidad = "";
+  if(acc==null){ calidad = "precisión desconocida"; }
+  else if(acc<=10){ calidad = "buena"; }
+  else if(acc<=25){ calidad = "moderada"; colorClase = " precision-moderada"; }
+  else { calidad = "baja"; colorClase = " precision-baja"; }
+  var textoAcc = acc!=null ? ("±"+Math.round(acc)+" m") : "desconocida";
+  return '<b class="'+colorClase.trim()+'">📍 '+etiqueta+' capturado — '+(punto.hora||"")+'</b><span>Precisión: '+textoAcc+' ('+calidad+')</span>';
+}
 function actualizarEstadoObsPrincipal(){
   var d = state.draft; if(!d) return;
   var btnInicio = document.getElementById("btn-obs-inicio-principal");
@@ -4607,6 +4759,20 @@ function actualizarEstadoObsPrincipal(){
   btnInicio.textContent = d.obsInicio ? "🔄 Recapturar punto de inicio" : "📍 Capturar punto de inicio";
   btnTermino.textContent = d.obsTermino ? "🔄 Recapturar punto de término" : "📍 Capturar punto de término";
   btnIncidental.textContent = d.obsInicio ? "🔄 Recapturar punto" : "📍 Capturar punto";
+  var cajaInicio = document.getElementById("obs-info-inicio");
+  var cajaTermino = document.getElementById("obs-info-termino");
+  var cajaIncidental = document.getElementById("obs-info-incidental");
+  if(esIncidental){
+    cajaInicio.style.display = "none"; cajaTermino.style.display = "none";
+    if(d.obsInicio){ cajaIncidental.style.display = "block"; cajaIncidental.innerHTML = htmlInfoPrecisionGps(d.obsInicio, "Punto"); }
+    else cajaIncidental.style.display = "none";
+  } else {
+    cajaIncidental.style.display = "none";
+    if(d.obsInicio){ cajaInicio.style.display = "block"; cajaInicio.innerHTML = htmlInfoPrecisionGps(d.obsInicio, "Inicio"); }
+    else cajaInicio.style.display = "none";
+    if(d.obsTermino){ cajaTermino.style.display = "block"; cajaTermino.innerHTML = htmlInfoPrecisionGps(d.obsTermino, "Término"); }
+    else cajaTermino.style.display = "none";
+  }
   var conTiempo = METODOS_OBS_TIEMPO.indexOf(metodo)>=0;
   var conDistancia = METODOS_OBS_DISTANCIA.indexOf(metodo)>=0;
   var conTracking = conTiempo || conDistancia;
@@ -4626,6 +4792,7 @@ function actualizarEstadoObsPrincipal(){
     flot.style.display = "none";
   }
   var mostrarResultados = esIncidental ? !!d.obsInicio : (d.obsInicio && d.obsTermino);
+  var yaEmpezoObservacion = !!d.obsInicio; // basta el punto de inicio para poder fotografiar mientras se cuenta
   document.getElementById("obs-resultado-real").style.display = (mostrarResultados && !esIncidental) ? "block" : "none";
   document.getElementById("obs-campo-duracion-real").style.display = (mostrarResultados && !esIncidental) ? "block" : "none";
   document.getElementById("obs-campo-distancia-real").style.display = (mostrarResultados && !esIncidental && d.distanciaReal!=null) ? "block" : "none";
@@ -4633,7 +4800,7 @@ function actualizarEstadoObsPrincipal(){
     document.getElementById("f-duracion-real").value = d.duracionReal!=null ? d.duracionReal : "";
     document.getElementById("f-distancia-real").value = d.distanciaReal!=null ? d.distanciaReal : "";
   }
-  document.getElementById("seccion-fotos-notas").style.display = mostrarResultados ? "block" : "none";
+  document.getElementById("seccion-fotos-notas").style.display = yaEmpezoObservacion ? "block" : "none";
 }
 document.getElementById("f-duracion-real").addEventListener("input", sincronizarDraftDesdeFormulario);
 document.getElementById("f-distancia-real").addEventListener("input", sincronizarDraftDesdeFormulario);
@@ -5121,11 +5288,28 @@ document.getElementById("btn-plantilla-cargar").addEventListener("click", functi
       agregadas++;
     }
   });
+  // Cargar una plantilla es una carga masiva, no una interaccion activa de conteo:
+  // se fuerza el reordenamiento inmediato aunque haya un congelamiento en curso.
+  congelarOrdenEspecies = false;
+  if(timerDescongelarOrden){ clearTimeout(timerDescongelarOrden); timerDescongelarOrden = null; }
   renderEspecies();
   sincronizarDraftDesdeFormulario();
   toast(agregadas+" especie(s) agregadas desde \""+plantilla.nombre+'"'+((plantilla.especies.length-agregadas)>0 ? " ("+(plantilla.especies.length-agregadas)+" ya estaban en la lista)" : ""));
 });
 
+document.getElementById("btn-orden-conteo").addEventListener("click", function(){ cambiarOrdenEspecies("conteo"); });
+document.getElementById("btn-orden-alfabetico").addEventListener("click", function(){ cambiarOrdenEspecies("alfabetico"); });
+function cambiarOrdenEspecies(orden){
+  ordenEspeciesContadas = orden;
+  document.getElementById("btn-orden-conteo").classList.toggle("on", orden==="conteo");
+  document.getElementById("btn-orden-alfabetico").classList.toggle("on", orden==="alfabetico");
+  // Cambiar el criterio de orden es una accion deliberada del usuario, no una interaccion activa
+  // de conteo: se fuerza el reordenamiento inmediato aunque haya un congelamiento en curso.
+  congelarOrdenEspecies = false;
+  if(timerDescongelarOrden){ clearTimeout(timerDescongelarOrden); timerDescongelarOrden = null; }
+  renderEspecies();
+  sincronizarDraftDesdeFormulario();
+}
 document.getElementById("btn-esp-reiniciar").addEventListener("click", function(){
   if(!state.especiesTemp || state.especiesTemp.length===0){ toast("La lista ya está vacía"); return; }
   if(!confirm("¿Reiniciar la lista de especies? Se perderán todos los conteos ingresados en este registro.")) return;
@@ -5152,6 +5336,7 @@ function agregarEspecie(){
 document.getElementById("btn-esp-add").addEventListener("click", agregarEspecie);
 document.getElementById("esp-nombre").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); agregarEspecie(); } });
 var especieActivaNombre = null;
+var ordenEspeciesContadas = "conteo"; // "conteo" | "alfabetico" — elegido por el usuario con los botones
 var congelarOrdenEspecies = false;
 var timerDescongelarOrden = null;
 
@@ -5175,14 +5360,19 @@ function renderEspecies(){
       var grupoA = ca>0 ? 0 : (a._nuevo ? 2 : 1);
       var grupoB = cb>0 ? 0 : (b._nuevo ? 2 : 1);
       if(grupoA !== grupoB) return grupoA - grupoB;
-      if(grupoA === 0) return cb - ca; // mas abundantes primero
-      if(grupoA === 1) return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'}); // vacias, alfabetico
+      if(grupoA === 0){
+        if(ordenEspeciesContadas === "alfabetico") return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'});
+        return cb - ca; // mas abundantes primero
+      }
+      if(grupoA === 1) return a.nombre.localeCompare(b.nombre, 'es', {sensitivity:'base'}); // vacias, siempre alfabetico
       return 0; // recien ingresadas: se mantienen en el orden en que se escribieron (sort estable)
     });
   }
   box.innerHTML = state.especiesTemp.map(function(e,i){
     var activa = especieActivaNombre && e.nombre === especieActivaNombre;
-    return '<div class="especie-item'+(activa?' especie-item-activa':'')+'"><span class="nombre">'+escapeHtml(e.nombre)+'</span>'+
+    var contada = (parseInt(e.cantidad,10)||0) > 0;
+    var clases = (contada?' especie-item-contada':'') + (activa?' especie-item-activa':'');
+    return '<div class="especie-item'+clases+'"><span class="nombre">'+escapeHtml(e.nombre)+'</span>'+
       '<div class="stepper"><button type="button" class="esp-item-menos" data-i="'+i+'">−</button><span class="cant">'+e.cantidad+'</span><button type="button" class="esp-item-mas" data-i="'+i+'">+</button></div></div>';
   }).join("");
   var nsp = state.especiesTemp.filter(function(e){ return (parseInt(e.cantidad,10)||0) > 0; }).length;
