@@ -705,6 +705,15 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="stat"><div class="n" id="stat-hoy">0</div><div class="l">De hoy</div></div>
     </div>
     <div class="field"><label>Sesiones a exportar</label><div id="exp-selector-sesion"></div></div>
+    <div id="panel-huerfanos" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;">
+      <div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">⚠️ Registros sin sesión válida</div>
+      <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Estos registros no están asociados a ninguna sesión existente — por eso no aparecen al exportar, sin importar qué selecciones arriba. Reasígnalos a una sesión para poder incluirlos.</div>
+      <div id="lista-huerfanos"></div>
+      <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
+        <select id="sel-sesion-huerfanos" style="flex:1; padding:9px 8px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.85rem;"></select>
+        <button type="button" class="btnfull btn-primary" style="width:auto; margin:0; padding:0 16px; font-size:.85rem;" id="btn-reparar-huerfanos">Asignar todos aquí</button>
+      </div>
+    </div>
     <div class="section-title">Registros, fotos y tracks</div>
     <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Descargar registros, fotos y tracks (.zip)</button>
     <div class="section-title">Exportar a Excel</div>
@@ -3323,7 +3332,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v2.5";
+var APP_BUILD = "2026-08-07 · v2.7";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5650,6 +5659,12 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   if(!state.draft) return;
   detenerSeguimientoEnVivo();
   sincronizarDraftDesdeFormulario();
+  if(!sesionPorId(state.draft.sesionId)){
+    // Ultima linea de defensa: la sesion de este borrador ya no existe (por la razon que sea) —
+    // se reasigna a la sesion activa en vez de guardar silenciosamente un registro huerfano.
+    state.draft.sesionId = state.sesionActivaId;
+    toast("⚠️ La sesión de este registro ya no existía — se asignó a la sesión activa actual", 5000);
+  }
   var editando = !!state.draft._editando;
   var r = JSON.parse(JSON.stringify(state.draft));
   delete r._editando;
@@ -5680,6 +5695,7 @@ function eliminarSesionVacia(id){
   if(!s) return;
   var numRegistros = state.registros.filter(function(r){return r.sesionId===id;}).length;
   if(numRegistros>0){ toast("No se puede eliminar: tiene "+numRegistros+" registro(s) asociado(s)."); return; }
+  if(state.draft && state.draft.sesionId===id){ toast("No se puede eliminar: hay un registro sin guardar en curso asociado a esta sesión. Guárdalo o descártalo primero."); return; }
   if(state.sesiones.length<=1){ toast("Debe quedar al menos una sesión."); return; }
   var eraActiva = (id === state.sesionActivaId);
   var mensajeExtra = eraActiva ? " Como era la sesión activa, se activará otra en su lugar." : "";
@@ -5704,7 +5720,40 @@ function eliminarSesionVacia(id){
   guardarListaSesiones();
   renderExportar();
 }
+function registrosHuerfanos(){
+  var idsValidos = {}; state.sesiones.forEach(function(s){ idsValidos[s.id]=true; });
+  return state.registros.filter(function(r){ return !idsValidos[r.sesionId]; });
+}
+function renderPanelHuerfanos(){
+  var panel = document.getElementById("panel-huerfanos");
+  var huerfanos = registrosHuerfanos();
+  if(huerfanos.length===0){ panel.style.display = "none"; return; }
+  panel.style.display = "block";
+  document.getElementById("lista-huerfanos").innerHTML = huerfanos.map(function(r){
+    var ti = TIPOS[r.tipo]||TIPOS.nota;
+    var nombre = r.taxonLibre||r.referencia||"";
+    var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (" — "+(r.notaSubtipo==="narrativo"?"Narrativo":"Operativo")) : "";
+    return '<div style="font-size:.82rem; padding:4px 0; border-bottom:1px dashed var(--borde);"><b>'+escapeHtml(r.codigo)+'</b> · '+ti.label+subtipoTxt+' · '+(r.fecha||"")+(nombre?(' — '+escapeHtml(nombre)):'')+' <span style="color:var(--texto-sec); font-family:ui-monospace,monospace; font-size:.72rem;">(sesionId: '+escapeHtml(String(r.sesionId))+')</span></div>';
+  }).join("");
+  var sel = document.getElementById("sel-sesion-huerfanos");
+  var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
+  sel.innerHTML = ordenadas.map(function(s){
+    return '<option value="'+s.id+'">'+escapeHtml((s.proyecto||"(sin nombre)")+" · "+(s.fechaIni||s.creada.slice(0,10)))+'</option>';
+  }).join("");
+}
+document.getElementById("btn-reparar-huerfanos").addEventListener("click", function(){
+  var destino = document.getElementById("sel-sesion-huerfanos").value;
+  if(!destino) return;
+  var huerfanos = registrosHuerfanos();
+  if(!confirm("¿Reasignar "+huerfanos.length+" registro(s) a la sesión elegida? Esto no se puede deshacer.")) return;
+  huerfanos.forEach(function(r){ r.sesionId = destino; });
+  guardarRegistros();
+  renderPanelHuerfanos();
+  renderExportar();
+  toast("✅ "+huerfanos.length+" registro(s) reasignado(s)");
+});
 function renderExportar(){
+  renderPanelHuerfanos();
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".colector-chip.on"), function(c){return c.dataset.id;});
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
