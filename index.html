@@ -239,6 +239,8 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .gestion-mover-row{display:flex; gap:8px;}
 .gestion-mover-row select{flex:1; padding:9px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.8rem;}
 .gestion-mover-row button{padding:0 16px; border-radius:9px; border:none; background:var(--verde); color:#fff; font-weight:700; font-size:.8rem;}
+.btn-editar-sesion{display:block; width:100%; padding:10px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-weight:700; font-size:.8rem; margin-bottom:10px;}
+.btn-borrar-sesion-panel{display:block; width:100%; padding:10px; border-radius:9px; border:1.5px solid var(--rojo); background:var(--card); color:var(--rojo); font-weight:700; font-size:.8rem; margin-top:8px;}
 .colector-resumen{background:var(--verde-cl); color:var(--verde-osc); border-radius:10px; padding:11px 13px; font-size:.88rem; margin-bottom:8px;}
 .link-especificar{background:none; border:none; color:var(--azul); font-size:.82rem; padding:4px 0; text-decoration:underline; cursor:pointer;}
 .importado-item{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--borde); border-radius:10px; padding:12px 14px; margin-bottom:8px;}
@@ -3350,7 +3352,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-19 · v2.8";
+var APP_BUILD = "2026-08-19 · v2.9";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5832,15 +5834,12 @@ function renderExportar(){
   var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId];
   box.innerHTML = ordenadas.map(function(s){
     var etiqueta = iconoSesion(s.id)+" "+(s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10)) + (s.id===state.sesionActivaId?" · activa":"");
-    var numRegistros = state.registros.filter(function(r){return r.sesionId===s.id;}).length;
-    var puedeBorrar = numRegistros===0 && state.sesiones.length>1;
-    var borrarHtml = puedeBorrar ? ' <span class="chip-borrar" data-del="'+s.id+'" title="Eliminar sesión vacía">🗑</span>' : "";
     var expandida = state.sesionGestionId === s.id;
     var panelHtml = expandida ? renderPanelGestionSesion(s.id) : "";
     return '<div class="sesion-exportar-card" data-sesion="'+s.id+'">'+
       '<div class="sesion-exportar-header">'+
         '<input type="checkbox" class="sesion-check-export" data-id="'+s.id+'"'+(seleccion.indexOf(s.id)>=0?" checked":"")+'>'+
-        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+borrarHtml+'</span>'+
+        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+'</span>'+
         '<button type="button" class="btn-gestionar'+(expandida?" on":"")+'" data-sesion="'+s.id+'">'+(expandida?"▾":"▸")+' Gestionar</button>'+
       '</div>'+panelHtml+
     '</div>';
@@ -5848,17 +5847,49 @@ function renderExportar(){
   box.querySelectorAll(".sesion-check-export").forEach(function(c){
     c.addEventListener("change", actualizarStatsExportar);
   });
-  box.querySelectorAll(".chip-borrar").forEach(function(x){
-    x.addEventListener("click", function(e){
-      e.stopPropagation();
-      eliminarSesionVacia(x.dataset.del);
-    });
-  });
   box.querySelectorAll(".btn-gestionar").forEach(function(b){
     b.addEventListener("click", function(){ toggleGestionSesion(b.dataset.sesion); });
   });
+  box.querySelectorAll(".sesion-exportar-label").forEach(function(el){
+    ligarPulsacionLarga(el, function(){
+      var tarjeta = el.closest(".sesion-exportar-card");
+      if(tarjeta) verEnSesion(tarjeta.dataset.sesion);
+    });
+  });
   ligarEventosPanelGestion(box);
   actualizarStatsExportar();
+}
+function verEnSesion(id){
+  var s = sesionPorId(id);
+  if(!s) return;
+  state.sesionEnPantallaId = id;
+  irA("sesion");
+  toast('Editando datos de "'+(s.proyecto||"(sin nombre)")+'"');
+}
+function ligarPulsacionLarga(el, callback, ms){
+  var timer = null, moved = false, startX = 0, startY = 0;
+  var duracion = ms || 550;
+  function limpiar(){ if(timer){ clearTimeout(timer); timer = null; } }
+  function inicio(e){
+    moved = false;
+    var pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX; startY = pt.clientY;
+    limpiar();
+    timer = setTimeout(function(){ if(!moved) callback(e); }, duracion);
+  }
+  function mover(e){
+    var pt = e.touches ? e.touches[0] : e;
+    if(Math.abs(pt.clientX-startX)>10 || Math.abs(pt.clientY-startY)>10){ moved = true; limpiar(); }
+  }
+  function fin(){ limpiar(); }
+  el.addEventListener("mousedown", inicio);
+  el.addEventListener("mousemove", mover);
+  el.addEventListener("mouseup", fin);
+  el.addEventListener("mouseleave", fin);
+  el.addEventListener("touchstart", inicio, {passive:true});
+  el.addEventListener("touchmove", mover, {passive:true});
+  el.addEventListener("touchend", fin);
+  el.addEventListener("touchcancel", fin);
 }
 function sesionesSeleccionadasExportar(){
   return Array.prototype.map.call(document.querySelectorAll("#exp-selector-sesion .sesion-check-export:checked"), function(c){return c.dataset.id;});
@@ -5883,6 +5914,7 @@ function registrosDeSesionOrdenados(sesionId){
 function renderPanelGestionSesion(sesionId){
   var registros = registrosDeSesionOrdenados(sesionId);
   var otrasSesiones = state.sesiones.filter(function(s){return s.id!==sesionId;}).sort(function(a,b){return b.creada.localeCompare(a.creada);});
+  var editarBtn = '<button type="button" class="btn-editar-sesion" data-sesion="'+sesionId+'">✏️ Editar datos de esta sesión</button>';
   var filasHtml = registros.map(function(r){
     var ti = TIPOS[r.tipo]||TIPOS.nota;
     var nombre = r.taxonLibre||r.referencia||"";
@@ -5893,12 +5925,19 @@ function renderPanelGestionSesion(sesionId){
     '</div>';
   }).join("");
   if(registros.length===0){
-    return '<div class="gestion-panel"><div class="gestion-vacio">Esta sesión no tiene registros.</div></div>';
+    var puedeBorrarSesion = state.sesiones.length>1;
+    var borrarSesionBtn = puedeBorrarSesion ?
+      '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'">🗑 Borrar esta sesión</button>' :
+      '<div class="gestion-vacio">Debe quedar al menos una sesión — no se puede borrar la única existente.</div>';
+    return '<div class="gestion-panel">'+editarBtn+
+      '<div class="gestion-vacio">Esta sesión no tiene registros.</div>'+
+      borrarSesionBtn+
+    '</div>';
   }
   var opcionesDestino = otrasSesiones.map(function(s){
     return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+(s.proyecto||"(sin nombre)"))+'</option>';
   }).join("");
-  return '<div class="gestion-panel">'+
+  return '<div class="gestion-panel">'+editarBtn+
     '<div class="gestion-lista">'+filasHtml+'</div>'+
     '<div class="gestion-contador" id="gestion-contador">0 registros seleccionados</div>'+
     '<div class="gestion-mover-row">'+
@@ -5908,7 +5947,14 @@ function renderPanelGestionSesion(sesionId){
   '</div>';
 }
 function ligarEventosPanelGestion(container){
+  container.querySelectorAll(".btn-editar-sesion").forEach(function(b){
+    b.addEventListener("click", function(){ verEnSesion(b.dataset.sesion); });
+  });
+  container.querySelectorAll(".btn-borrar-sesion-panel").forEach(function(b){
+    b.addEventListener("click", function(){ eliminarSesionVacia(b.dataset.sesion); });
+  });
   container.querySelectorAll(".gestion-check").forEach(function(chk){
+
     chk.addEventListener("change", function(){
       var panel = chk.closest(".gestion-panel");
       var contador = panel && panel.querySelector("#gestion-contador");
