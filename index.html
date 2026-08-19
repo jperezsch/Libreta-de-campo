@@ -221,6 +221,24 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
   color:#8a2c2c; font-size:.88rem; font-weight:700; line-height:1.5;
 }
 .colector-chip{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
+.sesion-exportar-card{background:var(--card); border-radius:12px; border:1px solid var(--borde); overflow:hidden; margin-bottom:8px;}
+.sesion-exportar-header{display:flex; align-items:center; gap:8px; padding:12px 14px;}
+.sesion-exportar-header input[type=checkbox]{width:19px; height:19px; flex-shrink:0;}
+.sesion-exportar-label{flex:1; min-width:0; font-size:.88rem;}
+.btn-gestionar{border:none; background:none; color:var(--texto-sec); font-weight:700; font-size:.78rem; padding:4px 6px; cursor:pointer; white-space:nowrap; flex-shrink:0;}
+.btn-gestionar.on{color:var(--verde);}
+.gestion-panel{padding:12px 14px; background:var(--fondo); border-top:1px solid var(--borde);}
+.gestion-lista{background:var(--card); border:1px solid var(--borde); border-radius:10px; overflow:hidden; margin-bottom:10px;}
+.gestion-fila{display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--borde); font-size:.82rem;}
+.gestion-fila:last-child{border-bottom:none;}
+.gestion-fila input[type=checkbox]{width:17px; height:17px; flex-shrink:0;}
+.gestion-info{flex:1; min-width:0;}
+.gestion-borrar{color:var(--rojo); font-size:1.05rem; padding:2px 4px; cursor:pointer; flex-shrink:0;}
+.gestion-contador{font-size:.72rem; color:var(--texto-sec); margin-bottom:6px;}
+.gestion-vacio{font-size:.82rem; color:var(--texto-sec); padding:8px 0;}
+.gestion-mover-row{display:flex; gap:8px;}
+.gestion-mover-row select{flex:1; padding:9px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.8rem;}
+.gestion-mover-row button{padding:0 16px; border-radius:9px; border:none; background:var(--verde); color:#fff; font-weight:700; font-size:.8rem;}
 .colector-resumen{background:var(--verde-cl); color:var(--verde-osc); border-radius:10px; padding:11px 13px; font-size:.88rem; margin-bottom:8px;}
 .link-especificar{background:none; border:none; color:var(--azul); font-size:.82rem; padding:4px 0; text-decoration:underline; cursor:pointer;}
 .importado-item{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--borde); border-radius:10px; padding:12px 14px; margin-bottom:8px;}
@@ -3332,7 +3350,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-07 · v2.7";
+var APP_BUILD = "2026-08-19 · v2.8";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3411,7 +3429,8 @@ var state = {
   filtroSesionLista:"", // filtro de sesión en la pestaña Registros ("" = todas)
   vistaRegistros:"tarjetas", // "tarjetas" | "narrativa"
   lightboxIdx: null,
-  captionPending: null // {file, dataURL}
+  captionPending: null, // {file, dataURL}
+  sesionGestionId: null // sesión expandida en el panel de gestión (Exportar)
 };
 function sesionActiva(){ return state.sesiones.find(function(s){ return s.id===state.sesionActivaId; }) || null; }
 function sesionEnPantalla(){ return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva(); }
@@ -3895,11 +3914,13 @@ function renderListaTarjetas(lista, justSavedId){
         '</div>'+
         '<div class="reg-actions">'+
           '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver / editar">👁</button>'+
+          '<button type="button" class="btn-icon" data-action="duplicar" data-id="'+r.id+'" title="Duplicar como registro nuevo">⎘</button>'+
           '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
         '</div></div>';
     }).join("") + htmlDraft;
   }
   cont.querySelectorAll('.btn-icon[data-action="ver"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); editarRegistroExistente(b.dataset.id); }); });
+  cont.querySelectorAll('.btn-icon[data-action="duplicar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); duplicarRegistro(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
   cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ editarRegistroExistente(c.dataset.id); }); });
   var draftCard = document.getElementById("card-draft-pendiente");
@@ -4300,6 +4321,7 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-lat").value = d.lat; document.getElementById("f-lon").value = d.lon;
   document.getElementById("f-fecha").value = d.fecha; document.getElementById("f-hora").value = d.hora;
   document.getElementById("fecha-hora-row").style.display = d._editando ? "grid" : "none";
+  document.getElementById("btn-guardar").textContent = d._editando ? "💾✨ Guardar registro editado" : "💾 Guardar registro";
   document.getElementById("f-altitud").value = d.altitud!=null ? d.altitud : "";
   document.getElementById("f-referencia").value = d.referencia;
   document.getElementById("f-tipo").value = d.tipo;
@@ -4671,12 +4693,53 @@ function editarRegistroExistente(id){
   cargarDraftEnFormulario();
   irA("form");
 }
-function borrarRegistroExistente(id){
+function duplicarRegistro(id){
+  var original = state.registros.filter(function(x){return x.id===id;})[0];
+  if(!original) return;
+  if(!tipoCompatibleConSesion(original.tipo)){
+    toast("⚠️ La sesión activa no admite este tipo de registro (Recolección/Observación vs Medición)");
+    return;
+  }
+  if(state.draft){
+    if(!confirm('Ya tienes un registro sin guardar en curso ('+state.draft.codigo+'). ¿Descartarlo para duplicar "'+original.codigo+'"?')) return;
+  }
+  detenerSeguimientoEnVivo();
+  var copia = JSON.parse(JSON.stringify(original));
+  copia.id = uid();
+  copia._editando = false;
+  copia.sesionId = state.sesionActivaId;
+  copia.codigo = proximoCodigo(sesionActiva());
+  var ahora = new Date();
+  copia.fecha = ahora.toISOString().slice(0,10);
+  copia.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
+  copia.fotos = [];
+  copia.fotoPortadaId = null;
+  if(copia.especies && copia.especies.length){
+    copia.especies = copia.especies.map(function(e){ return {nombre:e.nombre, cantidad:0}; });
+  }
+  if(copia.individuos && copia.individuos.length){
+    copia.individuos = copia.individuos.map(function(ind, i){
+      return {subcodigo: copia.codigo+"_"+(i+1), sexo:"", localidad:"", habitat:"", valores:{}};
+    });
+  }
+  state.draft = copia;
+  guardarDraft();
+  document.querySelector(".dg-box").classList.remove("abierto");
+  cargarDraftEnFormulario();
+  irA("form");
+  toast("Registro duplicado — código "+copia.codigo+", revisa y guarda");
+}
+function eliminarRegistroPorId(id){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
-  if(!r) return;
-  if(!confirm("¿Borrar el registro "+r.codigo+"? Esta acción no se puede deshacer.")) return;
+  if(!r) return null;
+  if(!confirm("¿Borrar el registro "+r.codigo+"? Esta acción no se puede deshacer.")) return null;
   state.registros = state.registros.filter(function(x){return x.id!==id;});
   guardarRegistros();
+  return r;
+}
+function borrarRegistroExistente(id){
+  var r = eliminarRegistroPorId(id);
+  if(!r) return;
   toast("Registro "+r.codigo+" borrado");
   renderLista();
 }
@@ -4819,6 +4882,8 @@ function iniciarObservacion(){
   btn.disabled = true; btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
     var ahora = new Date();
+    d.fecha = ahora.toISOString().slice(0,10);
+    d.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
     d.obsInicio = {
       lat: pos ? pos.coords.latitude : null, lon: pos ? pos.coords.longitude : null,
       accuracy: pos ? pos.coords.accuracy : null, horaTs: Date.now(),
@@ -4831,6 +4896,8 @@ function iniciarObservacion(){
     d.obsTrackingActivo = conTracking;
     d.trackPuntos = (conTracking && d.obsInicio.lat!=null) ? [{lat:d.obsInicio.lat, lon:d.obsInicio.lon, horaTs:d.obsInicio.horaTs, accuracy:d.obsInicio.accuracy}] : [];
     if(d.obsInicio.lat!=null){ d.lat = String(d.obsInicio.lat); d.lon = String(d.obsInicio.lon); }
+    if(document.getElementById("f-fecha")) document.getElementById("f-fecha").value = d.fecha;
+    if(document.getElementById("f-hora")) document.getElementById("f-hora").value = d.hora;
     guardarDraft();
     btn.disabled = false;
     if(conTracking) activarSeguimientoEnVivo();
@@ -4893,6 +4960,8 @@ function capturarPuntoIncidental(){
   btn.disabled = true; btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
     var ahora = new Date();
+    d.fecha = ahora.toISOString().slice(0,10);
+    d.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
     var punto = {
       lat: pos ? pos.coords.latitude : null, lon: pos ? pos.coords.longitude : null,
       accuracy: pos ? pos.coords.accuracy : null, horaTs: Date.now(),
@@ -4902,6 +4971,8 @@ function capturarPuntoIncidental(){
     d.duracionReal = 0; d.distanciaReal = null; d.trackPuntos = [];
     d.obsAcumuladoMs = 0; d.obsPausado = false; d.obsTrackingActivo = false;
     if(punto.lat!=null){ d.lat = String(punto.lat); d.lon = String(punto.lon); }
+    if(document.getElementById("f-fecha")) document.getElementById("f-fecha").value = d.fecha;
+    if(document.getElementById("f-hora")) document.getElementById("f-hora").value = d.hora;
     guardarDraft();
     btn.disabled = false;
     actualizarEstadoObsPrincipal();
@@ -5717,6 +5788,7 @@ function eliminarSesionVacia(id){
     toast("Sesión eliminada");
   }
   if(state.sesionEnPantallaId === id) state.sesionEnPantallaId = state.sesionActivaId;
+  if(state.sesionGestionId === id) state.sesionGestionId = null;
   guardarListaSesiones();
   renderExportar();
 }
@@ -5755,7 +5827,7 @@ document.getElementById("btn-reparar-huerfanos").addEventListener("click", funct
 function renderExportar(){
   renderPanelHuerfanos();
   var box = document.getElementById("exp-selector-sesion");
-  var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".colector-chip.on"), function(c){return c.dataset.id;});
+  var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId];
   box.innerHTML = ordenadas.map(function(s){
@@ -5763,10 +5835,18 @@ function renderExportar(){
     var numRegistros = state.registros.filter(function(r){return r.sesionId===s.id;}).length;
     var puedeBorrar = numRegistros===0 && state.sesiones.length>1;
     var borrarHtml = puedeBorrar ? ' <span class="chip-borrar" data-del="'+s.id+'" title="Eliminar sesión vacía">🗑</span>' : "";
-    return '<span class="colector-chip'+(seleccion.indexOf(s.id)>=0?" on":"")+'" data-id="'+s.id+'">'+escapeHtml(etiqueta)+borrarHtml+'</span>';
+    var expandida = state.sesionGestionId === s.id;
+    var panelHtml = expandida ? renderPanelGestionSesion(s.id) : "";
+    return '<div class="sesion-exportar-card" data-sesion="'+s.id+'">'+
+      '<div class="sesion-exportar-header">'+
+        '<input type="checkbox" class="sesion-check-export" data-id="'+s.id+'"'+(seleccion.indexOf(s.id)>=0?" checked":"")+'>'+
+        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+borrarHtml+'</span>'+
+        '<button type="button" class="btn-gestionar'+(expandida?" on":"")+'" data-sesion="'+s.id+'">'+(expandida?"▾":"▸")+' Gestionar</button>'+
+      '</div>'+panelHtml+
+    '</div>';
   }).join("");
-  box.querySelectorAll(".colector-chip").forEach(function(c){
-    c.addEventListener("click", function(e){ if(e.target.classList.contains("chip-borrar")) return; c.classList.toggle("on"); actualizarStatsExportar(); });
+  box.querySelectorAll(".sesion-check-export").forEach(function(c){
+    c.addEventListener("change", actualizarStatsExportar);
   });
   box.querySelectorAll(".chip-borrar").forEach(function(x){
     x.addEventListener("click", function(e){
@@ -5774,10 +5854,14 @@ function renderExportar(){
       eliminarSesionVacia(x.dataset.del);
     });
   });
+  box.querySelectorAll(".btn-gestionar").forEach(function(b){
+    b.addEventListener("click", function(){ toggleGestionSesion(b.dataset.sesion); });
+  });
+  ligarEventosPanelGestion(box);
   actualizarStatsExportar();
 }
 function sesionesSeleccionadasExportar(){
-  return Array.prototype.map.call(document.querySelectorAll("#exp-selector-sesion .colector-chip.on"), function(c){return c.dataset.id;});
+  return Array.prototype.map.call(document.querySelectorAll("#exp-selector-sesion .sesion-check-export:checked"), function(c){return c.dataset.id;});
 }
 function actualizarStatsExportar(){
   var ids = sesionesSeleccionadasExportar();
@@ -5785,6 +5869,99 @@ function actualizarStatsExportar(){
   document.getElementById("stat-total").textContent = seleccionados.length;
   var hoy = new Date().toISOString().slice(0,10);
   document.getElementById("stat-hoy").textContent = seleccionados.filter(function(r){return r.fecha===hoy;}).length;
+}
+
+/* ---------------- Panel de gestión de sesión (mover / borrar registros), en Exportar ---------------- */
+function toggleGestionSesion(sesionId){
+  state.sesionGestionId = (state.sesionGestionId === sesionId) ? null : sesionId;
+  renderExportar();
+}
+function registrosDeSesionOrdenados(sesionId){
+  return state.registros.filter(function(r){ return r.sesionId===sesionId; })
+    .sort(function(a,b){ return a.codigo.localeCompare(b.codigo, undefined, {numeric:true}); });
+}
+function renderPanelGestionSesion(sesionId){
+  var registros = registrosDeSesionOrdenados(sesionId);
+  var otrasSesiones = state.sesiones.filter(function(s){return s.id!==sesionId;}).sort(function(a,b){return b.creada.localeCompare(a.creada);});
+  var filasHtml = registros.map(function(r){
+    var ti = TIPOS[r.tipo]||TIPOS.nota;
+    var nombre = r.taxonLibre||r.referencia||"";
+    return '<div class="gestion-fila">'+
+      '<input type="checkbox" class="gestion-check" data-id="'+r.id+'">'+
+      '<span class="gestion-info"><b>'+escapeHtml(r.codigo)+'</b> · '+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span>'+
+      '<span class="gestion-borrar" data-id="'+r.id+'" title="Borrar">🗑</span>'+
+    '</div>';
+  }).join("");
+  if(registros.length===0){
+    return '<div class="gestion-panel"><div class="gestion-vacio">Esta sesión no tiene registros.</div></div>';
+  }
+  var opcionesDestino = otrasSesiones.map(function(s){
+    return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+(s.proyecto||"(sin nombre)"))+'</option>';
+  }).join("");
+  return '<div class="gestion-panel">'+
+    '<div class="gestion-lista">'+filasHtml+'</div>'+
+    '<div class="gestion-contador" id="gestion-contador">0 registros seleccionados</div>'+
+    '<div class="gestion-mover-row">'+
+      '<select id="gestion-select-destino"><option value="">Mover a...</option>'+opcionesDestino+'<option value="__nueva__">＋ Mover a nueva sesión...</option></select>'+
+      '<button type="button" id="btn-gestion-mover">Mover</button>'+
+    '</div>'+
+  '</div>';
+}
+function ligarEventosPanelGestion(container){
+  container.querySelectorAll(".gestion-check").forEach(function(chk){
+    chk.addEventListener("change", function(){
+      var panel = chk.closest(".gestion-panel");
+      var contador = panel && panel.querySelector("#gestion-contador");
+      if(contador){
+        var n = panel.querySelectorAll(".gestion-check:checked").length;
+        contador.textContent = n + (n===1 ? " registro seleccionado" : " registros seleccionados");
+      }
+    });
+  });
+  container.querySelectorAll(".gestion-borrar").forEach(function(x){
+    x.addEventListener("click", function(e){
+      e.stopPropagation();
+      borrarRegistroDesdeGestion(x.dataset.id);
+    });
+  });
+  var btnMover = container.querySelector("#btn-gestion-mover");
+  if(btnMover){
+    btnMover.addEventListener("click", function(){ moverRegistrosSeleccionados(state.sesionGestionId); });
+  }
+}
+function borrarRegistroDesdeGestion(id){
+  var r = eliminarRegistroPorId(id);
+  if(!r) return;
+  toast("Registro "+r.codigo+" borrado");
+  renderExportar();
+}
+function moverRegistrosSeleccionados(sesionOrigenId){
+  var panel = document.querySelector('.sesion-exportar-card[data-sesion="'+sesionOrigenId+'"] .gestion-panel');
+  if(!panel) return;
+  var ids = Array.prototype.map.call(panel.querySelectorAll(".gestion-check:checked"), function(c){return c.dataset.id;});
+  if(ids.length===0){ toast("Selecciona al menos un registro para mover"); return; }
+  var destinoSel = document.getElementById("gestion-select-destino");
+  var destino = destinoSel ? destinoSel.value : "";
+  if(!destino){ toast("Elige a qué sesión mover"); return; }
+  var esNueva = destino === "__nueva__";
+  var nombreDestino = esNueva ? "una nueva sesión" : ('"'+((sesionPorId(destino)||{}).proyecto || "(sin nombre)")+'"');
+  if(!confirm("¿Mover "+ids.length+" registro(s) a "+nombreDestino+"?")) return;
+  var sesionDestinoId = destino;
+  if(esNueva){
+    var nueva = sesionVacia();
+    nueva.archivada = true;
+    state.sesiones.push(nueva);
+    guardarListaSesiones();
+    sesionDestinoId = nueva.id;
+  }
+  ids.forEach(function(id){
+    var r = state.registros.filter(function(x){return x.id===id;})[0];
+    if(r) r.sesionId = sesionDestinoId;
+  });
+  guardarRegistros();
+  if(state.draft && ids.indexOf(state.draft.id)>=0){ state.draft.sesionId = sesionDestinoId; guardarDraft(); }
+  toast(ids.length+" registro(s) movido(s)"+(esNueva?" a una nueva sesión (archivada) — complétala en la pestaña Sesión":""));
+  renderExportar();
 }
 var COLS_SESION_EXPORT = [
   ["sesion_proyecto","[Sesión] Proyecto"],["sesion_objetivo","[Sesión] Objetivo"],
