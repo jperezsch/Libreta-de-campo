@@ -91,6 +91,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .sesion-modo-banner.modo-activa{background:var(--verde-cl); color:var(--verde-osc);}
 .sesion-modo-banner.modo-archivada{background:#fdeee9; color:#8a3a1f;}
 .sesion-modo-banner button{background:rgba(0,0,0,.08); border:none; color:inherit; font-weight:700; padding:5px 11px; border-radius:20px; font-size:.78rem; margin-left:4px; cursor:pointer;}
+.btn-reactivar-destacado{display:block !important; width:100%; margin:10px 0 0 0 !important; padding:12px !important; border-radius:10px !important; background:var(--verde) !important; color:#fff !important; font-size:.9rem !important; font-weight:800 !important; box-shadow:0 2px 6px rgba(0,0,0,.15);}
 .section-title:first-child{margin-top:0;}
 .section-title .n{width:22px;height:22px;border-radius:50%;background:var(--verde);color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:800; flex-shrink:0;}
 
@@ -222,6 +223,8 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 }
 .colector-chip{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
 .sesion-exportar-card{background:var(--card); border-radius:12px; border:1px solid var(--borde); overflow:hidden; margin-bottom:8px;}
+.sesion-exportar-card.gestionando{border:2px solid var(--ambar); box-shadow:0 0 0 3px rgba(201,150,44,.15);}
+.badge-activa{display:inline-block; background:var(--verde); color:#fff; font-size:.66rem; font-weight:800; padding:2px 7px; border-radius:10px; letter-spacing:.03em; vertical-align:middle;}
 .sesion-exportar-header{display:flex; align-items:center; gap:8px; padding:12px 14px;}
 .sesion-exportar-header input[type=checkbox]{width:19px; height:19px; flex-shrink:0;}
 .sesion-exportar-label{flex:1; min-width:0; font-size:.88rem;}
@@ -399,12 +402,12 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
   </div>
   <div class="pad">
+    <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
     <div class="field"><label>Sesión activa</label><select id="ss-selector-sesion"></select><span class="campo-ayuda">🟢 = sesión activa (donde se guardan los registros nuevos) · 📁 = sesión archivada</span></div>
     <div id="sesion-modo-banner" class="sesion-modo-banner modo-activa" style="display:none;"></div>
 
     <div class="section-title-row">
       <div class="section-title" style="margin:0;">Datos generales de la sesión</div>
-      <button type="button" class="btn-nueva-salida" id="btn-nueva-salida">🆕 Nueva Sesión</button>
     </div>
     <div class="field"><label>Proyecto / campaña</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
     <div class="field"><label>Objetivo de la salida</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
@@ -3352,7 +3355,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-19 · v2.9";
+var APP_BUILD = "2026-08-19 · v2.10";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3708,9 +3711,8 @@ function renderSesionModo(){
   } else {
     banner.style.display = "block";
     banner.className = "sesion-modo-banner modo-archivada";
-    banner.innerHTML = '📁 Viendo una sesión archivada (' + escapeHtml(s.proyecto||"sin nombre") + ') — puedes revisar y editar sus datos generales. <button type="button" id="btn-volver-activa">Volver a la activa</button> <button type="button" id="btn-reactivar-sesion">▶️ Reactivar esta sesión</button>';
-    var btnVolver = document.getElementById("btn-volver-activa");
-    if(btnVolver) btnVolver.addEventListener("click", function(){ state.sesionEnPantallaId = state.sesionActivaId; renderSesion(); });
+    banner.innerHTML = '<div>📁 Viendo una sesión archivada — puedes revisar y editar sus datos generales.</div>'+
+      '<button type="button" id="btn-reactivar-sesion" class="btn-reactivar-destacado">▶️ Reactivar esta sesión</button>';
     var btnReactivar = document.getElementById("btn-reactivar-sesion");
     if(btnReactivar) btnReactivar.addEventListener("click", function(){
       if(!confirm('¿Reactivar "'+ (s.proyecto||"esta sesión") +'"? Los registros nuevos volverán a numerarse dentro de ella, y la sesión activa actual quedará archivada.')) return;
@@ -5833,13 +5835,15 @@ function renderExportar(){
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId];
   box.innerHTML = ordenadas.map(function(s){
-    var etiqueta = iconoSesion(s.id)+" "+(s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10)) + (s.id===state.sesionActivaId?" · activa":"");
+    var esActiva = s.id===state.sesionActivaId;
+    var etiqueta = iconoSesion(s.id)+" "+(s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10));
+    var badgeActiva = esActiva ? '<span class="badge-activa">ACTIVA</span>' : "";
     var expandida = state.sesionGestionId === s.id;
     var panelHtml = expandida ? renderPanelGestionSesion(s.id) : "";
-    return '<div class="sesion-exportar-card" data-sesion="'+s.id+'">'+
+    return '<div class="sesion-exportar-card'+(expandida?" gestionando":"")+'" data-sesion="'+s.id+'">'+
       '<div class="sesion-exportar-header">'+
         '<input type="checkbox" class="sesion-check-export" data-id="'+s.id+'"'+(seleccion.indexOf(s.id)>=0?" checked":"")+'>'+
-        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+'</span>'+
+        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+' '+badgeActiva+'</span>'+
         '<button type="button" class="btn-gestionar'+(expandida?" on":"")+'" data-sesion="'+s.id+'">'+(expandida?"▾":"▸")+' Gestionar</button>'+
       '</div>'+panelHtml+
     '</div>';
