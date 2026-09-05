@@ -3354,7 +3354,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-05 · v2.15";
+var APP_BUILD = "2026-09-05 · v2.16";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -6052,13 +6052,13 @@ function moverRegistrosSeleccionados(sesionOrigenId){
   renderExportar();
 }
 var COLS_SESION_EXPORT = [
-  ["sesion_proyecto","[Sesión] Proyecto"],["sesion_objetivo","[Sesión] Objetivo"],
+  ["sesion_nombre","[Sesión] Nombre"],["sesion_objetivo","[Sesión] Objetivo"],
   ["sesion_participantes","[Sesión] Participantes"],["sesion_zona","[Sesión] Zona"],
   ["sesion_institucion","[Sesión] Institución"],
   ["sesion_clima","[Sesión] Clima"],["sesion_notas","[Sesión] Notas"]
 ];
 function filaSesionExport(s){
-  return {sesion_proyecto:s.proyecto||"", sesion_objetivo:s.objetivo||"",
+  return {sesion_nombre:s.proyecto||"", sesion_objetivo:s.objetivo||"",
     sesion_participantes:s.participantes||"", sesion_zona:s.zona||"",
     sesion_institucion:s.institucion||"", sesion_clima:s.clima||"", sesion_notas:s.notas||""};
 }
@@ -6078,7 +6078,7 @@ function ordenarFotosConPortadaPrimero(r){
 var TIPO_ESTANDAR_EXPORT = {coleccion:"colectado", observacion:"observado", nota:"nota"};
 function filaRegistroExport(r, s, taxonOverride, individuosOverride){
   var fila = filaSesionExport(s);
-  fila.codigoMuestreo = s.prefijo||""; fila.tipoRegistro = TIPO_ESTANDAR_EXPORT[r.tipo]||r.tipo; fila.catalogo = r.codigo||"";
+  fila.codigoMuestreo = s.prefijo||""; fila.tipoRegistro = TIPO_ESTANDAR_EXPORT[r.tipo]||r.tipo; fila.numeroCampo = r.codigo||"";
   fila.phylum=""; fila.clase=""; fila.orden=""; fila.familia=""; fila.genero="";
   fila.taxon = taxonOverride!=null ? taxonOverride : (r.taxonLibre||"");
   fila.determinador=""; fila.determinadorFecha="";
@@ -6131,7 +6131,7 @@ function construirFilasEstandar(registros){
    phylum/clase/orden/familia/genero quedan vacíos aquí — se completan después vía
    clasificación GBIF en el Generador de Proyectos, igual que en la planilla estándar. */
 var COLS_DWC = [
-  "basisOfRecord","fieldNumber","recordNumber","scientificName",
+  "basisOfRecord","fieldNumber","scientificName",
   "phylum","class","order","family","genus",
   "individualCount","locality","verbatimLocality","decimalLatitude","decimalLongitude",
   "eventDate","recordedBy","verbatimElevation","habitat","samplingProtocol",
@@ -6168,8 +6168,7 @@ function filaDarwinCore(r, s, taxonOverride, individuosOverride){
   var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
   return {
     basisOfRecord: basisOfRecordDwC(r.tipo),
-    fieldNumber: s.prefijo||"",
-    recordNumber: r.codigo||"",
+    fieldNumber: r.codigo||"",
     scientificName: taxonOverride!=null ? taxonOverride : (r.taxonLibre||""),
     phylum:"", class:"", order:"", family:"", genus:"",
     individualCount: individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:""),
