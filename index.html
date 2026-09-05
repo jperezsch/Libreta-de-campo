@@ -3354,7 +3354,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-05 · v2.14";
+var APP_BUILD = "2026-09-05 · v2.15";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5951,6 +5951,10 @@ function renderPanelGestionSesion(sesionId){
   return '<div class="gestion-panel">'+editarBtn+
     '<div class="gestion-lista">'+filasHtml+'</div>'+
     '<div class="gestion-contador" id="gestion-contador">0 registros seleccionados</div>'+
+    '<div class="gestion-mover-row" style="flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:8px;">'+
+      '<label style="display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--texto-sec); font-weight:400;">'+
+        '<input type="checkbox" id="gestion-renumerar" checked style="width:auto;">Renumerar automáticamente según la sesión destino</label>'+
+    '</div>'+
     '<div class="gestion-mover-row">'+
       '<select id="gestion-select-destino"><option value="">Mover a...</option>'+opcionesDestino+'<option value="__nueva__">＋ Mover a nueva sesión...</option></select>'+
       '<button type="button" id="btn-gestion-mover">Mover</button>'+
@@ -6006,6 +6010,8 @@ function moverRegistrosSeleccionados(sesionOrigenId){
   var destinoSel = document.getElementById("gestion-select-destino");
   var destino = destinoSel ? destinoSel.value : "";
   if(!destino){ toast("Elige a qué sesión mover"); return; }
+  var chkRenumerar = document.getElementById("gestion-renumerar");
+  var renumerar = chkRenumerar ? chkRenumerar.checked : true;
   var esNueva = destino === "__nueva__";
   var nombreDestino = esNueva ? "una nueva sesión" : ('"'+((sesionPorId(destino)||{}).proyecto || "(sin nombre)")+'"');
   if(!confirm("¿Mover "+ids.length+" registro(s) a "+nombreDestino+"?")) return;
@@ -6017,13 +6023,32 @@ function moverRegistrosSeleccionados(sesionOrigenId){
     guardarListaSesiones();
     sesionDestinoId = nueva.id;
   }
-  ids.forEach(function(id){
-    var r = state.registros.filter(function(x){return x.id===id;})[0];
-    if(r) r.sesionId = sesionDestinoId;
+  var sesionDestino = sesionPorId(sesionDestinoId);
+  var registrosAMover = ids.map(function(id){ return state.registros.filter(function(x){return x.id===id;})[0]; }).filter(Boolean);
+  if(renumerar && sesionDestino){
+    // Se respeta el orden relativo que ya tenían (por código), no el orden en que fueron seleccionados.
+    registrosAMover.sort(function(a,b){ return (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}); });
+  }
+  registrosAMover.forEach(function(r){
+    r.sesionId = sesionDestinoId;
+    if(renumerar && sesionDestino){
+      var codigoNuevo = sesionDestino.prefijo + "-" + pad(sesionDestino.contador, 3);
+      sesionDestino.contador = sesionDestino.contador + 1;
+      r.codigo = codigoNuevo;
+      if(r.tipo==="medicion" && r.individuos && r.individuos.length){
+        r.individuos.forEach(function(ind, i){ ind.subcodigo = codigoNuevo+"_"+(i+1); });
+      }
+    }
   });
   guardarRegistros();
-  if(state.draft && ids.indexOf(state.draft.id)>=0){ state.draft.sesionId = sesionDestinoId; guardarDraft(); }
-  toast(ids.length+" registro(s) movido(s)"+(esNueva?" a una nueva sesión (archivada) — complétala en la pestaña Sesión":""));
+  if(sesionDestino) guardarListaSesiones();
+  if(state.draft && ids.indexOf(state.draft.id)>=0){
+    var draftMovido = registrosAMover.filter(function(r){ return r.id===state.draft.id; })[0];
+    state.draft.sesionId = sesionDestinoId;
+    if(draftMovido){ state.draft.codigo = draftMovido.codigo; if(draftMovido.individuos) state.draft.individuos = draftMovido.individuos; }
+    guardarDraft();
+  }
+  toast(ids.length+" registro(s) movido(s)"+(esNueva?" a una nueva sesión (archivada) — complétala en la pestaña Sesión":"")+(renumerar?" y renumerados":""));
   renderExportar();
 }
 var COLS_SESION_EXPORT = [
