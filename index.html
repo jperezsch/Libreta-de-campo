@@ -128,7 +128,7 @@ html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; 
 .chip.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 .search{width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); font-size:1rem; margin-bottom:12px; color:var(--texto);}
 .empty{text-align:center; padding:50px 20px; color:var(--texto-sec); font-size:1rem;}
-.lista-footer-acciones{margin-top:22px; padding-top:16px; border-top:1px solid var(--borde); padding-bottom:30px;}
+.lista-footer-acciones{margin-top:22px; padding-top:16px; border-top:1px solid var(--borde); padding-bottom:90px;}
 .vista-toggle{display:flex; gap:8px; margin-bottom:12px;}
 .vista-btn{flex:1; padding:9px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto-sec); font-size:.85rem; font-weight:700; cursor:pointer;}
 .vista-btn.on{background:var(--verde); color:#fff; border-color:var(--verde);}
@@ -237,6 +237,7 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .gestion-fila input[type=checkbox]{width:17px; height:17px; flex-shrink:0;}
 .gestion-info{flex:1; min-width:0;}
 .gestion-borrar{color:var(--rojo); font-size:1.05rem; padding:2px 4px; cursor:pointer; flex-shrink:0;}
+.gestion-editar{color:var(--texto-sec); font-size:1.05rem; padding:2px 4px; cursor:pointer; flex-shrink:0;}
 .gestion-contador{font-size:.72rem; color:var(--texto-sec); margin-bottom:6px;}
 .gestion-vacio{font-size:.82rem; color:var(--texto-sec); padding:8px 0;}
 .gestion-mover-row{display:flex; gap:8px;}
@@ -409,7 +410,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="section-title-row">
       <div class="section-title" style="margin:0;">Datos generales de la sesión</div>
     </div>
-    <div class="field"><label>Sesión</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
+    <div class="field"><label>Nombre de la sesión</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
     <div class="field"><label>Objetivo de la salida</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
     <div class="field"><label>Localidad general / zona</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona"><datalist id="dl-ss-zona"></datalist></div>
@@ -426,7 +427,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
     <div class="field"><label>Código de inicio</label><input type="text" id="ss-proximo" disabled></div>
     <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos generales de la sesión</button>
-    <div style="height:40px;"></div>
+    <div style="height:90px;"></div>
   </div>
 </div>
 
@@ -445,7 +446,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div id="lista-narrativa" style="display:none;"></div>
     <div class="lista-footer-acciones">
       <button type="button" class="btnfull btn-secondary" id="btn-exportar-narrativa" style="display:none;">⬇️ Exportar libreta (.html)</button>
-      <button type="button" class="btnfull btn-amber" id="btn-finalizar-sesion">🏁 Finalizar sesión</button>
+      <button type="button" class="btnfull btn-amber" id="btn-finalizar-sesion">🏁 Finalizar sesión activa</button>
     </div>
   </div>
 </div>
@@ -3350,7 +3351,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-05 · v2.11";
+var APP_BUILD = "2026-09-05 · v2.12";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3912,14 +3913,12 @@ function renderListaTarjetas(lista, justSavedId){
           '<div class="reg-sesion-tag">'+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>'+
         '</div>'+
         '<div class="reg-actions">'+
-          '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver / editar">👁</button>'+
-          '<button type="button" class="btn-icon" data-action="duplicar" data-id="'+r.id+'" title="Duplicar como registro nuevo">⎘</button>'+
+          '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Editar">✏️</button>'+
           '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
         '</div></div>';
     }).join("") + htmlDraft;
   }
   cont.querySelectorAll('.btn-icon[data-action="ver"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); editarRegistroExistente(b.dataset.id); }); });
-  cont.querySelectorAll('.btn-icon[data-action="duplicar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); duplicarRegistro(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
   cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ editarRegistroExistente(c.dataset.id); }); });
   var draftCard = document.getElementById("card-draft-pendiente");
@@ -4691,42 +4690,6 @@ function editarRegistroExistente(id){
   guardarDraft();
   cargarDraftEnFormulario();
   irA("form");
-}
-function duplicarRegistro(id){
-  var original = state.registros.filter(function(x){return x.id===id;})[0];
-  if(!original) return;
-  if(!tipoCompatibleConSesion(original.tipo)){
-    toast("⚠️ La sesión activa no admite este tipo de registro (Recolección/Observación vs Medición)");
-    return;
-  }
-  if(state.draft){
-    if(!confirm('Ya tienes un registro sin guardar en curso ('+state.draft.codigo+'). ¿Descartarlo para duplicar "'+original.codigo+'"?')) return;
-  }
-  detenerSeguimientoEnVivo();
-  var copia = JSON.parse(JSON.stringify(original));
-  copia.id = uid();
-  copia._editando = false;
-  copia.sesionId = state.sesionActivaId;
-  copia.codigo = proximoCodigo(sesionActiva());
-  var ahora = new Date();
-  copia.fecha = ahora.toISOString().slice(0,10);
-  copia.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
-  copia.fotos = [];
-  copia.fotoPortadaId = null;
-  if(copia.especies && copia.especies.length){
-    copia.especies = copia.especies.map(function(e){ return {nombre:e.nombre, cantidad:0}; });
-  }
-  if(copia.individuos && copia.individuos.length){
-    copia.individuos = copia.individuos.map(function(ind, i){
-      return {subcodigo: copia.codigo+"_"+(i+1), sexo:"", localidad:"", habitat:"", valores:{}};
-    });
-  }
-  state.draft = copia;
-  guardarDraft();
-  document.querySelector(".dg-box").classList.remove("abierto");
-  cargarDraftEnFormulario();
-  irA("form");
-  toast("Registro duplicado — código "+copia.codigo+", revisa y guarda");
 }
 function eliminarRegistroPorId(id){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
@@ -5920,6 +5883,7 @@ function renderPanelGestionSesion(sesionId){
     return '<div class="gestion-fila">'+
       '<input type="checkbox" class="gestion-check" data-id="'+r.id+'">'+
       '<span class="gestion-info"><b>'+escapeHtml(r.codigo)+'</b> · '+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span>'+
+      '<span class="gestion-editar" data-id="'+r.id+'" title="Editar">✏️</span>'+
       '<span class="gestion-borrar" data-id="'+r.id+'" title="Borrar">🗑</span>'+
     '</div>';
   }).join("");
@@ -5967,6 +5931,12 @@ function ligarEventosPanelGestion(container){
     x.addEventListener("click", function(e){
       e.stopPropagation();
       borrarRegistroDesdeGestion(x.dataset.id);
+    });
+  });
+  container.querySelectorAll(".gestion-editar").forEach(function(x){
+    x.addEventListener("click", function(e){
+      e.stopPropagation();
+      editarRegistroExistente(x.dataset.id);
     });
   });
   var btnMover = container.querySelector("#btn-gestion-mover");
