@@ -409,15 +409,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="section-title-row">
       <div class="section-title" style="margin:0;">Datos generales de la sesión</div>
     </div>
-    <div class="field"><label>Proyecto / campaña</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
+    <div class="field"><label>Sesión</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
     <div class="field"><label>Objetivo de la salida</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
-    <div class="row2">
-      <div class="field"><label>Fecha inicio</label><input type="date" id="ss-fecha-ini"></div>
-      <div class="field"><label>Fecha término</label><input type="date" id="ss-fecha-fin"></div>
-    </div>
     <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
     <div class="field"><label>Localidad general / zona</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona"><datalist id="dl-ss-zona"></datalist></div>
-    <div class="field"><label>Descripción del paisaje / ambiente</label><textarea id="ss-paisaje" spellcheck="true"></textarea></div>
 
     <div class="section-title">Contexto adicional</div>
     <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" spellcheck="true" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
@@ -3355,7 +3350,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-08-19 · v2.10";
+var APP_BUILD = "2026-09-05 · v2.11";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3413,8 +3408,8 @@ function sesionVacia(){
   var icono = (typeof ICONOS_SESION!=="undefined") ? ICONOS_SESION[(state.sesiones?state.sesiones.length:0) % ICONOS_SESION.length] : "📁";
   return {
     id: uid(), creada: new Date().toISOString(), archivada:false, icono: icono,
-    proyecto:"", objetivo:"", fechaIni:"", fechaFin:"", participantes:"",
-    zona:"", paisaje:"", institucion:"", clima:"", notas:"",
+    proyecto:"", objetivo:"", participantes:"",
+    zona:"", institucion:"", clima:"", notas:"",
     prefijo:"CAMPO", inicio:1, contador:1
   };
 }
@@ -3690,8 +3685,8 @@ document.querySelectorAll(".navbtn").forEach(function(b){
 });
 
 /* ---------------- SESIÓN (autoguardado) ---------------- */
-var SS_MAP = {"ss-proyecto":"proyecto","ss-objetivo":"objetivo","ss-fecha-ini":"fechaIni","ss-fecha-fin":"fechaFin",
-  "ss-participantes":"participantes","ss-zona":"zona","ss-paisaje":"paisaje","ss-institucion":"institucion",
+var SS_MAP = {"ss-proyecto":"proyecto","ss-objetivo":"objetivo",
+  "ss-participantes":"participantes","ss-zona":"zona","ss-institucion":"institucion",
   "ss-clima":"clima","ss-notas":"notas","ss-prefijo":"prefijo"};
 function renderSesion(){
   var s = sesionEnPantalla();
@@ -6015,15 +6010,14 @@ function moverRegistrosSeleccionados(sesionOrigenId){
 }
 var COLS_SESION_EXPORT = [
   ["sesion_proyecto","[Sesión] Proyecto"],["sesion_objetivo","[Sesión] Objetivo"],
-  ["sesion_fechaInicio","[Sesión] Fecha inicio"],["sesion_fechaTermino","[Sesión] Fecha término"],
   ["sesion_participantes","[Sesión] Participantes"],["sesion_zona","[Sesión] Zona"],
-  ["sesion_paisaje","[Sesión] Paisaje"],["sesion_institucion","[Sesión] Institución"],
+  ["sesion_institucion","[Sesión] Institución"],
   ["sesion_clima","[Sesión] Clima"],["sesion_notas","[Sesión] Notas"]
 ];
 function filaSesionExport(s){
-  return {sesion_proyecto:s.proyecto||"", sesion_objetivo:s.objetivo||"", sesion_fechaInicio:s.fechaIni||"",
-    sesion_fechaTermino:s.fechaFin||"", sesion_participantes:s.participantes||"", sesion_zona:s.zona||"",
-    sesion_paisaje:s.paisaje||"", sesion_institucion:s.institucion||"", sesion_clima:s.clima||"", sesion_notas:s.notas||""};
+  return {sesion_proyecto:s.proyecto||"", sesion_objetivo:s.objetivo||"",
+    sesion_participantes:s.participantes||"", sesion_zona:s.zona||"",
+    sesion_institucion:s.institucion||"", sesion_clima:s.clima||"", sesion_notas:s.notas||""};
 }
 function nombreArchivoFotoExport(codigo, nombreFoto){
   return sanitizarNombreArchivo(codigo)+"__"+sanitizarNombreArchivo(nombreFoto)+".jpg";
@@ -6062,9 +6056,7 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride){
   fila.microhabitat_recoleccion = r.tipo==="coleccion" ? (r.referencia||"") : "";
   fila.tejido_conservado = r.tipo==="coleccion" ? (r.tejidoConservado?"Sí":"No") : "";
   fila.tipo_observacion = r.tipo==="observacion" ? (r.metodo||"") : "";
-  fila.duracion_objetivo_min = r.tipo==="observacion" ? (r.duracionObjetivo||"") : "";
   fila.duracion_real_min = r.tipo==="observacion" ? (r.duracionReal!=null?r.duracionReal:"") : "";
-  fila.distancia_objetivo_m = r.tipo==="observacion" ? (r.distanciaObjetivo||"") : "";
   fila.distancia_real_m = r.tipo==="observacion" ? (r.distanciaReal!=null?r.distanciaReal:"") : "";
   fila.ancho_banda_m = r.tipo==="observacion" ? (r.anchoBanda||"") : "";
   fila.area_largo_m = r.tipo==="observacion" ? (r.areaLargo||"") : "";
