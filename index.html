@@ -3354,7 +3354,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-05 · v2.16";
+var APP_BUILD = "2026-09-07 · v2.17";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4710,8 +4710,19 @@ document.getElementById("f-lat").addEventListener("input", function(){ document.
 document.getElementById("f-lon").addEventListener("input", function(){ document.getElementById("gps-manual-wrap").classList.remove("resaltado"); actualizarGpsBox(); });
 
 function abrirRegistro(){
-  if(!state.draft){ iniciarNuevoRegistro(); }
-  else { cargarDraftEnFormulario(); irA("form"); }
+  if(!state.draft){ iniciarNuevoRegistro(); return; }
+  if(state.draft._editando){
+    var msg = "Tienes una edición sin guardar del registro "+(state.draft.codigo||"")+" en curso.\n\n"+
+      "Si inicias un registro nuevo, esa edición se descarta (el registro original no se modifica; solo se pierden los cambios que aún no habías guardado). ¿Iniciar un registro nuevo de todas formas?";
+    if(confirm(msg)){
+      state.draft = null; guardarDraft();
+      iniciarNuevoRegistro();
+    } else {
+      cargarDraftEnFormulario(); irA("form");
+    }
+    return;
+  }
+  cargarDraftEnFormulario(); irA("form");
 }
 
 function editarRegistroExistente(id){
