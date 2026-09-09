@@ -404,7 +404,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   </div>
   <div class="pad">
     <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
-    <div class="field"><label>Sesión activa</label><select id="ss-selector-sesion"></select><span class="campo-ayuda">🟢 = sesión activa (donde se guardan los registros nuevos) · 📁 = sesión archivada</span></div>
+    <div class="field"><select id="ss-selector-sesion"></select><span class="campo-ayuda">🟢 = sesión activa (donde se guardan los registros nuevos) · 📁 = sesión archivada</span></div>
     <div id="sesion-modo-banner" class="sesion-modo-banner modo-activa" style="display:none;"></div>
 
     <div class="section-title-row">
@@ -3354,7 +3354,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-07 · v2.17";
+var APP_BUILD = "2026-09-09 · v2.18";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3439,6 +3439,20 @@ var state = {
 function sesionActiva(){ return state.sesiones.find(function(s){ return s.id===state.sesionActivaId; }) || null; }
 function sesionEnPantalla(){ return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva(); }
 function sesionPorId(id){ return state.sesiones.find(function(s){ return s.id===id; }) || null; }
+function nombreSesionMostrar(s){
+  if(!s) return "—";
+  var nombre = (s.proyecto||"").trim();
+  if(nombre) return nombre;
+  if(s.id === state.sesionActivaId) return "(creando sesión)";
+  // Respaldo: en teoría toda sesión debería tener nombre, pero si alguna quedó sin él
+  // (p. ej. creada automáticamente al mover registros a "nueva sesión"), se le da un
+  // nombre de exhibición estable en vez de dejarla en blanco indefinidamente.
+  var sinNombre = state.sesiones.filter(function(x){
+    return x.id !== state.sesionActivaId && !((x.proyecto||"").trim());
+  }).sort(function(a,b){ return a.creada.localeCompare(b.creada); });
+  var idx = sinNombre.findIndex(function(x){ return x.id === s.id; });
+  return "Sesión sin nombre" + (idx > 0 ? " " + (idx+1) : "");
+}
 
 function uid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function pad(n,l){ n=String(n); while(n.length<l) n="0"+n; return n; }
@@ -3754,7 +3768,7 @@ function renderSelectorSesiones(){
   var sel = document.getElementById("ss-selector-sesion");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   sel.innerHTML = ordenadas.map(function(s){
-    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + (s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10));
+    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + (s.fechaIni||s.creada.slice(0,10));
     return '<option value="'+s.id+'"'+(s.id===state.sesionEnPantallaId?" selected":"")+'>'+escapeHtml(etiqueta)+'</option>';
   }).join("");
 }
@@ -3859,7 +3873,7 @@ function renderSelectorListaSesiones(){
   var sel = document.getElementById("lista-selector-sesion");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   var opciones = '<option value="">Todas las sesiones</option>' + ordenadas.map(function(s){
-    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + (s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10));
+    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + (s.fechaIni||s.creada.slice(0,10));
     return '<option value="'+s.id+'">'+escapeHtml(etiqueta)+'</option>';
   }).join("");
   sel.innerHTML = opciones;
@@ -3885,7 +3899,7 @@ function etiquetaSesionCorta(sesionId){
   var s = sesionPorId(sesionId);
   if(!s) return "";
   var ic = s.id===state.sesionActivaId ? "🟢 activa" : "📁 archivada";
-  return iconoSesion(sesionId)+" "+(s.proyecto||"sin nombre")+" · "+ic;
+  return iconoSesion(sesionId)+" "+nombreSesionMostrar(s)+" · "+ic;
 }
 function cantidadEjemplares(r){
   if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length){ var t = sumaEspecies(r); return t>0 ? t : null; }
@@ -4419,7 +4433,7 @@ function actualizarBannerSesionActivaFijo(){
   var s = sesionActiva();
   var banner = document.getElementById("banner-sesion-activa-fijo");
   if(!banner) return;
-  banner.textContent = "🟢 Sesión activa: " + (s ? (s.proyecto || "sin nombre") : "—");
+  banner.textContent = "🟢 Sesión activa: " + (s ? nombreSesionMostrar(s) : "—");
 }
 function actualizarBannerSesionRegistro(){
   actualizarBannerSesionActivaFijo();
@@ -4431,10 +4445,10 @@ function actualizarBannerSesionRegistro(){
   banner.style.display = "block";
   if(s.id === state.sesionActivaId){
     banner.className = "banner-sesion-registro activa";
-    banner.textContent = "🟢 Este registro pertenece a la sesión activa: " + (s.proyecto || "sin nombre");
+    banner.textContent = "🟢 Este registro pertenece a la sesión activa: " + nombreSesionMostrar(s);
   } else {
     banner.className = "banner-sesion-registro archivada";
-    banner.textContent = "📁 Estás editando un registro de una sesión archivada: " + (s.proyecto || "sin nombre") + " — no afecta la numeración de la sesión activa.";
+    banner.textContent = "📁 Estás editando un registro de una sesión archivada: " + nombreSesionMostrar(s) + " — no afecta la numeración de la sesión activa.";
   }
 }
 function actualizarGpsBox(){
@@ -5751,7 +5765,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
       var mPrefijo = codigoActual.match(/^(.+)-(\d+)$/);
       var prefijoColision = mPrefijo ? mPrefijo[1] : (sActualDraft ? sActualDraft.prefijo : "");
       var info = analizarSecuenciaCodigo(prefijoColision);
-      var msg = 'El código "'+codigoActual+'" ya se usó antes en otra sesión ("'+((sDup&&sDup.proyecto)||"sin nombre")+'").';
+      var msg = 'El código "'+codigoActual+'" ya se usó antes en otra sesión ("'+nombreSesionMostrar(sDup)+'").';
       if(info) msg += ' El próximo número libre sería "'+info.siguiente+'".';
       msg += ' ¿Guardar igual con "'+codigoActual+'"?';
       if(!confirm(msg)) return;
@@ -5791,7 +5805,7 @@ function eliminarSesionVacia(id){
   if(state.sesiones.length<=1){ toast("Debe quedar al menos una sesión."); return; }
   var eraActiva = (id === state.sesionActivaId);
   var mensajeExtra = eraActiva ? " Como era la sesión activa, se activará otra en su lugar." : "";
-  if(!confirm('¿Eliminar la sesión "'+(s.proyecto||"sin nombre")+'"? No tiene registros asociados. Esta acción no se puede deshacer.'+mensajeExtra)) return;
+  if(!confirm('¿Eliminar la sesión "'+nombreSesionMostrar(s)+'"? No tiene registros asociados. Esta acción no se puede deshacer.'+mensajeExtra)) return;
 
   if(eraActiva && state.draft && state.draft.sesionId===id){
     state.draft = null; guardarDraft();
@@ -5804,7 +5818,7 @@ function eliminarSesionVacia(id){
     nueva.archivada = false;
     state.sesionActivaId = nueva.id;
     setLS(LSK.act, state.sesionActivaId);
-    toast('Sesión eliminada. Ahora la activa es "'+(nueva.proyecto||"sin nombre")+'"');
+    toast('Sesión eliminada. Ahora la activa es "'+nombreSesionMostrar(nueva)+'"');
   } else {
     toast("Sesión eliminada");
   }
@@ -5831,7 +5845,7 @@ function renderPanelHuerfanos(){
   var sel = document.getElementById("sel-sesion-huerfanos");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   sel.innerHTML = ordenadas.map(function(s){
-    return '<option value="'+s.id+'">'+escapeHtml((s.proyecto||"(sin nombre)")+" · "+(s.fechaIni||s.creada.slice(0,10)))+'</option>';
+    return '<option value="'+s.id+'">'+escapeHtml(nombreSesionMostrar(s)+" · "+(s.fechaIni||s.creada.slice(0,10)))+'</option>';
   }).join("");
 }
 document.getElementById("btn-reparar-huerfanos").addEventListener("click", function(){
@@ -5853,7 +5867,7 @@ function renderExportar(){
   var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId];
   box.innerHTML = ordenadas.map(function(s){
     var esActiva = s.id===state.sesionActivaId;
-    var etiqueta = iconoSesion(s.id)+" "+(s.proyecto || "(sin nombre)") + " · " + (s.fechaIni||s.creada.slice(0,10));
+    var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + (s.fechaIni||s.creada.slice(0,10));
     var badgeActiva = esActiva ? '<span class="badge-activa">ACTIVA</span>' : "";
     var expandida = state.sesionGestionId === s.id;
     var panelHtml = expandida ? renderPanelGestionSesion(s.id) : "";
@@ -5885,7 +5899,7 @@ function verEnSesion(id){
   if(!s) return;
   state.sesionEnPantallaId = id;
   irA("sesion");
-  toast('Editando datos de "'+(s.proyecto||"(sin nombre)")+'"');
+  toast('Editando datos de "'+nombreSesionMostrar(s)+'"');
 }
 function ligarPulsacionLarga(el, callback, ms){
   var timer = null, moved = false, startX = 0, startY = 0;
@@ -5957,7 +5971,7 @@ function renderPanelGestionSesion(sesionId){
     '</div>';
   }
   var opcionesDestino = otrasSesiones.map(function(s){
-    return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+(s.proyecto||"(sin nombre)"))+'</option>';
+    return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+'</option>';
   }).join("");
   return '<div class="gestion-panel">'+editarBtn+
     '<div class="gestion-lista">'+filasHtml+'</div>'+
@@ -6024,7 +6038,7 @@ function moverRegistrosSeleccionados(sesionOrigenId){
   var chkRenumerar = document.getElementById("gestion-renumerar");
   var renumerar = chkRenumerar ? chkRenumerar.checked : true;
   var esNueva = destino === "__nueva__";
-  var nombreDestino = esNueva ? "una nueva sesión" : ('"'+((sesionPorId(destino)||{}).proyecto || "(sin nombre)")+'"');
+  var nombreDestino = esNueva ? "una nueva sesión" : ('"'+nombreSesionMostrar(sesionPorId(destino))+'"');
   if(!confirm("¿Mover "+ids.length+" registro(s) a "+nombreDestino+"?")) return;
   var sesionDestinoId = destino;
   if(esNueva){
