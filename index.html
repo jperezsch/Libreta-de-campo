@@ -74,6 +74,21 @@ input,select,textarea{font-family:inherit; font-size:1.05rem; color:var(--texto)
 }
 html[data-tema="noche"] .banner-curso{background:#3a1f14; border-color:#6b3420; color:#f0b9a3;}
 .banner-curso .dotlive{width:8px;height:8px;border-radius:50%;background:var(--rojo); animation:pulse 1.4s infinite; flex-shrink:0;}
+.banner-curso.modo-viendo{background:#eef2f7; border-color:#c7d3e0; color:#3a4a5c;}
+html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-color:#33495e; color:#bcd0e3;}
+.banner-curso.modo-viendo .dotlive{background:var(--texto-sec); animation:none;}
+/* Modo "solo lectura" (viendo un registro guardado, sin editar): bloquea toda interacción dentro
+   del formulario salvo los controles de navegación/despliegue puramente visuales (lista blanca). */
+#s-form .pad.solo-lectura{pointer-events:none;}
+#s-form .pad.solo-lectura #btn-toggle-dg,
+#s-form .pad.solo-lectura #btn-cerrar-dg,
+#s-form .pad.solo-lectura #btn-toggle-manual,
+#s-form .pad.solo-lectura #btn-orden-conteo,
+#s-form .pad.solo-lectura #btn-orden-alfabetico{pointer-events:auto;}
+#s-form .pad.solo-lectura .foto-item{pointer-events:auto;}
+#s-form .pad.solo-lectura .foto-item .star,
+#s-form .pad.solo-lectura .foto-item .x,
+#s-form .pad.solo-lectura .foto-item .name-edit{display:none;}
 .banner-sesion-registro{padding:9px 14px; font-size:.8rem; font-weight:700;}
 .banner-sesion-registro.activa{background:var(--verde-cl); color:var(--verde-osc);}
 .banner-sesion-registro.archivada{background:#fdeee9; color:#8a3a1f;}
@@ -408,10 +423,9 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div id="sesion-modo-banner" class="sesion-modo-banner modo-activa" style="display:none;"></div>
 
     <div class="section-title-row">
-      <div class="section-title" style="margin:0;">Datos generales de la sesión</div>
     </div>
     <div class="field"><label>Nombre de la sesión</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
-    <div class="field"><label>Objetivo de la salida</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
+    <div class="field"><label>Objetivo</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
     <div class="field"><label>Localidad general / zona</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona"><datalist id="dl-ss-zona"></datalist></div>
 
@@ -426,7 +440,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="field"><label>N° inicial correlativo</label><input type="number" id="ss-inicio" min="0"></div>
     </div>
     <div class="field"><label>Código de inicio</label><input type="text" id="ss-proximo" disabled></div>
-    <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos generales de la sesión</button>
+    <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos de la sesión</button>
     <div style="height:90px;"></div>
   </div>
 </div>
@@ -455,7 +469,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 <div class="screen" id="s-form">
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Registro</h2><p class="sub">Captura los registros</p></div></div></div>
   <div id="banner-sesion-activa-fijo" class="banner-sesion-activa-fijo"></div>
-  <div class="banner-curso"><span class="dotlive"></span> Registro en curso — <input type="text" id="f-codigo" class="codigo-inline"></div>
+  <div class="banner-curso" id="banner-curso"><span class="dotlive" id="banner-curso-dot"></span> <span id="banner-curso-texto">Registro en curso</span> — <input type="text" id="f-codigo" class="codigo-inline"></div>
   <div id="banner-sesion-registro" class="banner-sesion-registro" style="display:none;"></div>
   <div class="pad">
 
@@ -653,7 +667,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div id="identificacion-individual">
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="nota">Si hay más de una especie, identificar la muestra con el taxón más inclusivo que las reúna a todas. Determinaciones preliminares se pueden registrar con más detalle en el campo <b>Notas</b>.</div>
+    <div class="nota">Usa el taxón preliminar más inclusivo posible, idealmente especie o género. Comentarios adicionales deben ir al final, en el campo <b>Notas</b>.</div>
     <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label>Condición / conservación</label>
@@ -672,7 +686,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <option value="otro">Otro</option>
       </select>
     </div>
-    <div class="switch-row"><div>Muestra de tejido<span>Independiente de la conservación — se puede marcar aunque también se haya colectado el espécimen completo</span></div><input type="checkbox" id="f-tejido"></div>
+    <div class="switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
     </div>
 
     <div id="seccion-fotos-notas">
@@ -685,7 +699,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <input type="file" id="f-input-galeria" accept="image/*" multiple style="display:none;">
     <div id="fotos-lista"></div>
 
-    <div id="metodo-principal" class="field" style="margin-top:14px;"><label>Método</label>
+    <div id="metodo-principal" class="field" style="margin-top:14px;"><label>Método de recolección</label>
       <select id="f-metodo">
         <option value="">—</option>
         <option>Búsqueda directa</option><option>Cernido de hojarasca</option><option>Trampa pitfall</option>
@@ -733,13 +747,12 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" class="btnfull btn-primary" style="width:auto; margin:0; padding:0 16px; font-size:.85rem;" id="btn-reparar-huerfanos">Asignar todos aquí</button>
       </div>
     </div>
-    <div class="section-title">Registros, fotos y tracks</div>
-    <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Descargar registros, fotos y tracks (.zip)</button>
-    <div class="section-title">Exportar a Darwin Core</div>
-    <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Descargar Darwin Core (.csv) de las sesiones seleccionadas</button>
+    <div class="section-title">Exportar sesiones seleccionadas</div>
+    <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Registros (.zip)</button>
+    <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv)</button>
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos.</p>
-    <div class="section-title">Exportar a Excel</div>
-    <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Generar planilla de Medición (.xlsx)</button>
+    <div class="section-title">Registros de medición</div>
+    <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
     <div class="section-title">Respaldo e importación</div>
     <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.zip)</label>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
@@ -748,6 +761,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <button type="button" class="btnfull btn-primary" id="btn-importar-seleccionados">📲 Importar seleccionados a esta app</button>
       <button type="button" class="btnfull btn-secondary" id="btn-descargar-unificado">💾 Descargar respaldo unificado (.json)</button>
     </div>
+    <div style="height:90px;"></div>
   </div>
 </div>
 
@@ -3354,7 +3368,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-09 · v2.18";
+var APP_BUILD = "2026-09-16 · v2.20";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3683,6 +3697,7 @@ function irA(view){
   var btn = document.querySelector('.navbtn[data-s="'+view+'"]'); if(btn) btn.classList.add("on");
   document.getElementById("savebar").classList.toggle("on", view==="form");
   state.currentView = view;
+  try{ sessionStorage.setItem("libretacampo_ultima_vista", view); }catch(e){}
   if(view==="lista") renderLista();
   if(view==="sesion") renderSesion();
   if(view==="exportar") renderExportar();
@@ -3751,9 +3766,11 @@ function renderSesionModo(){
       if(!confirm('¿Reactivar "'+ (s.proyecto||"esta sesión") +'"? Los registros nuevos volverán a numerarse dentro de ella, y la sesión activa actual quedará archivada.')) return;
       var actualAntes = sesionActiva();
       if(actualAntes) actualAntes.archivada = true;
-      if(state.draft && state.draft.sesionId === (actualAntes && actualAntes.id)){
+      if(state.draft && !state.draft._viendo && state.draft.sesionId === (actualAntes && actualAntes.id)){
         state.draft = null; guardarDraft();
         toast("Se descartó un registro sin guardar de la sesión anterior");
+      } else if(state.draft && state.draft._viendo){
+        state.draft = null; guardarDraft();
       }
       s.archivada = false;
       state.sesionActivaId = s.id;
@@ -3782,7 +3799,7 @@ document.getElementById("ss-selector-sesion").addEventListener("change", functio
   ligarSugerencia(p[0], p[1], p[2]);
 });
 function sincronizarCodigoDraftConSesion(){
-  if(!state.draft || state.draft._editando) return;
+  if(!state.draft || state.draft._editando || state.draft._viendo) return;
   if(state.draft.sesionId !== state.sesionActivaId) return;
   state.draft.codigo = proximoCodigo(sesionActiva());
   guardarDraft();
@@ -3839,8 +3856,9 @@ function crearNuevaSalida(){
   var actual = sesionActiva();
   if(actual) actual.archivada = true;
   if(state.draft && state.draft.sesionId === (actual && actual.id)){
+    var teniaCambiosSinGuardar = !state.draft._viendo;
     state.draft = null; guardarDraft();
-    toast("Se descartó un registro sin guardar de la sesión anterior");
+    if(teniaCambiosSinGuardar) toast("Se descartó un registro sin guardar de la sesión anterior");
   }
   var nueva = sesionVacia();
   // La numeración continúa sin cortes: mismo prefijo y correlativo donde iba la anterior
@@ -3935,9 +3953,14 @@ function renderLista(justSavedId){
     renderListaTarjetas(lista, justSavedId);
   }
 }
+var listaSesionesColapsadas = new Set(); // ids de sesión colapsadas en la vista Lista (no persiste entre recargas)
+function toggleColapsoSesionLista(sesionId){
+  if(listaSesionesColapsadas.has(sesionId)) listaSesionesColapsadas.delete(sesionId); else listaSesionesColapsadas.add(sesionId);
+  renderLista();
+}
 function renderListaTarjetas(lista, justSavedId){
   var cont = document.getElementById("lista-registros");
-  var htmlDraft = state.draft ? ('<div class="card card-draft" id="card-draft-pendiente">'+
+  var htmlDraft = (state.draft && !state.draft._viendo) ? ('<div class="card card-draft" id="card-draft-pendiente">'+
       '<div class="reg-ic" style="background:var(--ambar); color:#fff;">✏️</div>'+
       '<div class="reg-info" style="flex:1; min-width:0;">'+
         '<div class="reg-title">Registro en curso: '+escapeHtml(state.draft.codigo)+'</div>'+
@@ -3946,28 +3969,47 @@ function renderListaTarjetas(lista, justSavedId){
   if(lista.length===0){
     cont.innerHTML = '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>' + htmlDraft;
   } else {
-    cont.innerHTML = lista.map(function(r){
-      var ti = TIPOS[r.tipo]||TIPOS.nota;
-      var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
-      var nombre = r.taxonLibre||r.referencia||"";
-      var cant = cantidadEjemplares(r);
-      var cantTxt = cant!=null ? (" · "+cant+(cant==1?" ejemplar":" ejemplares")) : "";
-      return '<div class="card'+cls+'" data-id="'+r.id+'">'+
-        '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
-        '<div class="reg-info" style="flex:1; min-width:0;">'+
-          '<div class="reg-title">'+escapeHtml(r.codigo)+' · '+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
-          '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+'</div>'+
-          '<div class="reg-sesion-tag">'+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>'+
-        '</div>'+
-        '<div class="reg-actions">'+
-          '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Editar">✏️</button>'+
-          '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
-        '</div></div>';
+    var grupos = []; var indicePorSesion = {};
+    lista.forEach(function(r){
+      if(indicePorSesion[r.sesionId]===undefined){
+        indicePorSesion[r.sesionId] = grupos.length;
+        grupos.push({sesionId:r.sesionId, registros:[]});
+      }
+      grupos[indicePorSesion[r.sesionId]].registros.push(r);
+    });
+    cont.innerHTML = grupos.map(function(g){
+      var colapsada = listaSesionesColapsadas.has(g.sesionId);
+      var headerHtml = '<div class="narr-sesion-header">' +
+        '<span class="narr-sesion-titulo">'+iconoSesion(g.sesionId)+' '+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
+        '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button>' +
+      '</div>';
+      if(colapsada) return headerHtml;
+      var tarjetasHtml = g.registros.map(function(r){
+        var ti = TIPOS[r.tipo]||TIPOS.nota;
+        var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
+        var nombre = r.taxonLibre||r.referencia||"";
+        var cant = cantidadEjemplares(r);
+        var cantTxt = cant!=null ? (" · "+cant+(cant==1?" ejemplar":" ejemplares")) : "";
+        return '<div class="card'+cls+'" data-id="'+r.id+'" style="border-left:4px solid '+colorSesion(r.sesionId)+';">'+
+          '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
+          '<div class="reg-info" style="flex:1; min-width:0;">'+
+            '<div class="reg-title">'+escapeHtml(r.codigo)+' · '+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
+            '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+'</div>'+
+          '</div>'+
+          '<div class="reg-actions">'+
+            '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver">👁</button>'+
+            '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
+          '</div></div>';
+      }).join("");
+      return headerHtml + tarjetasHtml;
     }).join("") + htmlDraft;
   }
-  cont.querySelectorAll('.btn-icon[data-action="ver"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); editarRegistroExistente(b.dataset.id); }); });
+  cont.querySelectorAll('.btn-icon[data-action="ver"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); verRegistroExistente(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
-  cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ editarRegistroExistente(c.dataset.id); }); });
+  cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ verRegistroExistente(c.dataset.id); }); });
+  cont.querySelectorAll('.btn-colapsar-sesion[data-sesion-lista]').forEach(function(b){
+    b.addEventListener("click", function(e){ e.stopPropagation(); toggleColapsoSesionLista(b.dataset.sesionLista); });
+  });
   var draftCard = document.getElementById("card-draft-pendiente");
   if(draftCard) draftCard.addEventListener("click", function(){ cargarDraftEnFormulario(); irA("form"); });
 }
@@ -4351,7 +4393,7 @@ function iniciarNuevoRegistro(){
     obsAcumuladoMs:0, obsPausado:false, trackPuntos:[],
     especieMedida:especieMedidaDefault, medConSexo:medSexoDefault, medConLocalidad:medLocDefault, medConHabitat:medHabDefault, estructuras:estructurasDefault, individuos:[],
     notaSubtipo:"narrativo", tejidoConservado:false,
-    fotos: [], especies: [], _editando:false
+    fotos: [], especies: [], _editando:false, _viendo:false
   };
   guardarDraft();
   document.querySelector(".dg-box").classList.remove("abierto");
@@ -4365,8 +4407,7 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-codigo").value = d.codigo;
   document.getElementById("f-lat").value = d.lat; document.getElementById("f-lon").value = d.lon;
   document.getElementById("f-fecha").value = d.fecha; document.getElementById("f-hora").value = d.hora;
-  document.getElementById("fecha-hora-row").style.display = d._editando ? "grid" : "none";
-  document.getElementById("btn-guardar").textContent = d._editando ? "💾✨ Guardar registro editado" : "💾 Guardar registro";
+  document.getElementById("fecha-hora-row").style.display = (d._editando || d._viendo) ? "grid" : "none";
   document.getElementById("f-altitud").value = d.altitud!=null ? d.altitud : "";
   document.getElementById("f-referencia").value = d.referencia;
   document.getElementById("f-tipo").value = d.tipo;
@@ -4409,7 +4450,31 @@ function cargarDraftEnFormulario(){
   poblarSugerencias("dl-taxon","taxonLibre");
   poblarSugerencias("dl-referencia","referencia");
   actualizarBannerSesionRegistro();
+  actualizarModoRegistro();
   posicionarTrackingFlotante();
+}
+function actualizarModoRegistro(){
+  var d = state.draft;
+  var banner = document.getElementById("banner-curso");
+  var texto = document.getElementById("banner-curso-texto");
+  var codigoInput = document.getElementById("f-codigo");
+  var pad = document.querySelector("#s-form .pad");
+  var btn = document.getElementById("btn-guardar");
+  if(!d || !banner || !pad || !btn) return;
+  var viendo = !!d._viendo, editando = !!d._editando;
+  banner.classList.toggle("modo-viendo", viendo);
+  if(viendo){
+    texto.textContent = "👁 Viendo (solo lectura)";
+    btn.textContent = "✏️ Editar este registro";
+  } else if(editando){
+    texto.textContent = "✏️ Editando registro";
+    btn.textContent = "💾✨ Guardar registro editado";
+  } else {
+    texto.textContent = "➕ Registro nuevo";
+    btn.textContent = "💾 Guardar registro";
+  }
+  if(codigoInput) codigoInput.readOnly = viendo;
+  pad.classList.toggle("solo-lectura", viendo);
 }
 function posicionarTrackingFlotante(){
   var flot = document.getElementById("obs-tracking-flotante");
@@ -4439,7 +4504,7 @@ function actualizarBannerSesionRegistro(){
   actualizarBannerSesionActivaFijo();
   var d = state.draft;
   var banner = document.getElementById("banner-sesion-registro");
-  if(!d || !d._editando){ banner.style.display = "none"; return; }
+  if(!d || !(d._editando || d._viendo)){ banner.style.display = "none"; return; }
   var s = sesionPorId(d.sesionId);
   if(!s){ banner.style.display = "none"; return; }
   banner.style.display = "block";
@@ -4448,7 +4513,7 @@ function actualizarBannerSesionRegistro(){
     banner.textContent = "🟢 Este registro pertenece a la sesión activa: " + nombreSesionMostrar(s);
   } else {
     banner.className = "banner-sesion-registro archivada";
-    banner.textContent = "📁 Estás editando un registro de una sesión archivada: " + nombreSesionMostrar(s) + " — no afecta la numeración de la sesión activa.";
+    banner.textContent = (d._viendo ? "📁 Estás viendo un registro de una sesión archivada: " : "📁 Estás editando un registro de una sesión archivada: ") + nombreSesionMostrar(s) + " — no afecta la numeración de la sesión activa.";
   }
 }
 function actualizarGpsBox(){
@@ -4725,6 +4790,12 @@ document.getElementById("f-lon").addEventListener("input", function(){ document.
 
 function abrirRegistro(){
   if(!state.draft){ iniciarNuevoRegistro(); return; }
+  if(state.draft._viendo){
+    // Solo se estaba consultando un registro ya guardado, sin cambios pendientes que proteger.
+    state.draft = null; guardarDraft();
+    iniciarNuevoRegistro();
+    return;
+  }
   if(state.draft._editando){
     var msg = "Tienes una edición sin guardar del registro "+(state.draft.codigo||"")+" en curso.\n\n"+
       "Si inicias un registro nuevo, esa edición se descarta (el registro original no se modifica; solo se pierden los cambios que aún no habías guardado). ¿Iniciar un registro nuevo de todas formas?";
@@ -4739,16 +4810,45 @@ function abrirRegistro(){
   cargarDraftEnFormulario(); irA("form");
 }
 
+function confirmarDescartarEdicionSiCorresponde(idDestino){
+  if(state.draft && state.draft._editando && state.draft.id !== idDestino){
+    var msg = "Tienes una edición sin guardar del registro "+(state.draft.codigo||"")+" en curso.\n\n"+
+      "Si continúas, esa edición se descarta (el registro original no se modifica; solo se pierden los cambios que aún no habías guardado). ¿Continuar de todas formas?";
+    return confirm(msg);
+  }
+  return true;
+}
 function editarRegistroExistente(id){
+  if(!confirmarDescartarEdicionSiCorresponde(id)) return;
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   if(!r) return;
   detenerSeguimientoEnVivo();
   state.draft = JSON.parse(JSON.stringify(r));
   state.draft._editando = true;
+  state.draft._viendo = false;
   guardarDraft();
   cargarDraftEnFormulario();
   irA("form");
 }
+function verRegistroExistente(id){
+  if(!confirmarDescartarEdicionSiCorresponde(id)) return;
+  var r = state.registros.filter(function(x){return x.id===id;})[0];
+  if(!r) return;
+  detenerSeguimientoEnVivo();
+  state.draft = JSON.parse(JSON.stringify(r));
+  state.draft._editando = false;
+  state.draft._viendo = true;
+  guardarDraft();
+  cargarDraftEnFormulario();
+  irA("form");
+}
+document.getElementById("btn-guardar").addEventListener("click", function(e){
+  if(state.draft && state.draft._viendo){
+    e.stopImmediatePropagation();
+    editarRegistroExistente(state.draft.id);
+    toast("✏️ Ahora puedes editar este registro");
+  }
+}, true);
 function eliminarRegistroPorId(id){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   if(!r) return null;
@@ -5801,7 +5901,7 @@ function eliminarSesionVacia(id){
   if(!s) return;
   var numRegistros = state.registros.filter(function(r){return r.sesionId===id;}).length;
   if(numRegistros>0){ toast("No se puede eliminar: tiene "+numRegistros+" registro(s) asociado(s)."); return; }
-  if(state.draft && state.draft.sesionId===id){ toast("No se puede eliminar: hay un registro sin guardar en curso asociado a esta sesión. Guárdalo o descártalo primero."); return; }
+  if(state.draft && !state.draft._viendo && state.draft.sesionId===id){ toast("No se puede eliminar: hay un registro sin guardar en curso asociado a esta sesión. Guárdalo o descártalo primero."); return; }
   if(state.sesiones.length<=1){ toast("Debe quedar al menos una sesión."); return; }
   var eraActiva = (id === state.sesionActivaId);
   var mensajeExtra = eraActiva ? " Como era la sesión activa, se activará otra en su lugar." : "";
@@ -6462,11 +6562,26 @@ document.getElementById("btn-buscar-actualizacion").addEventListener("click", fu
   toast("Buscando actualización...");
   navigator.serviceWorker.getRegistration().then(function(reg){
     if(!reg){ toast("No se pudo comprobar (abre la app desde su enlace instalado)"); return; }
-    return reg.update();
-  }).then(function(){
-    setTimeout(function(){
-      toast("Ya tienes la última versión, o se recargará sola en unos segundos si encontró una nueva.", 4000);
-    }, 1200);
+    var detectoNueva = false;
+    reg.addEventListener("updatefound", function(){
+      detectoNueva = true;
+      var nuevo = reg.installing;
+      if(!nuevo) return;
+      toast("⬇️ Descargando actualización...", 4000);
+      nuevo.addEventListener("statechange", function(){
+        if(nuevo.state === "installed"){
+          toast("✅ Actualización lista, aplicando y recargando la app...", 4000);
+          // sw.js llama a skipWaiting()/clients.claim() por su cuenta — el listener de
+          // "controllerchange" (registrado al cargar la app) hace la recarga automática,
+          // y esa recarga ahora vuelve a esta misma pestaña (Config) en vez de a "Sesión".
+        }
+      });
+    });
+    return reg.update().then(function(){
+      setTimeout(function(){
+        if(!detectoNueva) toast("✅ Ya tienes la última versión (" + APP_BUILD + ")", 3500);
+      }, 2500);
+    });
   }).catch(function(){ toast("No se pudo comprobar actualizaciones ahora"); });
 });
 
@@ -6533,7 +6648,10 @@ function init(){
   document.getElementById("modal-confirm-sesion").classList.remove("on");
   aplicarTema(localStorage.getItem("libretacampo_tema") || "");
   cargar();
-  irA("sesion");
+  var vistasRestaurables = ["sesion","lista","exportar","config"];
+  var ultimaVista = null;
+  try{ ultimaVista = sessionStorage.getItem("libretacampo_ultima_vista"); }catch(e){}
+  irA(vistasRestaurables.indexOf(ultimaVista)>=0 ? ultimaVista : "sesion");
 }
 init();
 
