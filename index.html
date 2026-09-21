@@ -454,6 +454,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <button type="button" class="vista-btn on" id="btn-vista-tarjetas">📋 Lista</button>
       <button type="button" class="vista-btn" id="btn-vista-narrativa">📖 Libreta</button>
     </div>
+    <div style="display:flex; gap:6px; align-items:center; margin:8px 0;">
+      <span style="font-size:.76rem; color:var(--texto-sec);">Ordenar sesiones:</span>
+      <button type="button" class="btn-orden-especies on" id="btn-orden-registros-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
+      <button type="button" class="btn-orden-especies" id="btn-orden-registros-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
+    </div>
     <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
     <div class="chipbar" id="chipbar"></div>
     <div id="lista-registros"></div>
@@ -737,7 +742,13 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="stat"><div class="n" id="stat-total">0</div><div class="l">Registros</div></div>
       <div class="stat"><div class="n" id="stat-hoy">0</div><div class="l">De hoy</div></div>
     </div>
-    <div class="field"><label>Sesiones a exportar</label><div id="exp-selector-sesion"></div></div>
+    <div class="field"><label>Sesiones a exportar</label>
+      <div style="display:flex; gap:6px; align-items:center; margin:-2px 0 8px;">
+        <button type="button" class="btn-orden-especies on" id="btn-orden-exportar-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
+        <button type="button" class="btn-orden-especies" id="btn-orden-exportar-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
+      </div>
+      <div id="exp-selector-sesion"></div>
+    </div>
     <div id="panel-huerfanos" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;">
       <div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">⚠️ Registros sin sesión válida</div>
       <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Estos registros no están asociados a ninguna sesión existente — por eso no aparecen al exportar, sin importar qué selecciones arriba. Reasígnalos a una sesión para poder incluirlos.</div>
@@ -3368,7 +3379,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-16 · v2.20";
+var APP_BUILD = "2026-09-16 · v2.22";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3446,6 +3457,8 @@ var state = {
   filtroTipo:"",
   filtroSesionLista:"", // filtro de sesión en la pestaña Registros ("" = todas)
   vistaRegistros:"tarjetas", // "tarjetas" | "narrativa"
+  ordenSesionesExportar:"fecha",   // "fecha" | "alfabetico" — orden de la lista en Exportar
+  ordenSesionesRegistros:"fecha",  // "fecha" | "alfabetico" — orden de los grupos en Registros (Lista y Libreta)
   lightboxIdx: null,
   captionPending: null, // {file, dataURL}
   sesionGestionId: null // sesión expandida en el panel de gestión (Exportar)
@@ -3453,6 +3466,20 @@ var state = {
 function sesionActiva(){ return state.sesiones.find(function(s){ return s.id===state.sesionActivaId; }) || null; }
 function sesionEnPantalla(){ return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva(); }
 function sesionPorId(id){ return state.sesiones.find(function(s){ return s.id===id; }) || null; }
+// Orden compartido para listas de sesiones (Exportar y Registros): por fecha (más reciente
+// primero, como ya era el comportamiento por defecto) o alfabético por nombre de sesión.
+function comparadorSesionesPorCriterio(criterio){
+  if(criterio === "alfabetico"){
+    return function(sa, sb){
+      return nombreSesionMostrar(sa).localeCompare(nombreSesionMostrar(sb), undefined, {sensitivity:"base", numeric:true});
+    };
+  }
+  return function(sa, sb){
+    var fa = (sa && (sa.fechaIni || sa.creada)) || "";
+    var fb = (sb && (sb.fechaIni || sb.creada)) || "";
+    return fb.localeCompare(fa);
+  };
+}
 function nombreSesionMostrar(s){
   if(!s) return "—";
   var nombre = (s.proyecto||"").trim();
@@ -3977,6 +4004,7 @@ function renderListaTarjetas(lista, justSavedId){
       }
       grupos[indicePorSesion[r.sesionId]].registros.push(r);
     });
+    grupos.sort(function(ga,gb){ return comparadorSesionesPorCriterio(state.ordenSesionesRegistros)(sesionPorId(ga.sesionId), sesionPorId(gb.sesionId)); });
     cont.innerHTML = grupos.map(function(g){
       var colapsada = listaSesionesColapsadas.has(g.sesionId);
       var headerHtml = '<div class="narr-sesion-header">' +
@@ -4165,6 +4193,7 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
     }
     grupos[indicePorSesion[r.sesionId]].registros.push(r);
   });
+  grupos.sort(function(ga,gb){ return comparadorSesionesPorCriterio(state.ordenSesionesRegistros)(sesionPorId(ga.sesionId), sesionPorId(gb.sesionId)); });
   cont.innerHTML = grupos.map(function(g){
     var idsGrupo = g.registros.map(function(r){return r.id;});
     var todosColapsados = idsGrupo.every(function(id){ return narrColapsadas.has(id); });
@@ -4238,6 +4267,16 @@ document.getElementById("btn-vista-tarjetas").addEventListener("click", function
 document.getElementById("btn-vista-narrativa").addEventListener("click", function(){
   state.vistaRegistros = "narrativa";
   this.classList.add("on"); document.getElementById("btn-vista-tarjetas").classList.remove("on");
+  renderLista();
+});
+document.getElementById("btn-orden-registros-fecha").addEventListener("click", function(){
+  state.ordenSesionesRegistros = "fecha";
+  this.classList.add("on"); document.getElementById("btn-orden-registros-alfabetico").classList.remove("on");
+  renderLista();
+});
+document.getElementById("btn-orden-registros-alfabetico").addEventListener("click", function(){
+  state.ordenSesionesRegistros = "alfabetico";
+  this.classList.add("on"); document.getElementById("btn-orden-registros-fecha").classList.remove("on");
   renderLista();
 });
 document.getElementById("btn-exportar-narrativa").addEventListener("click", function(){
@@ -4336,6 +4375,16 @@ function generarPaqueteZip(idsSesiones){
     return zip.generateAsync({type:"blob", compression:"DEFLATE", compressionOptions:{level:6}});
   });
 }
+document.getElementById("btn-orden-exportar-fecha").addEventListener("click", function(){
+  state.ordenSesionesExportar = "fecha";
+  this.classList.add("on"); document.getElementById("btn-orden-exportar-alfabetico").classList.remove("on");
+  renderExportar();
+});
+document.getElementById("btn-orden-exportar-alfabetico").addEventListener("click", function(){
+  state.ordenSesionesExportar = "alfabetico";
+  this.classList.add("on"); document.getElementById("btn-orden-exportar-fecha").classList.remove("on");
+  renderExportar();
+});
 document.getElementById("btn-descargar-zip").addEventListener("click", function(){
   var ids = sesionesSeleccionadasExportar();
   if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return; }
@@ -5963,7 +6012,7 @@ function renderExportar(){
   renderPanelHuerfanos();
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
-  var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
+  var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
   var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId];
   box.innerHTML = ordenadas.map(function(s){
     var esActiva = s.id===state.sesionActivaId;
@@ -6077,8 +6126,12 @@ function renderPanelGestionSesion(sesionId){
     '<div class="gestion-lista">'+filasHtml+'</div>'+
     '<div class="gestion-contador" id="gestion-contador">0 registros seleccionados</div>'+
     '<div class="gestion-mover-row" style="flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:8px;">'+
-      '<label style="display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--texto-sec); font-weight:400;">'+
-        '<input type="checkbox" id="gestion-renumerar" checked style="width:auto;">Renumerar automáticamente según la sesión destino</label>'+
+      '<button type="button" id="btn-toggle-renumerar" style="background:none; border:none; padding:0; color:var(--texto-sec); font-size:.74rem; text-decoration:underline; cursor:pointer;">⚙️ Opción avanzada: renumerar código al mover</button>'+
+      '<div id="renumerar-avanzado" style="display:none; width:100%;">'+
+        '<label style="display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--texto-sec); font-weight:400;">'+
+          '<input type="checkbox" id="gestion-renumerar" style="width:auto;">Renumerar automáticamente según la sesión destino</label>'+
+        '<div class="nota" style="margin-top:4px;">⚠️ Esto cambia el código del registro. Si la muestra ya tiene una etiqueta o rótulo físico con su código actual, debes actualizarlo tú mismo — la app no queda con registro del código anterior.</div>'+
+      '</div>'+
     '</div>'+
     '<div class="gestion-mover-row">'+
       '<select id="gestion-select-destino"><option value="">Mover a...</option>'+opcionesDestino+'<option value="__nueva__">＋ Mover a nueva sesión...</option></select>'+
@@ -6087,6 +6140,13 @@ function renderPanelGestionSesion(sesionId){
   '</div>';
 }
 function ligarEventosPanelGestion(container){
+  var btnToggleRenumerar = container.querySelector("#btn-toggle-renumerar");
+  if(btnToggleRenumerar){
+    btnToggleRenumerar.addEventListener("click", function(){
+      var bloque = container.querySelector("#renumerar-avanzado");
+      if(bloque) bloque.style.display = bloque.style.display==="none" ? "block" : "none";
+    });
+  }
   container.querySelectorAll(".btn-editar-sesion").forEach(function(b){
     b.addEventListener("click", function(){ verEnSesion(b.dataset.sesion); });
   });
@@ -6136,10 +6196,12 @@ function moverRegistrosSeleccionados(sesionOrigenId){
   var destino = destinoSel ? destinoSel.value : "";
   if(!destino){ toast("Elige a qué sesión mover"); return; }
   var chkRenumerar = document.getElementById("gestion-renumerar");
-  var renumerar = chkRenumerar ? chkRenumerar.checked : true;
+  var renumerar = chkRenumerar ? chkRenumerar.checked : false;
   var esNueva = destino === "__nueva__";
   var nombreDestino = esNueva ? "una nueva sesión" : ('"'+nombreSesionMostrar(sesionPorId(destino))+'"');
-  if(!confirm("¿Mover "+ids.length+" registro(s) a "+nombreDestino+"?")) return;
+  var msgMover = "¿Mover "+ids.length+" registro(s) a "+nombreDestino+"?";
+  if(renumerar) msgMover += "\n\n⚠️ También se renumerarán. Si alguna de estas muestras ya tiene una etiqueta o rótulo físico con su código actual, debes actualizarlo tú mismo: la app no queda con registro del código anterior.";
+  if(!confirm(msgMover)) return;
   var sesionDestinoId = destino;
   if(esNueva){
     var nueva = sesionVacia();
