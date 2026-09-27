@@ -716,10 +716,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
 
     <div class="section-title"><span class="n">📝</span>Notas</div>
-    <div id="nota-subtipo-wrap" class="vista-toggle" style="display:none; margin-bottom:12px;">
-      <button type="button" class="vista-btn" id="btn-nota-operativo">📌 Operativo</button>
-      <button type="button" class="vista-btn" id="btn-nota-narrativo">📖 Narrativo</button>
-    </div>
     <div class="field">
       <div class="notas-toolbar">
         <button type="button" id="btn-notas-bold" title="Negrita"><b>N</b></button>
@@ -727,6 +723,14 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" id="btn-notas-lista" title="Lista de items">☰ Lista</button>
       </div>
       <textarea id="f-notas" spellcheck="true" placeholder="Observaciones adicionales..."></textarea>
+    </div>
+    <div class="field" id="campo-nota-titulo" style="display:none;">
+      <label>Título de la nota</label>
+      <input type="text" id="f-nota-titulo" spellcheck="true" placeholder="Un título breve para identificar esta nota">
+    </div>
+    <div id="nota-subtipo-wrap" class="vista-toggle" style="display:none; margin-bottom:12px;">
+      <button type="button" class="vista-btn" id="btn-nota-operativo">📌 Operativo</button>
+      <button type="button" class="vista-btn" id="btn-nota-narrativo">📖 Narrativo</button>
     </div>
     </div>
     <div style="height:16px;"></div>
@@ -3392,7 +3396,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-27 · v2.24";
+var APP_BUILD = "2026-09-27 · v2.25";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3993,7 +3997,7 @@ function obtenerListaFiltrada(){
   if(state.filtroTipo) lista = lista.filter(function(r){ return r.tipo===state.filtroTipo; });
   if(q) lista = lista.filter(function(r){
     var textoBusqueda = [
-      r.codigo, r.taxonLibre, r.referencia, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
+      r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
       (r.especies||[]).map(function(e){return e.nombre;}).join(" ")
     ].join(" ").toLowerCase();
     return textoBusqueda.indexOf(q)>=0;
@@ -4026,7 +4030,7 @@ function renderListaTarjetas(lista, justSavedId){
   var htmlDraft = (state.draft && !state.draft._viendo) ? ('<div class="card card-draft" id="card-draft-pendiente">'+
       '<div class="reg-ic" style="background:var(--ambar); color:#fff;">✏️</div>'+
       '<div class="reg-info" style="flex:1; min-width:0;">'+
-        '<div class="reg-title">'+(state.draft.codigo ? ("Registro en curso: "+escapeHtml(state.draft.codigo)) : ("Nota en curso ("+((TIPOS[state.draft.tipo]||{}).label||"Nota general")+")"))+'</div>'+
+        '<div class="reg-title">'+(state.draft.codigo ? ("Registro en curso: "+escapeHtml(state.draft.codigo)) : ("Nota en curso"+(state.draft.notaTitulo?(": "+escapeHtml(state.draft.notaTitulo)):"")))+'</div>'+
         '<div class="reg-meta">Toca para continuar y completarlo</div>'+
       '</div><div class="reg-actions"><span class="btn-icon" style="border-color:var(--ambar); color:var(--ambar);">▸</span></div></div>') : "";
   if(lista.length===0){
@@ -4057,7 +4061,7 @@ function renderListaTarjetas(lista, justSavedId){
         return '<div class="card'+cls+'" data-id="'+r.id+'" style="border-left:4px solid '+colorSesion(r.sesionId)+';">'+
           '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
           '<div class="reg-info" style="flex:1; min-width:0;">'+
-            '<div class="reg-title">'+(r.codigo ? (escapeHtml(r.codigo)+' · ') : '')+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
+            '<div class="reg-title">'+(r.codigo ? (escapeHtml(r.codigo)+' · ') : (r.notaTitulo ? (escapeHtml(r.notaTitulo)+' · ') : ''))+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
             '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+'</div>'+
           '</div>'+
           '<div class="reg-actions">'+
@@ -4108,7 +4112,7 @@ function textoEntradaNarrativa(r){
   var ti = TIPOS[r.tipo]||TIPOS.nota;
   var partes = [];
   partes.push('<div class="narr-sesion-badge" style="background:'+colorSesion(r.sesionId)+'22; color:'+colorSesion(r.sesionId)+';">'+iconoSesion(r.sesionId)+' '+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>');
-  partes.push('<div class="narr-cabecera"><span class="narr-fecha">'+escapeHtml(r.fecha||"")+' · '+escapeHtml(r.hora||"")+'</span>'+(r.codigo?('<span class="narr-codigo">'+escapeHtml(r.codigo)+'</span>'):'')+'</div>');
+  partes.push('<div class="narr-cabecera"><span class="narr-fecha">'+escapeHtml(r.fecha||"")+' · '+escapeHtml(r.hora||"")+'</span>'+(r.codigo?('<span class="narr-codigo">'+escapeHtml(r.codigo)+'</span>'):(r.notaTitulo?('<span style="font-weight:800; color:var(--verde-osc); font-size:.9rem;">'+escapeHtml(r.notaTitulo)+'</span>'):''))+'</div>');
   var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (r.notaSubtipo==="operativo" ? " · 📌 Operativo" : " · 📖 Narrativo") : "";
   partes.push('<div class="narr-tipo">'+ti.ic+' '+ti.label+subtipoTxt+'</div>');
   if(r.lat && r.lon){
@@ -4244,7 +4248,7 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
         var nombreResumen = r.taxonLibre||r.referencia||"";
         return '<div class="narr-entrada narr-colapsada" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
           '<div class="narr-toggle" data-toggle="'+r.id+'">▸</div>' +
-          '<div class="narr-resumen-colapsado"><span class="tag">'+ti.label+'</span>'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):'')+(r.fecha||"")+' '+(r.hora||"")+(nombreResumen?(' — '+escapeHtml(nombreResumen)):'')+'</div>' +
+          '<div class="narr-resumen-colapsado"><span class="tag">'+ti.label+'</span>'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+(r.fecha||"")+' '+(r.hora||"")+(nombreResumen?(' — '+escapeHtml(nombreResumen)):'')+'</div>' +
         '</div>';
       }
       var op = ordenarFotosConPortada(r);
@@ -4478,7 +4482,7 @@ function iniciarNuevoRegistro(){
     areaLargo:"", areaAncho:"", areaRadio:"", obsInicio:null, obsTermino:null, obsTrackingActivo:false,
     obsAcumuladoMs:0, obsPausado:false, trackPuntos:[],
     especieMedida:especieMedidaDefault, medConSexo:medSexoDefault, medConLocalidad:medLocDefault, medConHabitat:medHabDefault, estructuras:estructurasDefault, individuos:[],
-    notaSubtipo:"narrativo", tejidoConservado:false,
+    notaSubtipo:"narrativo", notaTitulo:"", tejidoConservado:false,
     fotos: [], especies: [], _editando:false, _viendo:false
   };
   guardarDraft();
@@ -4498,6 +4502,7 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-referencia").value = d.referencia;
   document.getElementById("f-tipo").value = d.tipo;
   document.getElementById("f-notas").value = d.notas;
+  document.getElementById("f-nota-titulo").value = d.notaTitulo || "";
   document.getElementById("f-nind").value = d.nind || "";
   document.getElementById("f-condicion").value = d.condicion || "";
   document.getElementById("f-tejido").checked = !!d.tejidoConservado;
@@ -4633,6 +4638,7 @@ function sincronizarDraftDesdeFormulario(){
   d.fecha = document.getElementById("f-fecha").value; d.hora = document.getElementById("f-hora").value;
   d.altitud = document.getElementById("f-altitud").value;
   d.referencia = document.getElementById("f-referencia").value.trim();
+  d.notaTitulo = document.getElementById("f-nota-titulo").value.trim();
   d.colector = obtenerColectorSeleccionado();
   if(d.tipo==="medicion"){
     d.especieMedida = document.getElementById("f-especie-medida").value.trim();
@@ -4663,7 +4669,7 @@ function sincronizarDraftDesdeFormulario(){
   d.especies = state.especiesTemp.slice();
   guardarDraft();
 }
-["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-notas","f-nind","f-condicion","f-taxon-libre"].forEach(function(id){
+["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-notas","f-nota-titulo","f-nind","f-condicion","f-taxon-libre"].forEach(function(id){
   document.getElementById(id).addEventListener("input", sincronizarDraftDesdeFormulario);
 });
 document.getElementById("f-tejido").addEventListener("change", sincronizarDraftDesdeFormulario);
@@ -5008,7 +5014,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(e){
 function eliminarRegistroPorId(id){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   if(!r) return null;
-  if(!confirm("¿Borrar el registro "+r.codigo+"? Esta acción no se puede deshacer.")) return null;
+  if(!confirm("¿Borrar el registro "+(r.codigo||r.notaTitulo||"sin identificar")+"? Esta acción no se puede deshacer.")) return null;
   state.registros = state.registros.filter(function(x){return x.id!==id;});
   guardarRegistros();
   return r;
@@ -5016,7 +5022,7 @@ function eliminarRegistroPorId(id){
 function borrarRegistroExistente(id){
   var r = eliminarRegistroPorId(id);
   if(!r) return;
-  toast("Registro "+r.codigo+" borrado");
+  toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
   renderLista();
 }
 
@@ -5048,6 +5054,7 @@ function ajustarPantallaSegunTipo(tipo){
   document.getElementById("habitat-microhabitat-principal").style.display = (esObs||esNota||esMed) ? "none" : "block";
   document.getElementById("identificacion-individual").style.display = (esObs||esMed||esNota) ? "none" : "block";
   document.getElementById("nota-subtipo-wrap").style.display = esNota ? "flex" : "none";
+  document.getElementById("campo-nota-titulo").style.display = esNota ? "block" : "none";
   document.getElementById("codigo-banner-wrap").style.display = esNota ? "none" : "inline";
   if(!esObs){
     document.getElementById("obs-tracking-flotante").style.display = "none";
@@ -6007,6 +6014,11 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   if(!state.draft) return;
   detenerSeguimientoEnVivo();
   sincronizarDraftDesdeFormulario();
+  if(state.draft.tipo === "nota" && !(state.draft.notaTitulo||"").trim()){
+    document.getElementById("f-nota-titulo").focus();
+    toast("⚠️ Escribe un título para identificar esta Nota antes de guardar", 3500);
+    return;
+  }
   if(!sesionPorId(state.draft.sesionId)){
     // Ultima linea de defensa: la sesion de este borrador ya no existe (por la razon que sea) —
     // se reasigna a la sesion activa en vez de guardar silenciosamente un registro huerfano.
@@ -6103,7 +6115,7 @@ function renderPanelHuerfanos(){
     var ti = TIPOS[r.tipo]||TIPOS.nota;
     var nombre = r.taxonLibre||r.referencia||"";
     var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (" — "+(r.notaSubtipo==="narrativo"?"Narrativo":"Operativo")) : "";
-    return '<div style="font-size:.82rem; padding:4px 0; border-bottom:1px dashed var(--borde);">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):'')+ti.label+subtipoTxt+' · '+(r.fecha||"")+(nombre?(' — '+escapeHtml(nombre)):'')+' <span style="color:var(--texto-sec); font-family:ui-monospace,monospace; font-size:.72rem;">(sesionId: '+escapeHtml(String(r.sesionId))+')</span></div>';
+    return '<div style="font-size:.82rem; padding:4px 0; border-bottom:1px dashed var(--borde);">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+subtipoTxt+' · '+(r.fecha||"")+(nombre?(' — '+escapeHtml(nombre)):'')+' <span style="color:var(--texto-sec); font-family:ui-monospace,monospace; font-size:.72rem;">(sesionId: '+escapeHtml(String(r.sesionId))+')</span></div>';
   }).join("");
   var sel = document.getElementById("sel-sesion-huerfanos");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
@@ -6218,7 +6230,7 @@ function renderPanelGestionSesion(sesionId){
     var nombre = r.taxonLibre||r.referencia||"";
     return '<div class="gestion-fila">'+
       '<input type="checkbox" class="gestion-check" data-id="'+r.id+'">'+
-      '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):'')+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span>'+
+      '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span>'+
       '<span class="gestion-editar" data-id="'+r.id+'" title="Editar">✏️</span>'+
       '<span class="gestion-borrar" data-id="'+r.id+'" title="Borrar">🗑</span>'+
     '</div>';
@@ -6298,7 +6310,7 @@ function ligarEventosPanelGestion(container){
 function borrarRegistroDesdeGestion(id){
   var r = eliminarRegistroPorId(id);
   if(!r) return;
-  toast("Registro "+r.codigo+" borrado");
+  toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
   renderExportar();
 }
 function moverRegistrosSeleccionados(sesionOrigenId){
@@ -6411,6 +6423,7 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride){
   fila.hora_termino_observacion = (r.tipo==="observacion" && r.obsTermino && r.obsTermino.hora) ? r.obsTermino.hora : "";
   fila.archivo_track = (r.tipo==="observacion" && r.trackPuntos && r.trackPuntos.length>1) ? nombreArchivoTrack(r) : "";
   fila.subtipo_nota = r.tipo==="nota" ? (r.notaSubtipo==="operativo"?"Operativo":"Narrativo") : "";
+  fila.titulo_nota = r.tipo==="nota" ? (r.notaTitulo||"") : "";
   return fila;
 }
 function construirFilasEstandar(registros){
@@ -6620,7 +6633,7 @@ function procesarArchivoZip(file){
       var promesasFotos = [];
       registros.forEach(function(r){
         (r.fotos||[]).forEach(function(f){
-          var nombreEsperado = sanitizarNombreArchivo(r.codigo)+"__"+sanitizarNombreArchivo(f.nombre)+".jpg";
+          var nombreEsperado = sanitizarNombreArchivo(r.codigo || r.id)+"__"+sanitizarNombreArchivo(f.nombre)+".jpg";
           var entry = archivosFoto[nombreEsperado];
           if(entry){
             promesasFotos.push(entry.async("base64").then(function(b64){
