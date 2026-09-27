@@ -716,6 +716,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
 
     <div class="section-title"><span class="n">📝</span>Notas</div>
+    <div class="field" id="campo-nota-titulo" style="display:none;">
+      <label>Título de la nota</label>
+      <input type="text" id="f-nota-titulo" spellcheck="true" placeholder="Un título breve para identificar esta nota">
+    </div>
     <div class="field">
       <div class="notas-toolbar">
         <button type="button" id="btn-notas-bold" title="Negrita"><b>N</b></button>
@@ -723,10 +727,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" id="btn-notas-lista" title="Lista de items">☰ Lista</button>
       </div>
       <textarea id="f-notas" spellcheck="true" placeholder="Observaciones adicionales..."></textarea>
-    </div>
-    <div class="field" id="campo-nota-titulo" style="display:none;">
-      <label>Título de la nota</label>
-      <input type="text" id="f-nota-titulo" spellcheck="true" placeholder="Un título breve para identificar esta nota">
     </div>
     <div id="nota-subtipo-wrap" class="vista-toggle" style="display:none; margin-bottom:12px;">
       <button type="button" class="vista-btn" id="btn-nota-operativo">📌 Operativo</button>
@@ -3396,7 +3396,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-27 · v2.25";
+var APP_BUILD = "2026-09-27 · v2.26";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
