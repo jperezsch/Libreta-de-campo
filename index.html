@@ -791,7 +791,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
 <!-- ===================== CONSULTA (solo lectura) ===================== -->
 <div class="screen" id="s-consulta">
-  <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub">Solo lectura — toca "Editar" para modificarlo</p></div></div></div>
+  <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura — desliza a los lados para cambiar de registro</p></div></div></div>
   <div class="pad">
     <div class="narr-entrada" id="consulta-tarjeta"></div>
     <div style="height:16px;"></div>
@@ -3392,7 +3392,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-27 · v2.23";
+var APP_BUILD = "2026-09-27 · v2.24";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3746,6 +3746,12 @@ function irA(view){
     document.getElementById("buscador").value = "";
     listaSesionesColapsadas.clear();
     narrColapsadas.clear();
+    state.sesiones.forEach(function(s){
+      if(s.id !== state.sesionActivaId) listaSesionesColapsadas.add(s.id);
+    });
+    state.registros.forEach(function(r){
+      if(r.sesionId !== state.sesionActivaId) narrColapsadas.add(r.id);
+    });
     renderLista();
   }
   if(view==="sesion") renderSesion();
@@ -4899,7 +4905,11 @@ function abrirRegistro(){
 function renderConsulta(id){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   var cont = document.getElementById("consulta-tarjeta");
-  if(!r){ cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; return; }
+  var posEl = document.getElementById("consulta-posicion");
+  if(!r){ cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; posEl.textContent = "Solo lectura"; return; }
+  var listaNav = obtenerListaFiltrada();
+  var idxNav = listaNav.findIndex(function(x){ return x.id===id; });
+  posEl.textContent = (idxNav>=0 ? ("Registro "+(idxNav+1)+" de "+listaNav.length+" — ") : "") + "desliza a los lados para cambiar";
   var op = ordenarFotosConPortada(r);
   var fotosHtml = "";
   if(op.portada){
@@ -4934,6 +4944,32 @@ document.getElementById("btn-consulta-editar").addEventListener("click", functio
   editarRegistroExistente(id);
   if(state.draft && state.draft.id===id) state.volverConsultaId = id;
 });
+function navegarConsulta(delta){
+  var lista = obtenerListaFiltrada();
+  var idx = lista.findIndex(function(r){ return r.id===state.consultaId; });
+  if(idx<0) return;
+  var nuevoIdx = idx + delta;
+  if(nuevoIdx<0 || nuevoIdx>=lista.length){ toast(delta>0 ? "Es el último registro de la lista" : "Es el primer registro de la lista"); return; }
+  state.consultaId = lista[nuevoIdx].id;
+  renderConsulta(state.consultaId);
+  irSubirInicio();
+}
+(function(){
+  var pantalla = document.getElementById("s-consulta");
+  var xInicioSwipe = null, yInicioSwipe = null;
+  pantalla.addEventListener("touchstart", function(e){
+    xInicioSwipe = e.touches[0].clientX; yInicioSwipe = e.touches[0].clientY;
+  }, {passive:true});
+  pantalla.addEventListener("touchend", function(e){
+    if(xInicioSwipe==null) return;
+    var dx = e.changedTouches[0].clientX - xInicioSwipe;
+    var dy = e.changedTouches[0].clientY - yInicioSwipe;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5){
+      navegarConsulta(dx > 0 ? -1 : 1);
+    }
+    xInicioSwipe = null; yInicioSwipe = null;
+  });
+})();
 function confirmarDescartarEdicionSiCorresponde(idDestino){
   if(state.draft && state.draft._editando && state.draft.id !== idDestino){
     var msg = "Tienes una edición sin guardar del registro "+(state.draft.codigo||"")+" en curso.\n\n"+
