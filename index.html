@@ -155,6 +155,16 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 .narr-sesion-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 4px 8px; margin-top:18px; border-bottom:1.5px solid var(--borde);}
 .narr-sesion-header:first-child{margin-top:0;}
 .narr-sesion-titulo{font-weight:800; font-size:.92rem; color:var(--texto);}
+.narr-sesion-acciones{display:flex; gap:6px; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;}
+.btn-finalizar-sesion-inline{font-size:.76rem; padding:5px 12px; border-radius:12px; border:1.5px solid var(--ambar); background:var(--card); color:var(--ambar-osc); cursor:pointer; white-space:nowrap; font-weight:700;}
+.btn-restaurar-orden{font-size:.76rem; padding:5px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto-sec); cursor:pointer; white-space:nowrap;}
+.reg-handle{display:flex; align-items:center; justify-content:center; width:34px; min-width:34px; font-size:1.3rem; color:var(--texto-sec); touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; border-radius:8px; background:var(--borde);}
+.card.arrastrando{opacity:.85; box-shadow:0 8px 22px rgba(0,0,0,.28); position:relative; z-index:5; transition:none;}
+.card.drop-antes{box-shadow:0 -4px 0 0 var(--verde);}
+.card.drop-despues{box-shadow:0 4px 0 0 var(--verde);}
+.campo-aviso-codigo{display:none; margin:6px 12px 0; padding:7px 10px; border-radius:9px; font-size:.78rem; font-weight:600;}
+.campo-aviso-codigo.warn{background:rgba(217,119,6,.14); color:var(--ambar-osc); border:1px solid var(--ambar);}
+.campo-aviso-codigo.info{background:rgba(45,95,63,.10); color:var(--verde-osc); border:1px solid var(--borde);}
 .btn-colapsar-sesion{font-size:.76rem; padding:5px 12px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto-sec); cursor:pointer; white-space:nowrap;}
 .narr-toggle{position:absolute; top:12px; right:12px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--fondo); color:var(--texto-sec); cursor:pointer; font-size:.85rem; user-select:none;}
 .narr-resumen-colapsado{font-size:.85rem; color:var(--texto); padding-right:32px;}
@@ -439,7 +449,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="field"><label>Acrónimo / prefijo</label><input type="text" id="ss-prefijo" list="dl-ss-prefijo"><datalist id="dl-ss-prefijo"></datalist><span class="campo-ayuda" id="ss-prefijo-hint"></span></div>
       <div class="field"><label>N° inicial correlativo</label><input type="number" id="ss-inicio" min="0"></div>
     </div>
-    <div class="field"><label>Código de inicio</label><input type="text" id="ss-proximo" disabled></div>
+    <div class="row2">
+      <div class="field"><label>Próximo código</label><input type="text" id="ss-proximo" disabled></div>
+      <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Cámbialo si tu libreta manuscrita va en otro número.</span></div>
+    </div>
     <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos de la sesión</button>
     <div style="height:90px;"></div>
   </div>
@@ -458,6 +471,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <span style="font-size:.76rem; color:var(--texto-sec);">Ordenar sesiones:</span>
       <button type="button" class="btn-orden-especies on" id="btn-orden-registros-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
       <button type="button" class="btn-orden-especies" id="btn-orden-registros-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
+      <button type="button" id="btn-modo-reordenar" style="margin-left:auto; font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">↕️ Reordenar</button>
     </div>
     <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
     <div class="chipbar" id="chipbar"></div>
@@ -465,7 +479,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div id="lista-narrativa" style="display:none;"></div>
     <div class="lista-footer-acciones">
       <button type="button" class="btnfull btn-secondary" id="btn-exportar-narrativa" style="display:none;">⬇️ Exportar libreta (.html)</button>
-      <button type="button" class="btnfull btn-amber" id="btn-finalizar-sesion">🏁 Finalizar sesión activa</button>
     </div>
   </div>
 </div>
@@ -475,6 +488,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Registro</h2><p class="sub">Captura los registros</p></div></div></div>
   <div id="banner-sesion-activa-fijo" class="banner-sesion-activa-fijo"></div>
   <div class="banner-curso" id="banner-curso"><span class="dotlive" id="banner-curso-dot"></span> <span id="banner-curso-texto">Registro en curso</span> <span id="codigo-banner-wrap">— <input type="text" id="f-codigo" class="codigo-inline"></span></div>
+  <div id="f-codigo-aviso" class="campo-aviso-codigo"></div>
   <div id="banner-sesion-registro" class="banner-sesion-registro" style="display:none;"></div>
   <div class="pad">
 
@@ -3396,7 +3410,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-27 · v2.27";
+var APP_BUILD = "2026-09-28 · v2.28";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3710,29 +3724,91 @@ function poblarTodasLasSugerenciasSesion(){
   });
 }
 
+function escPrefijoRegex(p){ return String(p).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+function numeroDeCodigo(codigo, prefijo){
+  if(!codigo || !prefijo) return null;
+  var m = String(codigo).match(new RegExp("^"+escPrefijoRegex(prefijo)+"-(\\d+)$","i"));
+  return m ? parseInt(m[1],10) : null;
+}
+function numerosUsadosPrefijo(prefijo, excluirId){
+  var usados = {};
+  state.registros.forEach(function(r){
+    if(excluirId && r.id===excluirId) return;
+    var n = numeroDeCodigo(r.codigo, prefijo);
+    if(n!==null) usados[n] = r;
+  });
+  return usados;
+}
+// El código sugerido parte del contador de la sesión y salta los números que ya existen con ese prefijo
 function proximoCodigo(sesion){
   var s = sesion || sesionActiva();
   if(!s) return "—";
-  return s.prefijo + "-" + pad(s.contador, 3);
+  var n = parseInt(s.contador,10); if(isNaN(n)) n = 0;
+  var usados = numerosUsadosPrefijo(s.prefijo);
+  var guard = 0;
+  while(usados[n] && guard < 100000){ n++; guard++; }
+  return s.prefijo + "-" + pad(n, 3);
+}
+function actualizarCamposProximo(s){
+  document.getElementById("ss-proximo").value = proximoCodigo(s);
+  var inp = document.getElementById("ss-siguiente");
+  if(document.activeElement !== inp) inp.value = s.contador;
 }
 function analizarSecuenciaCodigo(prefijo){
   if(!prefijo) return null;
   var esc = String(prefijo).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
   var regex = new RegExp("^"+esc+"-(\\d+)$","i");
-  var max = -1, ultimo = null;
+  var max = -1, min = Infinity, ultimo = null, vistos = {};
   state.registros.forEach(function(r){
     var m = r.codigo && String(r.codigo).match(regex);
-    if(m){ var n = parseInt(m[1],10); if(n>max){ max=n; ultimo=r.codigo; } }
+    if(m){ var n = parseInt(m[1],10); vistos[n] = true; if(n<min) min=n; if(n>max){ max=n; ultimo=r.codigo; } }
   });
   if(max<0) return null;
-  return { ultimo: ultimo, siguiente: prefijo+"-"+pad(max+1,3) };
+  var huecos = [];
+  for(var k=min+1; k<max && huecos.length<200; k++){ if(!vistos[k]) huecos.push(k); }
+  return { ultimo: ultimo, siguiente: prefijo+"-"+pad(max+1,3), huecos: huecos };
 }
 function actualizarHintPrefijo(){
   var el = document.getElementById("ss-prefijo-hint");
   if(!el) return;
   var prefijo = (document.getElementById("ss-prefijo").value||"").trim();
   var info = analizarSecuenciaCodigo(prefijo);
-  el.textContent = info ? ("Último usado: "+info.ultimo+" · sigue "+info.siguiente) : "";
+  var txt = info ? ("Último usado: "+info.ultimo+" · sigue "+info.siguiente) : "";
+  if(info && info.huecos.length){
+    var mostrar = info.huecos.slice(-6).map(function(n){ return pad(n,3); }).join(", ");
+    txt += " · sin usar: " + (info.huecos.length>6 ? "… " : "") + mostrar;
+  }
+  el.textContent = txt;
+}
+
+function actualizarAvisoCodigo(){
+  var el = document.getElementById("f-codigo-aviso");
+  if(!el) return;
+  var d = state.draft;
+  var codigo = (document.getElementById("f-codigo").value||"").trim();
+  function ocultar(){ el.style.display = "none"; el.textContent = ""; el.className = "campo-aviso-codigo"; }
+  if(!d || d._viendo || d.tipo==="nota" || !codigo){ ocultar(); return; }
+  var dup = state.registros.filter(function(r){ return r.id!==d.id && r.codigo && String(r.codigo).toLowerCase()===codigo.toLowerCase(); })[0];
+  var txt = "", cls = "";
+  if(dup){
+    txt = "⚠️ " + codigo + " ya existe (sesión \"" + nombreSesionMostrar(sesionPorId(dup.sesionId)) + "\")."; cls = "warn";
+  } else {
+    var sD = sesionPorId(d.sesionId) || sesionActiva();
+    var n = sD ? numeroDeCodigo(codigo, sD.prefijo) : null;
+    if(n!==null){
+      var usados = numerosUsadosPrefijo(sD.prefijo, d.id);
+      var maxUsado = -1;
+      Object.keys(usados).forEach(function(k){ var v = parseInt(k,10); if(v>maxUsado) maxUsado = v; });
+      if(maxUsado>=0 && n > maxUsado+1){
+        var salto = n - maxUsado - 1;
+        txt = "↗️ Salta " + salto + (salto===1 ? " número" : " números") + " (el último guardado es " + sD.prefijo + "-" + pad(maxUsado,3) + ")."; cls = "info";
+      } else if(maxUsado>=0 && n < maxUsado){
+        txt = "↩️ Este número queda antes del último guardado (" + sD.prefijo + "-" + pad(maxUsado,3) + ")."; cls = "info";
+      }
+    }
+  }
+  if(!txt){ ocultar(); return; }
+  el.textContent = txt; el.className = "campo-aviso-codigo " + cls; el.style.display = "block";
 }
 
 /* ---------------- Navegación ---------------- */
@@ -3804,7 +3880,7 @@ function renderSesion(){
   var s = sesionEnPantalla();
   Object.keys(SS_MAP).forEach(function(id){ document.getElementById(id).value = s[SS_MAP[id]] || ""; });
   document.getElementById("ss-inicio").value = s.inicio;
-  document.getElementById("ss-proximo").value = proximoCodigo(s);
+  actualizarCamposProximo(s);
   actualizarHintPrefijo();
   poblarTodasLasSugerenciasSesion();
   renderSesionModo();
@@ -3866,6 +3942,7 @@ function sincronizarCodigoDraftConSesion(){
   guardarDraft();
   if(state.currentView === "form"){
     document.getElementById("f-codigo").value = state.draft.codigo;
+    actualizarAvisoCodigo();
   }
 }
 Object.keys(SS_MAP).forEach(function(id){
@@ -3873,7 +3950,7 @@ Object.keys(SS_MAP).forEach(function(id){
     var s = sesionEnPantalla();
     s[SS_MAP[id]] = this.value;
     if(id==="ss-prefijo"){
-      document.getElementById("ss-proximo").value = proximoCodigo(s);
+      actualizarCamposProximo(s);
       actualizarHintPrefijo();
       if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
     }
@@ -3886,9 +3963,21 @@ document.getElementById("ss-inicio").addEventListener("input", function(){
   s.inicio = v;
   var misRegistros = state.registros.filter(function(r){ return r.sesionId===s.id; });
   if(misRegistros.length===0) s.contador = v;
-  document.getElementById("ss-proximo").value = proximoCodigo(s);
+  actualizarCamposProximo(s);
   guardarSesion();
   if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
+});
+document.getElementById("ss-siguiente").addEventListener("input", function(){
+  var s = sesionEnPantalla();
+  var v = parseInt(this.value,10); if(isNaN(v) || v<0) return;
+  s.contador = v;
+  document.getElementById("ss-proximo").value = proximoCodigo(s);
+  actualizarHintPrefijo();
+  guardarSesion();
+  if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
+});
+document.getElementById("ss-siguiente").addEventListener("blur", function(){
+  actualizarCamposProximo(sesionEnPantalla());
 });
 document.getElementById("btn-guardar-sesion").addEventListener("click", function(){
   var s = sesionEnPantalla();
@@ -3990,6 +4079,100 @@ function compararRegistrosPorFechaYCodigo(a,b){
   if(da !== db) return da < db ? -1 : 1;
   return (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true});
 }
+// Momento en que se creó el registro (el id lo incluye); no cambia si se edita fecha u hora
+function timestampCreacionRegistro(r){
+  if(r.creadoTs) return r.creadoTs;
+  var m = r.id && /^r([0-9a-z]{8})/.exec(String(r.id));
+  if(m){ var t = parseInt(m[1],36); if(t>1.4e12 && t<4.1e12) return t; }
+  var f = Date.parse((r.fecha||"")+"T"+(r.hora||"00:00"));
+  return isNaN(f) ? 0 : f;
+}
+// Orden dentro de una sesión: lo movido a mano manda; lo demás va por creación, más reciente arriba
+function ordenarRegistrosDeSesion(sesionId, regs){
+  var ses = sesionPorId(sesionId);
+  var manual = (ses && ses.ordenRegistros) || [];
+  var pos = {};
+  manual.forEach(function(id,i){ pos[id] = i; });
+  return regs.slice().sort(function(a,b){
+    var ma = pos[a.id]!==undefined, mb = pos[b.id]!==undefined;
+    if(ma && mb) return pos[a.id]-pos[b.id];
+    if(ma !== mb) return ma ? 1 : -1;
+    var ta = timestampCreacionRegistro(a), tb = timestampCreacionRegistro(b);
+    if(ta!==tb) return tb-ta;
+    return (b.codigo||"").localeCompare(a.codigo||"", undefined, {numeric:true});
+  });
+}
+function moverRegistroEnOrden(sesionId, idMov, idDestino, antes){
+  var ses = sesionPorId(sesionId);
+  if(!ses || idMov===idDestino) return false;
+  var delSesion = state.registros.filter(function(r){ return r.sesionId===sesionId; });
+  var ids = ordenarRegistrosDeSesion(sesionId, delSesion).map(function(r){ return r.id; });
+  var iMov = ids.indexOf(idMov), iDes = ids.indexOf(idDestino);
+  if(iMov<0 || iDes<0) return false;
+  ids.splice(iMov,1);
+  iDes = ids.indexOf(idDestino);
+  ids.splice(antes ? iDes : iDes+1, 0, idMov);
+  ses.ordenRegistros = ids;
+  guardarListaSesiones();
+  return true;
+}
+function restaurarOrdenSesion(sesionId){
+  var ses = sesionPorId(sesionId);
+  if(!ses || !ses.ordenRegistros) return;
+  delete ses.ordenRegistros;
+  guardarListaSesiones();
+  renderLista();
+}
+function iniciarArrastreRegistro(ev, card, cont){
+  if(ev.button!==undefined && ev.button!==0 && ev.pointerType==="mouse") return;
+  ev.preventDefault();
+  var sesionId = card.dataset.sesion, idMov = card.dataset.id;
+  var startY = ev.clientY, startScroll = window.pageYOffset||0;
+  var lastY = ev.clientY, destino = null, antes = true;
+  card.classList.add("arrastrando");
+  function hermanas(){
+    return Array.prototype.slice.call(cont.querySelectorAll('.card[data-sesion="'+sesionId+'"]')).filter(function(c){ return c!==card; });
+  }
+  function limpiarMarcas(){ hermanas().forEach(function(c){ c.classList.remove("drop-antes","drop-despues"); }); }
+  function actualizar(){
+    var dy = lastY - startY + ((window.pageYOffset||0) - startScroll);
+    card.style.transform = "translateY("+dy+"px)";
+    limpiarMarcas(); destino = null;
+    var hs = hermanas();
+    for(var i=0;i<hs.length;i++){
+      var rc = hs[i].getBoundingClientRect();
+      if(lastY>=rc.top && lastY<=rc.bottom){
+        destino = hs[i].dataset.id; antes = lastY < rc.top + rc.height/2;
+        hs[i].classList.add(antes ? "drop-antes" : "drop-despues");
+        break;
+      }
+    }
+  }
+  var timerScroll = setInterval(function(){
+    if(lastY < 90) window.scrollBy(0,-12); else if(lastY > window.innerHeight-140) window.scrollBy(0,12); else return;
+    actualizar();
+  }, 16);
+  function mover(e){ lastY = e.clientY; actualizar(); }
+  function soltar(){
+    document.removeEventListener("pointermove", mover);
+    document.removeEventListener("pointerup", soltar);
+    document.removeEventListener("pointercancel", cancelar);
+    clearInterval(timerScroll);
+    card.classList.remove("arrastrando"); card.style.transform = "";
+    limpiarMarcas();
+    if(destino && moverRegistroEnOrden(sesionId, idMov, destino, antes)) renderLista(idMov);
+  }
+  function cancelar(){
+    document.removeEventListener("pointermove", mover);
+    document.removeEventListener("pointerup", soltar);
+    document.removeEventListener("pointercancel", cancelar);
+    clearInterval(timerScroll);
+    card.classList.remove("arrastrando"); card.style.transform = ""; limpiarMarcas();
+  }
+  document.addEventListener("pointermove", mover);
+  document.addEventListener("pointerup", soltar);
+  document.addEventListener("pointercancel", cancelar);
+}
 function obtenerListaFiltrada(){
   var q = (document.getElementById("buscador").value||"").toLowerCase();
   var lista = state.registros.slice().sort(compararRegistrosPorFechaYCodigo);
@@ -4020,6 +4203,7 @@ function renderLista(justSavedId){
     renderListaTarjetas(lista, justSavedId);
   }
 }
+var modoReordenarRegistros = false;
 var listaSesionesColapsadas = new Set(); // ids de sesión colapsadas en la vista Lista (no persiste entre recargas)
 function toggleColapsoSesionLista(sesionId){
   if(listaSesionesColapsadas.has(sesionId)) listaSesionesColapsadas.delete(sesionId); else listaSesionesColapsadas.add(sesionId);
@@ -4033,8 +4217,10 @@ function renderListaTarjetas(lista, justSavedId){
         '<div class="reg-title">'+(state.draft.codigo ? ("Registro en curso: "+escapeHtml(state.draft.codigo)) : ("Nota en curso"+(state.draft.notaTitulo?(": "+escapeHtml(state.draft.notaTitulo)):"")))+'</div>'+
         '<div class="reg-meta">Toca para continuar y completarlo</div>'+
       '</div><div class="reg-actions"><span class="btn-icon" style="border-color:var(--ambar); color:var(--ambar);">▸</span></div></div>') : "";
+  var sActivaVacia = (lista.length===0 && sesionActiva() && !state.filtroSesionLista && !state.filtroTipo && !(document.getElementById("buscador").value||"").trim())
+    ? '<div class="narr-sesion-header"><span class="narr-sesion-titulo">'+iconoSesion(state.sesionActivaId)+' '+escapeHtml(etiquetaSesionCorta(state.sesionActivaId))+' <span style="font-weight:400; color:var(--texto-sec);">(0)</span></span><span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(state.sesionActivaId)+'</span></div>' : "";
   if(lista.length===0){
-    cont.innerHTML = '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>' + htmlDraft;
+    cont.innerHTML = sActivaVacia + htmlDraft + '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>';
   } else {
     var grupos = []; var indicePorSesion = {};
     lista.forEach(function(r){
@@ -4045,36 +4231,49 @@ function renderListaTarjetas(lista, justSavedId){
       grupos[indicePorSesion[r.sesionId]].registros.push(r);
     });
     grupos.sort(function(ga,gb){ return comparadorSesionesPorCriterio(state.ordenSesionesRegistros)(sesionPorId(ga.sesionId), sesionPorId(gb.sesionId)); });
-    cont.innerHTML = grupos.map(function(g){
+    cont.innerHTML = htmlDraft + grupos.map(function(g){
       var colapsada = listaSesionesColapsadas.has(g.sesionId);
+      var sesG = sesionPorId(g.sesionId);
+      var restaurarHtml = (modoReordenarRegistros && sesG && sesG.ordenRegistros) ? '<button type="button" class="btn-restaurar-orden" data-restaurar-orden="'+escapeHtml(g.sesionId)+'">↺ Orden por fecha</button>' : '';
       var headerHtml = '<div class="narr-sesion-header">' +
         '<span class="narr-sesion-titulo">'+iconoSesion(g.sesionId)+' '+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
-        '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button>' +
+        '<span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+
+        '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button></span>' +
       '</div>';
       if(colapsada) return headerHtml;
-      var tarjetasHtml = g.registros.map(function(r){
+      var registrosOrdenados = ordenarRegistrosDeSesion(g.sesionId, g.registros);
+      var tarjetasHtml = registrosOrdenados.map(function(r){
         var ti = TIPOS[r.tipo]||TIPOS.nota;
         var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
         var nombre = r.taxonLibre||r.referencia||"";
         var cant = cantidadEjemplares(r);
         var cantTxt = cant!=null ? (" · "+cant+(cant==1?" ejemplar":" ejemplares")) : "";
-        return '<div class="card'+cls+'" data-id="'+r.id+'" style="border-left:4px solid '+colorSesion(r.sesionId)+';">'+
+        return '<div class="card'+cls+'" data-id="'+r.id+'" data-sesion="'+escapeHtml(r.sesionId)+'" style="border-left:4px solid '+colorSesion(r.sesionId)+';">'+
+          (modoReordenarRegistros ? '<div class="reg-handle" data-handle="1" title="Arrastra para reordenar">⠿</div>' : '')+
           '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
           '<div class="reg-info" style="flex:1; min-width:0;">'+
             '<div class="reg-title">'+(r.codigo ? (escapeHtml(r.codigo)+' · ') : (r.notaTitulo ? (escapeHtml(r.notaTitulo)+' · ') : ''))+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
             '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+'</div>'+
           '</div>'+
-          '<div class="reg-actions">'+
+          (modoReordenarRegistros ? '' : ('<div class="reg-actions">'+
             '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver">👁</button>'+
             '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
-          '</div></div>';
+          '</div>'))+'</div>';
       }).join("");
       return headerHtml + tarjetasHtml;
-    }).join("") + htmlDraft;
+    }).join("");
   }
   cont.querySelectorAll('.btn-icon[data-action="ver"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); verRegistroExistente(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
-  cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ verRegistroExistente(c.dataset.id); }); });
+  cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ if(modoReordenarRegistros) return; verRegistroExistente(c.dataset.id); }); });
+  cont.querySelectorAll('.reg-handle[data-handle]').forEach(function(h){
+    h.addEventListener("pointerdown", function(e){ iniciarArrastreRegistro(e, h.closest(".card"), cont); });
+    h.addEventListener("click", function(e){ e.stopPropagation(); });
+  });
+  cont.querySelectorAll('.btn-restaurar-orden[data-restaurar-orden]').forEach(function(b){
+    b.addEventListener("click", function(e){ e.stopPropagation(); restaurarOrdenSesion(b.dataset.restaurarOrden); });
+  });
+  ligarBotonesFinalizar(cont);
   cont.querySelectorAll('.btn-colapsar-sesion[data-sesion-lista]').forEach(function(b){
     b.addEventListener("click", function(e){ e.stopPropagation(); toggleColapsoSesionLista(b.dataset.sesionLista); });
   });
@@ -4239,7 +4438,8 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
     var todosColapsados = idsGrupo.every(function(id){ return narrColapsadas.has(id); });
     var headerHtml = '<div class="narr-sesion-header">' +
       '<span class="narr-sesion-titulo">'+iconoSesion(g.sesionId)+' '+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
-      '<button type="button" class="btn-colapsar-sesion" data-sesion="'+escapeHtml(g.sesionId)+'">'+(todosColapsados?'▾ Expandir todas':'▸ Colapsar todas')+'</button>' +
+      '<span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(g.sesionId)+
+      '<button type="button" class="btn-colapsar-sesion" data-sesion="'+escapeHtml(g.sesionId)+'">'+(todosColapsados?'▾ Expandir todas':'▸ Colapsar todas')+'</button></span>' +
     '</div>';
     var entradasHtml = g.registros.map(function(r){
       var colapsada = narrColapsadas.has(r.id);
@@ -4272,6 +4472,7 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
   cont.querySelectorAll(".narr-toggle").forEach(function(t){
     t.addEventListener("click", function(e){ e.stopPropagation(); toggleColapsoRegistroNarrativo(t.dataset.toggle); });
   });
+  ligarBotonesFinalizar(cont);
   cont.querySelectorAll(".btn-colapsar-sesion").forEach(function(b){
     b.addEventListener("click", function(){
       var sesionId = b.dataset.sesion;
@@ -4305,6 +4506,7 @@ document.getElementById("btn-vista-tarjetas").addEventListener("click", function
   renderLista();
 });
 document.getElementById("btn-vista-narrativa").addEventListener("click", function(){
+  salirModoReordenar();
   state.vistaRegistros = "narrativa";
   this.classList.add("on"); document.getElementById("btn-vista-tarjetas").classList.remove("on");
   renderLista();
@@ -4446,12 +4648,34 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
   });
 });
 
-document.getElementById("btn-finalizar-sesion").addEventListener("click", function(){
+function finalizarSesionActiva(){
   if(!confirm("¿Finalizar la sesión actual e iniciar una nueva?\n\nLos datos generales se limpiarán para la siguiente salida. Esta sesión y todos sus registros quedan guardados y accesibles desde el selector de la pestaña Sesión.")) return;
   crearNuevaSalida();
   irA("sesion");
-});
+}
+function ligarBotonesFinalizar(cont){
+  cont.querySelectorAll(".btn-finalizar-sesion-inline").forEach(function(b){
+    b.addEventListener("click", function(e){ e.stopPropagation(); finalizarSesionActiva(); });
+  });
+}
+function botonFinalizarInlineHtml(sesionId){
+  return sesionId===state.sesionActivaId ? '<button type="button" class="btn-finalizar-sesion-inline" title="Finalizar la sesión activa">🏁 Finalizar sesión</button>' : '';
+}
 document.getElementById("buscador").addEventListener("input", renderLista);
+document.getElementById("f-codigo").addEventListener("input", actualizarAvisoCodigo);
+function aplicarEstiloBotonReordenar(){
+  var b = document.getElementById("btn-modo-reordenar");
+  b.textContent = modoReordenarRegistros ? "✔️ Listo" : "↕️ Reordenar";
+  b.style.background = modoReordenarRegistros ? "var(--verde)" : "var(--card)";
+  b.style.color = modoReordenarRegistros ? "#fff" : "var(--texto)";
+}
+function salirModoReordenar(){ modoReordenarRegistros = false; aplicarEstiloBotonReordenar(); }
+document.getElementById("btn-modo-reordenar").addEventListener("click", function(){
+  if(state.vistaRegistros==="narrativa") document.getElementById("btn-vista-tarjetas").click();
+  modoReordenarRegistros = !modoReordenarRegistros;
+  aplicarEstiloBotonReordenar();
+  renderLista();
+});
 
 function iniciarNuevoRegistro(){
   detenerSeguimientoEnVivo();
@@ -4495,6 +4719,7 @@ function cargarDraftEnFormulario(){
   var d = state.draft;
   document.getElementById("aviso-tipo-bloqueado").style.display = "none";
   document.getElementById("f-codigo").value = d.codigo;
+  actualizarAvisoCodigo();
   document.getElementById("f-lat").value = d.lat; document.getElementById("f-lon").value = d.lon;
   document.getElementById("f-fecha").value = d.fecha; document.getElementById("f-hora").value = d.hora;
   document.getElementById("fecha-hora-row").style.display = (d._editando || d._viendo) ? "grid" : "none";
@@ -4704,6 +4929,7 @@ document.getElementById("f-tipo").addEventListener("change", function(){
     state.draft.codigo = proximoCodigo(sesionPorId(state.draft.sesionId) || sesionActiva());
   }
   document.getElementById("f-codigo").value = state.draft.codigo;
+  actualizarAvisoCodigo();
   poblarOpcionesMetodo(this.value);
   ajustarPantallaSegunTipo(this.value);
   renderBloqueEspecifico();
@@ -6060,11 +6286,14 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     }
   } else {
     state.registros.push(r);
-    var sAct = sesionActiva();
-    if(sAct && r.tipo !== "nota") sAct.contador = sAct.contador + 1;
+    var sAct = sesionPorId(r.sesionId) || sesionActiva();
+    if(sAct && r.tipo !== "nota"){
+      var nGuardado = numeroDeCodigo(r.codigo, sAct.prefijo);
+      if(nGuardado !== null) sAct.contador = nGuardado + 1;
+    }
     guardarListaSesiones();
     var ok = guardarRegistros();
-    if(ok) toast(r.codigo ? ("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo()) : "✅ Nota guardada");
+    if(ok) toast(r.codigo ? ("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo(sAct)) : "✅ Nota guardada");
     state.draft = null; guardarDraft();
     iniciarNuevoRegistro();
   }
