@@ -128,6 +128,8 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 .reg-ic{width:44px;height:44px;border-radius:10px;background:var(--verde-cl);color:var(--verde);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
 .reg-title{font-weight:700; font-size:1.02rem;}
 .reg-meta{font-size:.8rem; color:var(--texto-sec); margin-top:3px;}
+.reg-foto{margin-left:6px; font-size:.8rem; white-space:nowrap;}
+.sesion-consulta input, .sesion-consulta textarea{background:transparent; border-style:dashed;}
 .reg-sesion-tag{font-size:.68rem; color:var(--texto-sec); margin-top:4px; opacity:.8;}
 .tag{display:inline-block; font-size:.66rem; font-weight:700; padding:2px 8px; border-radius:20px; background:var(--verde-cl); color:var(--verde-osc); text-transform:uppercase;}
 .card.nuevo-highlight{animation:flash 1.6s ease-out;}
@@ -431,6 +433,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
     <div class="field"><select id="ss-selector-sesion"></select><span class="campo-ayuda">🟢 = sesión activa (donde se guardan los registros nuevos) · 📁 = sesión archivada</span></div>
     <div id="sesion-modo-banner" class="sesion-modo-banner modo-activa" style="display:none;"></div>
+    <button type="button" class="btnfull btn-secondary" id="btn-editar-sesion" style="display:none; margin-bottom:12px;">✏️ Editar datos de la sesión</button>
 
     <div class="section-title-row">
     </div>
@@ -3410,7 +3413,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-28 · v2.28";
+var APP_BUILD = "2026-09-29 · v2.30";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3497,7 +3500,16 @@ var state = {
   sesionGestionId: null // sesión expandida en el panel de gestión (Exportar)
 };
 function sesionActiva(){ return state.sesiones.find(function(s){ return s.id===state.sesionActivaId; }) || null; }
-function sesionEnPantalla(){ return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva(); }
+function ultimaSesion(){ return state.sesiones.slice().sort(function(a,b){ return (b.creada||"").localeCompare(a.creada||""); })[0] || null; }
+// Sin sesión activa (tras Finalizar), la pestaña Sesión muestra la última sesión cerrada
+function sesionEnPantalla(){ return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva() || ultimaSesion(); }
+function guardarSesionActivaLS(){ setLS(LSK.act, state.sesionActivaId || "-"); } // "-" = sin sesión activa a propósito
+// Si no hay sesión activa (p. ej. tras Finalizar) y se necesita una, se crea una nueva continuando la numeración
+function asegurarSesionActiva(){
+  if(sesionActiva()) return sesionActiva();
+  crearNuevaSalida({auto:true});
+  return sesionActiva();
+}
 function sesionPorId(id){ return state.sesiones.find(function(s){ return s.id===id; }) || null; }
 // Orden compartido para listas de sesiones (Exportar y Registros): por fecha (más reciente
 // primero, como ya era el comportamiento por defecto) o alfabético por nombre de sesión.
@@ -3570,7 +3582,8 @@ function setLS(key, value){
 }
 function cargar(){
   try{ var lista=JSON.parse(localStorage.getItem(LSK.sesiones)); if(lista && lista.length) state.sesiones=lista; }catch(e){}
-  try{ var act=localStorage.getItem(LSK.act); if(act) state.sesionActivaId=act; }catch(e){}
+  var sinActivaAdrede = false;
+  try{ var act=localStorage.getItem(LSK.act); if(act==="-"){ sinActivaAdrede = true; state.sesionActivaId = null; } else if(act) state.sesionActivaId=act; }catch(e){}
   try{ var c=JSON.parse(localStorage.getItem(LSK.cfg)); if(c) state.config=c; }catch(e){}
   try{ var r=JSON.parse(localStorage.getItem(LSK.reg)); if(r) state.registros=r; }catch(e){}
   try{ var h=JSON.parse(localStorage.getItem(LSK.hist)); if(h) state.historial=h; }catch(e){}
@@ -3590,12 +3603,14 @@ function cargar(){
     guardarRegistros();
   }
   state.sesiones.forEach(function(s, idx){ if(!s.icono) s.icono = ICONOS_SESION[idx % ICONOS_SESION.length]; });
-  if(!state.sesionActivaId || !sesionPorId(state.sesionActivaId)){
+  if(sinActivaAdrede){
+    state.sesionActivaId = null;
+  } else if(!state.sesionActivaId || !sesionPorId(state.sesionActivaId)){
     state.sesionActivaId = state.sesiones[state.sesiones.length-1].id;
   }
-  state.sesionEnPantallaId = state.sesionActivaId;
+  state.sesionEnPantallaId = state.sesionActivaId || (ultimaSesion() && ultimaSesion().id);
   guardarListaSesiones();
-  setLS(LSK.act, state.sesionActivaId);
+  guardarSesionActivaLS();
 }
 function guardarListaSesiones(){ return setLS(LSK.sesiones, JSON.stringify(state.sesiones)); }
 function guardarSesion(){ return guardarListaSesiones(); }
@@ -3812,7 +3827,7 @@ function actualizarAvisoCodigo(){
 }
 
 /* ---------------- Navegación ---------------- */
-function irA(view){
+function irA(view, opts){
   document.querySelectorAll(".screen").forEach(function(v){ v.classList.remove("on"); });
   document.querySelectorAll(".navbtn").forEach(function(b){ b.classList.remove("on"); });
   document.getElementById("s-"+view).classList.add("on");
@@ -3826,19 +3841,23 @@ function irA(view){
     document.getElementById("buscador").value = "";
     listaSesionesColapsadas.clear();
     narrColapsadas.clear();
+    // Se deja abierta la sesión activa o, si no hay, la última cerrada
+    var idAbierta = state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : null);
     state.sesiones.forEach(function(s){
-      if(s.id !== state.sesionActivaId) listaSesionesColapsadas.add(s.id);
+      if(s.id !== idAbierta) listaSesionesColapsadas.add(s.id);
     });
     state.registros.forEach(function(r){
-      if(r.sesionId !== state.sesionActivaId) narrColapsadas.add(r.id);
+      if(r.sesionId !== idAbierta) narrColapsadas.add(r.id);
     });
     renderLista();
   }
+  if(view!=="sesion") state.sesionEditando = false;
   if(view==="sesion") renderSesion();
   if(view==="exportar") renderExportar();
   if(view==="config") renderConfig();
   if(view==="consulta") renderConsulta(state.consultaId);
   if(view==="lista") irBajarFinal(); else irSubirInicio();
+  if(!(opts && opts.sinHistorial)) registrarVistaEnHistorial(view);
 }
 function irBajarFinal(){
   if(window.requestAnimationFrame){
@@ -3872,12 +3891,93 @@ document.querySelectorAll(".navbtn").forEach(function(b){
   });
 });
 
+/* ---------------- Botón "atrás" y salida de la app: confirmación ---------------- */
+// Cada cambio de vista deja una entrada en el historial del navegador. Así el botón atrás del teléfono
+// retrocede de vista (cerrando antes cualquier ventana abierta) y solo al llegar al fondo pide confirmar la salida.
+var historialListo = false;    // ya existe la entrada propia de la app en el historial
+var salidaConfirmada = false;  // el usuario aceptó salir: no volver a interceptar
+var EVENTOS_ARMADO_HISTORIAL = ["pointerup","touchend","keydown","click"];
+function vistaDeEntradaActual(){
+  var st = null; try{ st = history.state; }catch(e){}
+  return (st && st.lc) ? st.view : null;
+}
+function empujarEntradaHistorial(view){
+  try{ history.pushState({lc:true, view:view}, ""); return true; }catch(e){ return false; }
+}
+function registrarVistaEnHistorial(view){
+  if(!historialListo) return;
+  if(vistaDeEntradaActual()===view) return;
+  empujarEntradaHistorial(view);
+}
+function sincronizarVistaHistorial(){
+  if(!historialListo) return;
+  try{ history.replaceState({lc:true, view:state.currentView}, ""); }catch(e){}
+}
+function armarHistorialApp(){
+  if(historialListo) return;
+  // Se arma con el primer gesto real del usuario: los navegadores móviles ignoran al retroceder las
+  // entradas creadas sin interacción previa.
+  if(empujarEntradaHistorial(state.currentView || "sesion")) historialListo = true;
+  EVENTOS_ARMADO_HISTORIAL.forEach(function(ev){ document.removeEventListener(ev, armarHistorialApp, true); });
+}
+function iniciarHistorialApp(){
+  var st = null; try{ st = history.state; }catch(e){}
+  if(st && st.lc){ historialListo = true; return; } // recarga dentro de la app: la entrada propia ya existe
+  try{ history.replaceState({lcBase:true}, ""); }catch(e){ return; }
+  EVENTOS_ARMADO_HISTORIAL.forEach(function(ev){ document.addEventListener(ev, armarHistorialApp, true); });
+}
+function cerrarModalAbierto(m){
+  m.click(); // cada ventana cierra con su propia lógica al tocar el fondo
+  if(m.classList.contains("on")) m.classList.remove("on");
+}
+window.addEventListener("popstate", function(e){
+  if(salidaConfirmada) return;
+  var st = e.state;
+  var modal = document.querySelector(".modal-bg.on");
+  if(modal){
+    // Atrás cierra primero la ventana abierta; se repone la entrada para quedarse en la misma vista
+    cerrarModalAbierto(modal);
+    empujarEntradaHistorial(state.currentView);
+    return;
+  }
+  if(st && st.lc){
+    if(st.view===state.currentView) return;
+    if(st.view==="form"){
+      if(!state.draft){ history.back(); return; } // ya se guardó o descartó: no hay formulario al que volver
+      cargarDraftEnFormulario();
+      irA("form", {sinHistorial:true});
+      return;
+    }
+    if(st.view==="consulta" && !state.registros.some(function(r){ return r.id===state.consultaId; })){ history.back(); return; }
+    irA(st.view, {sinHistorial:true});
+    return;
+  }
+  // Se llegó a la entrada base: no queda historial propio hacia atrás
+  if(confirm("¿Salir de Libreta de Campo?\n\nAceptar = salir de la app.\nCancelar = seguir aquí.")){
+    salidaConfirmada = true;
+    try{ history.back(); }catch(x){}
+    // Si igual seguimos aquí (p. ej. no había página anterior), se vuelve a proteger la salida
+    setTimeout(function(){ salidaConfirmada = false; empujarEntradaHistorial(state.currentView); }, 900);
+  } else {
+    empujarEntradaHistorial(state.currentView);
+  }
+});
+window.addEventListener("beforeunload", function(e){
+  // Cierre o recarga de la pestaña. La recarga automática por actualización de la app se exceptúa.
+  if(salidaConfirmada || window.__lcRecargaPermitida) return;
+  e.preventDefault();
+  e.returnValue = "";
+  return "";
+});
+
 /* ---------------- SESIÓN (autoguardado) ---------------- */
 var SS_MAP = {"ss-proyecto":"proyecto","ss-objetivo":"objetivo",
   "ss-participantes":"participantes","ss-zona":"zona","ss-institucion":"institucion",
   "ss-clima":"clima","ss-notas":"notas","ss-prefijo":"prefijo"};
 function renderSesion(){
   var s = sesionEnPantalla();
+  if(!s) return;
+  state.sesionEnPantallaId = s.id;
   Object.keys(SS_MAP).forEach(function(id){ document.getElementById(id).value = s[SS_MAP[id]] || ""; });
   document.getElementById("ss-inicio").value = s.inicio;
   actualizarCamposProximo(s);
@@ -3885,6 +3985,22 @@ function renderSesion(){
   poblarTodasLasSugerenciasSesion();
   renderSesionModo();
   renderSelectorSesiones();
+  aplicarModoEdicionSesion();
+}
+// Modo consulta por defecto: los campos son de solo lectura hasta pulsar "Editar". Una sesión activa recién creada
+// (sin nombre ni registros) abre directo en edición, porque no hay nada que consultar todavía.
+function sesionEsNuevaVacia(s){
+  return !!s && s.id===state.sesionActivaId && !(s.proyecto||"").trim() &&
+    !state.registros.some(function(r){ return r.sesionId===s.id; });
+}
+var IDS_CAMPOS_SESION = Object.keys(SS_MAP).concat(["ss-inicio","ss-siguiente"]);
+function aplicarModoEdicionSesion(){
+  var s = sesionEnPantalla(); if(!s) return;
+  var editando = !!state.sesionEditando || sesionEsNuevaVacia(s);
+  IDS_CAMPOS_SESION.forEach(function(id){ document.getElementById(id).readOnly = !editando; });
+  document.getElementById("s-sesion").classList.toggle("sesion-consulta", !editando);
+  document.getElementById("btn-editar-sesion").style.display = editando ? "none" : "block";
+  document.getElementById("btn-guardar-sesion").style.display = editando ? "" : "none";
 }
 function renderSesionModo(){
   var s = sesionEnPantalla();
@@ -3895,7 +4011,7 @@ function renderSesionModo(){
   } else {
     banner.style.display = "block";
     banner.className = "sesion-modo-banner modo-archivada";
-    banner.innerHTML = '<div>📁 Viendo una sesión archivada — puedes revisar y editar sus datos generales.</div>'+
+    banner.innerHTML = '<div>'+(state.sesionActivaId ? '📁 Viendo una sesión archivada. Puedes editar sus datos generales con ✏️.' : '📁 No hay sesión activa. Estás viendo la última sesión cerrada. Pulsa "Nueva sesión" para empezar otra, o reactívala.')+'</div>'+
       '<button type="button" id="btn-reactivar-sesion" class="btn-reactivar-destacado">▶️ Reactivar esta sesión</button>';
     var btnReactivar = document.getElementById("btn-reactivar-sesion");
     if(btnReactivar) btnReactivar.addEventListener("click", function(){
@@ -3911,7 +4027,7 @@ function renderSesionModo(){
       s.archivada = false;
       state.sesionActivaId = s.id;
       guardarListaSesiones();
-      setLS(LSK.act, state.sesionActivaId);
+      guardarSesionActivaLS();
       renderSesion();
       toast("✅ Sesión reactivada");
     });
@@ -3927,6 +4043,7 @@ function renderSelectorSesiones(){
 }
 document.getElementById("ss-selector-sesion").addEventListener("change", function(){
   state.sesionEnPantallaId = this.value;
+  state.sesionEditando = false;
   renderSesion();
 });
 [["ss-proyecto","dl-ss-proyecto","proyecto"],["ss-objetivo","dl-ss-objetivo","objetivo"],["ss-participantes","dl-ss-participantes","participantes"],
@@ -3990,7 +4107,14 @@ document.getElementById("btn-guardar-sesion").addEventListener("click", function
     }
   }
   guardarSesion();
+  state.sesionEditando = false;
+  aplicarModoEdicionSesion();
   document.getElementById("modal-confirm-sesion").classList.add("on");
+});
+document.getElementById("btn-editar-sesion").addEventListener("click", function(){
+  state.sesionEditando = true;
+  aplicarModoEdicionSesion();
+  var el = document.getElementById("ss-proyecto"); if(el) el.focus();
 });
 function cerrarConfirmSesion(){ document.getElementById("modal-confirm-sesion").classList.remove("on"); }
 document.getElementById("btn-confirm-sesion-x").addEventListener("click", cerrarConfirmSesion);
@@ -4002,27 +4126,47 @@ document.getElementById("btn-confirm-ir-nuevo").addEventListener("click", functi
 });
 
 /* ---------------- Nueva Salida: archiva la sesión activa y crea una nueva ---------------- */
-function crearNuevaSalida(){
+function crearNuevaSalida(opts){
+  var auto = !!(opts && opts.auto);
   var actual = sesionActiva();
+  var base = actual || ultimaSesion(); // la numeración continúa desde la sesión activa o, si no hay, desde la última cerrada
   if(actual) actual.archivada = true;
-  if(state.draft && state.draft.sesionId === (actual && actual.id)){
+  if(actual && state.draft && state.draft.sesionId === actual.id){
     var teniaCambiosSinGuardar = !state.draft._viendo;
     state.draft = null; guardarDraft();
     if(teniaCambiosSinGuardar) toast("Se descartó un registro sin guardar de la sesión anterior");
   }
   var nueva = sesionVacia();
   // La numeración continúa sin cortes: mismo prefijo y correlativo donde iba la anterior
-  if(actual){ nueva.prefijo = actual.prefijo; nueva.inicio = actual.inicio; nueva.contador = actual.contador; }
+  if(base){ nueva.prefijo = base.prefijo; nueva.inicio = base.inicio; nueva.contador = base.contador; }
   state.sesiones.push(nueva);
   state.sesionActivaId = nueva.id;
   state.sesionEnPantallaId = nueva.id;
+  state.sesionEditando = !auto;
   guardarListaSesiones();
-  setLS(LSK.act, state.sesionActivaId);
+  guardarSesionActivaLS();
   renderSesion();
-  toast("✅ Nueva salida creada — la anterior quedó guardada en el historial");
+  toast(auto ? "Se creó una sesión nueva (continúa la numeración). Completa sus datos en la pestaña Sesión." : "✅ Nueva salida creada, la anterior quedó guardada en el historial", auto ? 4200 : 2400);
+}
+// Finalizar: la sesión queda archivada y la app sin sesión activa hasta pulsar "Nueva sesión" (o "Nuevo", que crea una)
+function cerrarSesionActiva(){
+  var actual = sesionActiva(); if(!actual) return;
+  actual.archivada = true;
+  var descartado = false;
+  if(state.draft && state.draft.sesionId === actual.id){
+    descartado = !state.draft._viendo;
+    state.draft = null; guardarDraft();
+  }
+  state.sesionActivaId = null;
+  state.sesionEnPantallaId = actual.id;
+  state.sesionEditando = false;
+  guardarListaSesiones();
+  guardarSesionActivaLS();
+  renderSesion();
+  toast("🏁 Sesión finalizada" + (descartado ? " (se descartó un registro sin guardar)" : ""), 3200);
 }
 document.getElementById("btn-nueva-salida").addEventListener("click", function(){
-  if(!confirm("¿Iniciar una nueva salida a terreno?\n\nLos datos generales (proyecto, objetivo, participantes, etc.) se limpiarán para escribir los de la nueva salida. El acrónimo y el correlativo de numeración continúan sin cambios.\n\nLa sesión actual y todos sus registros quedan guardados y accesibles desde el selector de arriba.")) return;
+  if(sesionActiva() && !confirm("¿Iniciar una nueva salida a terreno?\n\nLos datos generales (proyecto, objetivo, participantes, etc.) se limpiarán para escribir los de la nueva salida. El acrónimo y el correlativo de numeración continúan sin cambios.\n\nLa sesión actual y todos sus registros quedan guardados y accesibles desde el selector de arriba.")) return;
   crearNuevaSalida();
 });
 
@@ -4209,13 +4353,18 @@ function toggleColapsoSesionLista(sesionId){
   if(listaSesionesColapsadas.has(sesionId)) listaSesionesColapsadas.delete(sesionId); else listaSesionesColapsadas.add(sesionId);
   renderLista();
 }
+function iconoFotosHtml(r){
+  var n = (r && r.fotos ? r.fotos.length : 0);
+  if(!n) return "";
+  return '<span class="reg-foto" title="'+n+(n===1?' foto':' fotos')+'">📷'+(n>1?' '+n:'')+'</span>';
+}
 function renderListaTarjetas(lista, justSavedId){
   var cont = document.getElementById("lista-registros");
   var htmlDraft = (state.draft && !state.draft._viendo) ? ('<div class="card card-draft" id="card-draft-pendiente">'+
       '<div class="reg-ic" style="background:var(--ambar); color:#fff;">✏️</div>'+
       '<div class="reg-info" style="flex:1; min-width:0;">'+
         '<div class="reg-title">'+(state.draft.codigo ? ("Registro en curso: "+escapeHtml(state.draft.codigo)) : ("Nota en curso"+(state.draft.notaTitulo?(": "+escapeHtml(state.draft.notaTitulo)):"")))+'</div>'+
-        '<div class="reg-meta">Toca para continuar y completarlo</div>'+
+        '<div class="reg-meta">Toca para continuar y completarlo'+iconoFotosHtml(state.draft)+'</div>'+
       '</div><div class="reg-actions"><span class="btn-icon" style="border-color:var(--ambar); color:var(--ambar);">▸</span></div></div>') : "";
   var sActivaVacia = (lista.length===0 && sesionActiva() && !state.filtroSesionLista && !state.filtroTipo && !(document.getElementById("buscador").value||"").trim())
     ? '<div class="narr-sesion-header"><span class="narr-sesion-titulo">'+iconoSesion(state.sesionActivaId)+' '+escapeHtml(etiquetaSesionCorta(state.sesionActivaId))+' <span style="font-weight:400; color:var(--texto-sec);">(0)</span></span><span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(state.sesionActivaId)+'</span></div>' : "";
@@ -4253,7 +4402,7 @@ function renderListaTarjetas(lista, justSavedId){
           '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
           '<div class="reg-info" style="flex:1; min-width:0;">'+
             '<div class="reg-title">'+(r.codigo ? (escapeHtml(r.codigo)+' · ') : (r.notaTitulo ? (escapeHtml(r.notaTitulo)+' · ') : ''))+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
-            '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+'</div>'+
+            '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+iconoFotosHtml(r)+'</div>'+
           '</div>'+
           (modoReordenarRegistros ? '' : ('<div class="reg-actions">'+
             '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver">👁</button>'+
@@ -4649,8 +4798,10 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
 });
 
 function finalizarSesionActiva(){
-  if(!confirm("¿Finalizar la sesión actual e iniciar una nueva?\n\nLos datos generales se limpiarán para la siguiente salida. Esta sesión y todos sus registros quedan guardados y accesibles desde el selector de la pestaña Sesión.")) return;
-  crearNuevaSalida();
+  var pendiente = (state.draft && !state.draft._viendo && sesionActiva() && state.draft.sesionId===sesionActiva().id)
+    ? "\n\nHay un registro sin guardar en curso: se descartará." : "";
+  if(!confirm("¿Finalizar la sesión activa?\n\nQueda guardada con todos sus registros y accesible desde el selector de la pestaña Sesión. La app queda sin sesión activa hasta que pulses \"Nueva sesión\" (o toques \"Nuevo\", que crea una sesión nueva automáticamente)."+pendiente)) return;
+  cerrarSesionActiva();
   irA("sesion");
 }
 function ligarBotonesFinalizar(cont){
@@ -4679,6 +4830,7 @@ document.getElementById("btn-modo-reordenar").addEventListener("click", function
 
 function iniciarNuevoRegistro(){
   detenerSeguimientoEnVivo();
+  asegurarSesionActiva();
   state.volverConsultaId = null;
   var ahora = new Date();
   var sid = state.sesionActivaId;
@@ -4814,7 +4966,7 @@ function actualizarBannerSesionActivaFijo(){
   var s = sesionActiva();
   var banner = document.getElementById("banner-sesion-activa-fijo");
   if(!banner) return;
-  banner.textContent = "🟢 Sesión activa: " + (s ? nombreSesionMostrar(s) : "—");
+  banner.textContent = s ? ("🟢 Sesión activa: " + nombreSesionMostrar(s)) : "⚪ Sin sesión activa";
 }
 function actualizarBannerSesionRegistro(){
   actualizarBannerSesionActivaFijo();
@@ -5059,11 +5211,70 @@ function setSelectOtro(selectId, otroId, valor){
   if(valor && opciones.indexOf(valor)<0){ sel.value="__otro__"; otro.style.display="block"; otro.value=valor; }
   else { sel.value = valor||""; otro.style.display="none"; otro.value=""; }
 }
+/* ---------------- GPS: lectura continua con promedio ponderado ---------------- */
+// Un solo fix (getCurrentPosition) suele ser el peor: es el primero que entrega el sistema, aún sin converger.
+// Aquí se escucha el GPS unos segundos y se promedian las lecturas, dando más peso a las más precisas.
+var GPS_VENTANA_MS = 20000;   // tope de espera
+var GPS_MIN_LECTURAS = 5;     // lecturas mínimas antes de poder cerrar solo
+var GPS_OBJETIVO_M = 4;       // cierra solo (con el mínimo de lecturas) si la mejor precisión llega a este valor
+var GPS_ESTABLE_MS = 8000;    // o si la mejor precisión no mejora durante este tiempo
+var gpsCapturaActiva = null;  // captura en curso; un nuevo toque en el botón la cierra con lo reunido hasta ese momento
+function promediarLecturasGps(lecturas){
+  var mejor = Infinity;
+  lecturas.forEach(function(l){ if(l.acc < mejor) mejor = l.acc; });
+  // Se descartan las lecturas claramente peores que la mejor; el resto se promedia con peso 1/precisión²
+  var usadas = lecturas.filter(function(l){ return l.acc <= mejor*1.5; });
+  var sw=0, sLat=0, sLon=0, swAlt=0, sAlt=0;
+  usadas.forEach(function(l){
+    var w = 1/(l.acc*l.acc);
+    sw += w; sLat += l.lat*w; sLon += l.lon*w;
+    if(l.alt!=null){ swAlt += w; sAlt += l.alt*w; }
+  });
+  // La precisión informada es la de la mejor lectura usada (no se declara una mejora estadística que el
+  // error correlacionado del GPS no garantiza). Mismo formato que un fix único: {coords:{...}} + nº de lecturas.
+  return {coords:{latitude:sLat/sw, longitude:sLon/sw, altitude:(swAlt>0 ? sAlt/swAlt : null), accuracy:mejor}, muestras:usadas.length};
+}
+function obtenerPosicionMejorada(btn, etiqueta, onOk, onError){
+  var lecturas = [], terminado = false, watchId = null, timer = null;
+  var mejor = Infinity, tMejora = Date.now();
+  function limpiar(){
+    if(watchId!=null){ try{ navigator.geolocation.clearWatch(watchId); }catch(e){} watchId = null; }
+    clearTimeout(timer);
+    gpsCapturaActiva = null;
+  }
+  function cerrar(){
+    if(terminado) return;
+    terminado = true; limpiar();
+    if(lecturas.length===0){ onError({code:3}); return; }
+    onOk(promediarLecturasGps(lecturas));
+  }
+  gpsCapturaActiva = { cerrarYa: function(){
+    if(lecturas.length===0){ toast("Aún no hay lecturas del GPS, espera un momento"); return; }
+    cerrar();
+  } };
+  try{
+    watchId = navigator.geolocation.watchPosition(function(pos){
+      if(terminado) return;
+      var c = pos.coords;
+      var acc = (typeof c.accuracy==="number" && c.accuracy>0) ? c.accuracy : 50;
+      lecturas.push({lat:c.latitude, lon:c.longitude, alt:(typeof c.altitude==="number" ? c.altitude : null), acc:acc});
+      if(acc < mejor){ if(mejor - acc >= 0.5) tMejora = Date.now(); mejor = acc; }
+      if(btn) btn.textContent = etiqueta + "… ±" + Math.round(mejor) + " m · toca para usar";
+      if(lecturas.length >= GPS_MIN_LECTURAS && (mejor <= GPS_OBJETIVO_M || Date.now() - tMejora >= GPS_ESTABLE_MS)) cerrar();
+    }, function(err){
+      if(terminado) return;
+      if(err && err.code===1){ terminado = true; limpiar(); onError(err); }
+      // Otros errores (tiempo de espera, sin señal momentánea): se sigue esperando hasta el tope de tiempo
+    }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
+  }catch(e){ terminado = true; limpiar(); onError({code:2}); return; }
+  timer = setTimeout(cerrar, GPS_VENTANA_MS);
+}
 function capturarGPS(){
   if(!state.draft) return;
+  if(gpsCapturaActiva){ gpsCapturaActiva.cerrarYa(); return; }
   var btn = document.getElementById("btn-gps");
-  btn.disabled = true; btn.textContent = "📡 Buscando...";
-  function aplicar(lat, lon, alt, accuracy){
+  btn.textContent = "📡 Buscando...";
+  function aplicar(lat, lon, alt, accuracy, nLecturas){
     var ahora = new Date();
     state.draft.lat = lat.toFixed(6);
     state.draft.lon = lon.toFixed(6);
@@ -5080,7 +5291,7 @@ function capturarGPS(){
     document.getElementById("gpsbox").classList.remove("error");
     actualizarGpsBox();
     btn.disabled = false; btn.textContent = "📍 Recapturar ubicación";
-    toast("Ubicación capturada");
+    toast("Ubicación capturada" + (accuracy!=null ? " · ±"+Math.round(accuracy)+" m" : "") + (nLecturas>1 ? " ("+nLecturas+" lecturas)" : ""));
   }
   function errorGPS(mensaje){
     btn.disabled = false; btn.textContent = "📍 Capturar ubicación";
@@ -5096,14 +5307,14 @@ function capturarGPS(){
     errorGPS("Este navegador no tiene GPS disponible. Ingresa las coordenadas manualmente abajo.");
     return;
   }
-  navigator.geolocation.getCurrentPosition(function(pos){
-    aplicar(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude, pos.coords.accuracy);
+  obtenerPosicionMejorada(btn, "📡 Afinando", function(pos){
+    aplicar(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude, pos.coords.accuracy, pos.muestras);
   }, function(err){
     var msg = "No se pudo obtener la ubicación. Ingresa las coordenadas manualmente abajo.";
     if(err && err.code===1) msg = "Permiso de ubicación denegado. Actívalo en los ajustes del navegador, o ingresa las coordenadas manualmente.";
     else if(err && err.code===3) msg = "Se agotó el tiempo de espera del GPS. Intenta de nuevo o ingresa las coordenadas manualmente.";
     errorGPS(msg);
-  }, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
+  });
 }
 document.getElementById("btn-gps").addEventListener("click", function(){
   document.querySelector(".dg-box").classList.remove("abierto");
@@ -5389,14 +5600,16 @@ document.getElementById("f-distancia-real").addEventListener("input", sincroniza
 function iniciarObservacion(){
   var d = state.draft; if(!d) return;
   var btn = document.getElementById("btn-obs-inicio-principal");
-  btn.disabled = true; btn.textContent = "📡 Ubicando...";
+  if(gpsCapturaActiva){ gpsCapturaActiva.cerrarYa(); return; }
+  var tTap = new Date(); // el inicio cuenta desde el toque, no desde que el GPS termina de afinar
+  btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
-    var ahora = new Date();
+    var ahora = tTap;
     d.fecha = ahora.toISOString().slice(0,10);
     d.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
     d.obsInicio = {
       lat: pos ? pos.coords.latitude : null, lon: pos ? pos.coords.longitude : null,
-      accuracy: pos ? pos.coords.accuracy : null, horaTs: Date.now(),
+      accuracy: pos ? pos.coords.accuracy : null, horaTs: tTap.getTime(),
       hora: pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2)+":"+pad(ahora.getSeconds(),2)
     };
     d.obsTermino = null; d.duracionReal = null; d.distanciaReal = null;
@@ -5416,21 +5629,23 @@ function iniciarObservacion(){
     toast(conTracking ? "Seguimiento iniciado" : "Punto de inicio capturado");
   }
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(conPosicion, function(){
+    obtenerPosicionMejorada(btn, "📡 Ubicando", conPosicion, function(){
       toast("No se pudo obtener el GPS.");
       btn.disabled = false; btn.textContent = "📍 Capturar punto de inicio";
-    }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+    });
   } else { btn.disabled = false; conPosicion(null); }
 }
 function terminarObservacion(){
   var d = state.draft; if(!d) return;
   var btn = document.getElementById("btn-obs-termino-principal");
-  btn.disabled = true; btn.textContent = "📡 Ubicando...";
+  if(gpsCapturaActiva){ gpsCapturaActiva.cerrarYa(); return; }
+  var tTap = new Date(); // el término cuenta desde el toque, para no inflar la duración con la espera del GPS
+  btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
-    var ahora = new Date();
+    var ahora = tTap;
     d.obsTermino = {
       lat: pos ? pos.coords.latitude : null, lon: pos ? pos.coords.longitude : null,
-      accuracy: pos ? pos.coords.accuracy : null, horaTs: Date.now(),
+      accuracy: pos ? pos.coords.accuracy : null, horaTs: tTap.getTime(),
       hora: pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2)+":"+pad(ahora.getSeconds(),2)
     };
     var avisoMargen = null;
@@ -5461,20 +5676,22 @@ function terminarObservacion(){
     toast(avisoMargen || "Punto de término capturado", avisoMargen ? 6000 : 2400);
   }
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(conPosicion, function(){ btn.disabled=false; conPosicion(null); }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+    obtenerPosicionMejorada(btn, "📡 Ubicando", conPosicion, function(){ btn.disabled=false; conPosicion(null); });
   } else { btn.disabled = false; conPosicion(null); }
 }
 function capturarPuntoIncidental(){
   var d = state.draft; if(!d) return;
   var btn = document.getElementById("btn-obs-incidental");
-  btn.disabled = true; btn.textContent = "📡 Ubicando...";
+  if(gpsCapturaActiva){ gpsCapturaActiva.cerrarYa(); return; }
+  var tTap = new Date();
+  btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
-    var ahora = new Date();
+    var ahora = tTap;
     d.fecha = ahora.toISOString().slice(0,10);
     d.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
     var punto = {
       lat: pos ? pos.coords.latitude : null, lon: pos ? pos.coords.longitude : null,
-      accuracy: pos ? pos.coords.accuracy : null, horaTs: Date.now(),
+      accuracy: pos ? pos.coords.accuracy : null, horaTs: tTap.getTime(),
       hora: pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2)+":"+pad(ahora.getSeconds(),2)
     };
     d.obsInicio = punto; d.obsTermino = punto;
@@ -5490,10 +5707,10 @@ function capturarPuntoIncidental(){
     toast("Punto capturado");
   }
   if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(conPosicion, function(){
+    obtenerPosicionMejorada(btn, "📡 Ubicando", conPosicion, function(){
       toast("No se pudo obtener el GPS.");
       btn.disabled = false; btn.textContent = "📍 Capturar punto";
-    }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+    });
   } else { btn.disabled = false; conPosicion(null); }
 }
 document.getElementById("btn-obs-incidental").addEventListener("click", function(){
@@ -6248,7 +6465,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   if(!sesionPorId(state.draft.sesionId)){
     // Ultima linea de defensa: la sesion de este borrador ya no existe (por la razon que sea) —
     // se reasigna a la sesion activa en vez de guardar silenciosamente un registro huerfano.
-    state.draft.sesionId = state.sesionActivaId;
+    state.draft.sesionId = (state.sesionActivaId || asegurarSesionActiva().id);
     toast("⚠️ La sesión de este registro ya no existía — se asignó a la sesión activa actual", 5000);
   }
   var codigoActual = (state.draft.codigo||"").trim();
@@ -6321,7 +6538,7 @@ function eliminarSesionVacia(id){
     var nueva = candidatas[0];
     nueva.archivada = false;
     state.sesionActivaId = nueva.id;
-    setLS(LSK.act, state.sesionActivaId);
+    guardarSesionActivaLS();
     toast('Sesión eliminada. Ahora la activa es "'+nombreSesionMostrar(nueva)+'"');
   } else {
     toast("Sesión eliminada");
@@ -6368,7 +6585,7 @@ function renderExportar(){
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
   var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
-  var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId];
+  var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : "")];
   box.innerHTML = ordenadas.map(function(s){
     var esActiva = s.id===state.sesionActivaId;
     var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + (s.fechaIni||s.creada.slice(0,10));
@@ -7011,7 +7228,7 @@ document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   state.sesiones = [nueva];
   state.sesionActivaId = nueva.id;
   state.sesionEnPantallaId = nueva.id;
-  guardarRegistros(); guardarListaSesiones(); guardarDraft(); setLS(LSK.act, state.sesionActivaId);
+  guardarRegistros(); guardarListaSesiones(); guardarDraft(); guardarSesionActivaLS();
   toast("Todo eliminado — sesión reiniciada");
   renderConfig();
 });
@@ -7069,7 +7286,9 @@ function init(){
   var vistasRestaurables = ["sesion","lista","exportar","config"];
   var ultimaVista = null;
   try{ ultimaVista = sessionStorage.getItem("libretacampo_ultima_vista"); }catch(e){}
-  irA(vistasRestaurables.indexOf(ultimaVista)>=0 ? ultimaVista : "sesion");
+  iniciarHistorialApp();
+  irA(vistasRestaurables.indexOf(ultimaVista)>=0 ? ultimaVista : "sesion", {sinHistorial:true});
+  sincronizarVistaHistorial();
 }
 init();
 
@@ -7090,6 +7309,7 @@ if("serviceWorker" in navigator && (location.protocol === "https:" || location.h
       navigator.serviceWorker.addEventListener("controllerchange", function(){
         if(recargando) return;
         recargando = true;
+        window.__lcRecargaPermitida = true;
         window.location.reload();
       });
     }).catch(function(){});
