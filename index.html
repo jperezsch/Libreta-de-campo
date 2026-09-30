@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Libreta Campo">
 <style>
 :root{
-  --verde:#2d5f3f; --verde-osc:#1e4029; --verde-cl:#e8f1ea;
+  --verde:#2d5f3f; --verde-osc:#1e4029; --verde-cl:#e8f1ea; --cons-sesion:#0b5c8a;
   --ambar:#c9962c; --ambar-osc:#a97c1e; --fondo:#f7f5f0; --card:#ffffff;
   --texto:#2b2b28; --texto-sec:#6b6b64; --borde:#dedad0;
   --rojo:#b5473a; --azul:#2f6690;
@@ -22,7 +22,7 @@
 }
 /* ---- Modo alto contraste / pleno sol ---- */
 html[data-tema="sol"]{
-  --verde:#1a4a2c; --verde-osc:#0f3319; --verde-cl:#cfe6d6;
+  --verde:#1a4a2c; --verde-osc:#0f3319; --verde-cl:#cfe6d6; --cons-sesion:#063f63;
   --ambar:#a06800; --ambar-osc:#7d5100; --fondo:#ffffff; --card:#ffffff;
   --texto:#000000; --texto-sec:#3a3a36; --borde:#8a867a;
   --rojo:#8f2c22; --azul:#164a6b;
@@ -31,7 +31,7 @@ html[data-tema="sol"]{
 }
 /* ---- Modo oscuro / baja luminosidad ---- */
 html[data-tema="noche"]{
-  --verde:#5fa87d; --verde-osc:#8fd1ab; --verde-cl:#1c3226;
+  --verde:#5fa87d; --verde-osc:#8fd1ab; --verde-cl:#1c3226; --cons-sesion:#7cc4f2;
   --ambar:#d9a441; --ambar-osc:#c48f2c; --fondo:#15140f; --card:#221f19;
   --texto:#e8e5da; --texto-sec:#a29c8c; --borde:#3a362c;
   --rojo:#e0806f; --azul:#7fb3d9;
@@ -135,7 +135,9 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 .tipo-btn.on{background:var(--verde); color:#fff; border-color:var(--verde); font-weight:700;}
 .colector-todos{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px dashed var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
 .colector-todos.on{background:var(--verde-cl); color:var(--verde-osc); border-color:var(--verde);}
-.cons-tipo{font-size:.95rem; font-weight:800; color:var(--texto);}
+.cons-sesion{font-size:1.1rem; font-weight:800; line-height:1.3; color:var(--cons-sesion); margin-bottom:8px;}
+.cons-tipo{font-size:.8rem; font-weight:600; color:var(--texto-sec);}
+.cons-sesion-estado{font-size:.72rem; font-weight:600; color:var(--texto-sec); margin-left:4px; white-space:nowrap;}
 .consulta-opcion{display:flex; align-items:center; gap:12px; padding:13px 14px; border:1.5px solid var(--borde); border-radius:12px; background:var(--card); margin:0 0 12px; font-size:.95rem; cursor:pointer;}
 .consulta-opcion input{width:22px; height:22px; flex:none;}
 .consulta-opcion.desactivada{opacity:.55;}
@@ -770,6 +772,15 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
         <button type="button" class="btnfull btn-primary" style="width:auto; margin:0; padding:0 16px; font-size:.85rem;" id="btn-reparar-huerfanos">Asignar todos aquí</button>
       </div>
     </div>
+    <div id="panel-fechas" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;">
+      <div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">🕒 Fechas posiblemente desfasadas</div>
+      <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Hasta la versión 2.32 la fecha se guardaba en hora universal (UTC), por lo que los registros tomados por la tarde-noche (desde las 20:00 o 21:00 hasta la medianoche) quedaron con la fecha de un día después. Revisa la propuesta de cada uno; vienen marcados solo los que su fecha de creación respalda.</div>
+      <div id="lista-fechas"></div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button type="button" class="btnfull btn-primary" style="margin:0; font-size:.85rem; padding:11px;" id="btn-corregir-fechas">Corregir marcados</button>
+        <button type="button" class="btnfull btn-secondary" style="margin:0; font-size:.85rem; padding:11px;" id="btn-revisadas-fechas">Dejar todos como están</button>
+      </div>
+    </div>
     <div class="section-title">Exportar sesiones seleccionadas</div>
     <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Registros (.zip)</button>
     <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv)</button>
@@ -807,8 +818,8 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   <div class="pad">
     <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Mantener la pantalla encendida</span></label>
     <div class="narr-entrada" id="consulta-tarjeta"></div>
-    <label class="consulta-opcion" style="margin-top:12px;"><input type="checkbox" id="consulta-transcrito"><span>✍️ Ya transcrito en libreta manuscrita</span></label>
-    <div style="height:90px;"></div>
+    <label class="consulta-opcion" style="margin-top:12px;"><input type="checkbox" id="consulta-transcrito"><span>✍️ Ya transcrito en libreta física</span></label>
+    <div id="consulta-espacio" style="height:calc(190px + env(safe-area-inset-bottom, 0px));"></div>
   </div>
   <div class="savebar on" id="consulta-actions">
     <button type="button" class="btnfull btn-secondary" style="flex:1; margin:0;" id="btn-consulta-volver">← Volver</button>
@@ -3406,7 +3417,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-29 · v2.31";
+var APP_BUILD = "2026-09-29 · v2.33";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3533,6 +3544,11 @@ function nombreSesionMostrar(s){
   return "Sesión sin nombre" + (idx > 0 ? " " + (idx+1) : "");
 }
 
+// Fecha y hora LOCALES del teléfono. toISOString() entrega la fecha en UTC: en Chile (3 a 4 horas detrás de UTC)
+// eso adelanta un día la fecha de todo lo registrado entre las 20:00/21:00 y la medianoche.
+function fechaLocalISO(d){ d = d || new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1,2)+"-"+pad(d.getDate(),2); }
+function horaLocalHM(d){ d = d || new Date(); return pad(d.getHours(),2)+":"+pad(d.getMinutes(),2); }
+function fechaSesion(s){ return s.fechaIni || fechaLocalISO(new Date(s.creada)); }
 function uid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function pad(n,l){ n=String(n); while(n.length<l) n="0"+n; return n; }
 function toast(msg, duracion){
@@ -4035,7 +4051,7 @@ function renderSelectorSesiones(){
   var sel = document.getElementById("ss-selector-sesion");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   sel.innerHTML = ordenadas.map(function(s){
-    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + (s.fechaIni||s.creada.slice(0,10));
+    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + fechaSesion(s);
     return '<option value="'+s.id+'"'+(s.id===state.sesionEnPantallaId?" selected":"")+'>'+escapeHtml(etiqueta)+'</option>';
   }).join("");
 }
@@ -4100,7 +4116,7 @@ document.getElementById("btn-guardar-sesion").addEventListener("click", function
   if(nombreActual){
     var duplicada = state.sesiones.find(function(x){ return x.id!==s.id && (x.proyecto||"").trim().toLowerCase()===nombreActual.toLowerCase(); });
     if(duplicada){
-      var fechaDup = duplicada.fechaIni||duplicada.creada.slice(0,10);
+      var fechaDup = fechaSesion(duplicada);
       if(!confirm('Ya existe otra sesión llamada "'+nombreActual+'" (del '+fechaDup+'). ¿Guardar igual con este mismo nombre?')) return;
     }
   }
@@ -4218,7 +4234,7 @@ function renderSelectorListaSesiones(){
   var sel = document.getElementById("lista-selector-sesion");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   var opciones = '<option value="">Todas las sesiones</option>' + ordenadas.map(function(s){
-    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + (s.fechaIni||s.creada.slice(0,10));
+    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + fechaSesion(s);
     return '<option value="'+s.id+'">'+escapeHtml(etiqueta)+'</option>';
   }).join("");
   sel.innerHTML = opciones;
@@ -4819,7 +4835,7 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
     var a = document.createElement("a");
     var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
     var sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
-    a.href = url; a.download = "LibretaDeCampo_"+sufijo+"_"+new Date().toISOString().slice(0,10)+".zip";
+    a.href = url; a.download = "LibretaDeCampo_"+sufijo+"_"+fechaLocalISO()+".zip";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     btn.disabled = false; btn.textContent = "📦 Descargar registros y fotos (.zip)";
@@ -4882,8 +4898,8 @@ function iniciarNuevoRegistro(){
   }
   state.draft = {
     id: uid(), codigo: proximoCodigo(sesionActiva()), sesionId: state.sesionActivaId,
-    fecha: ahora.toISOString().slice(0,10),
-    hora: pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2),
+    fecha: fechaLocalISO(ahora), fechaLocal: true,
+    hora: horaLocalHM(ahora),
     lat:"", lon:"", altitud:null, referencia:"", tipo:tipoDefault,
     taxonLibre:"", nind:"", metodo:"", condicion:"", habitat:((sesionActiva() && sesionActiva().habitat) || ""), sustrato:"",
     unidad:"", esfuerzo:"", colector: "", notas:"",
@@ -5326,8 +5342,8 @@ function capturarGPS(){
     state.draft.lon = lon.toFixed(6);
     state.draft.altitud = alt!=null ? Math.round(alt) : null;
     state.draft.precisionGps = accuracy!=null ? accuracy : null;
-    state.draft.fecha = ahora.toISOString().slice(0,10);
-    state.draft.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
+    state.draft.fecha = fechaLocalISO(ahora);
+    state.draft.hora = horaLocalHM(ahora);
     guardarDraft();
     document.getElementById("f-lat").value = state.draft.lat;
     document.getElementById("f-lon").value = state.draft.lon;
@@ -5391,8 +5407,8 @@ function abrirRegistro(){
   cargarDraftEnFormulario(); irA("form");
 }
 
-// Mismo orden que la vista Lista: sesiones según el criterio elegido y, dentro de cada una, el orden manual o por creación.
-// La vista Libreta conserva su orden cronológico.
+// Recorrido de la vista Consulta, de izquierda (más antiguo) a derecha (más reciente). Parte del orden de la vista Lista:
+// sesiones según el criterio elegido y, dentro de cada una, el orden manual o por creación. La vista Libreta ya es cronológica.
 function listaNavegacionConsulta(){
   var lista = obtenerListaFiltrada();
   if(state.vistaRegistros==="narrativa") return lista;
@@ -5405,7 +5421,9 @@ function listaNavegacionConsulta(){
   ids.sort(function(a,b){ return cmp(sesionPorId(a), sesionPorId(b)); });
   var salida = [];
   ids.forEach(function(sid){ salida = salida.concat(ordenarRegistrosDeSesion(sid, porSesion[sid])); });
-  return salida;
+  // La Lista muestra lo más reciente arriba; al deslizar se lee como una línea de tiempo normal:
+  // más antiguos a la izquierda, más recientes a la derecha (respetando también el orden manual, invertido).
+  return salida.reverse();
 }
 function fechaCortaDMA(f){
   var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f||"");
@@ -5419,7 +5437,9 @@ function precisionGpsDeRegistro(r){
 function htmlConsultaRegistro(r){
   var ti = TIPOS[r.tipo]||TIPOS.nota;
   var p = [];
-  p.push('<div class="narr-sesion-badge" style="background:'+colorSesion(r.sesionId)+'22; color:'+colorSesion(r.sesionId)+';">'+iconoSesion(r.sesionId)+' '+escapeHtml(etiquetaSesionCorta(r.sesionId))+'</div>');
+  var sesR = sesionPorId(r.sesionId);
+  p.push('<div class="cons-sesion">'+iconoSesion(r.sesionId)+' '+escapeHtml(sesR ? nombreSesionMostrar(sesR) : "Sesión sin identificar")+
+    (sesR ? ' <span class="cons-sesion-estado">'+(sesR.id===state.sesionActivaId ? "🟢 activa" : "📁 archivada")+'</span>' : '')+'</div>');
   var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (r.notaSubtipo==="operativo" ? " · 📌 Operativo" : " · 📖 Narrativo") : "";
   var derecha = r.codigo ? ('<span class="narr-codigo">'+escapeHtml(r.codigo)+'</span>')
     : (r.notaTitulo ? ('<span style="font-weight:800; color:var(--verde-osc); font-size:.9rem;">'+escapeHtml(r.notaTitulo)+'</span>') : '');
@@ -5527,6 +5547,15 @@ document.addEventListener("visibilitychange", actualizarWakeLock);
     toast(this.checked ? "✍️ Marcado como transcrito" : "Marca de transcrito quitada");
   });
 })();
+// Las barras fijas (Volver/Editar + navegación) tapan el final del contenido cuando hay fotos y hay que desplazar.
+// El espacio final se calcula con su altura real, que varía según el ancho de pantalla (los botones pueden partirse en dos líneas).
+function ajustarEspacioConsulta(){
+  var barra = document.getElementById("consulta-actions"), esp = document.getElementById("consulta-espacio");
+  if(!barra || !esp || barra.offsetParent===null) return;
+  var ocupado = window.innerHeight - barra.getBoundingClientRect().top; // desde el borde superior de la barra hasta el pie de la pantalla
+  if(ocupado > 0 && ocupado < window.innerHeight) esp.style.height = Math.max(120, Math.round(ocupado + 24)) + "px";
+}
+window.addEventListener("resize", ajustarEspacioConsulta);
 function sincronizarOpcionesConsulta(r){
   var chkT = document.getElementById("consulta-transcrito");
   chkT.checked = !!(r && r.transcrito);
@@ -5545,6 +5574,7 @@ function renderConsulta(id){
   var cont = document.getElementById("consulta-tarjeta");
   var posEl = document.getElementById("consulta-posicion");
   sincronizarOpcionesConsulta(r);
+  ajustarEspacioConsulta();
   if(!r){ cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; posEl.textContent = "Solo lectura"; return; }
   var listaNav = listaNavegacionConsulta();
   var idxNav = listaNav.findIndex(function(x){ return x.id===id; });
@@ -5588,7 +5618,7 @@ function navegarConsulta(delta){
   var idx = lista.findIndex(function(r){ return r.id===state.consultaId; });
   if(idx<0) return;
   var nuevoIdx = idx + delta;
-  if(nuevoIdx<0 || nuevoIdx>=lista.length){ toast(delta>0 ? "Es el último registro de la lista" : "Es el primer registro de la lista"); return; }
+  if(nuevoIdx<0 || nuevoIdx>=lista.length){ toast(delta>0 ? "Es el registro más reciente" : "Es el registro más antiguo"); return; }
   state.consultaId = lista[nuevoIdx].id;
   renderConsulta(state.consultaId);
   irSubirInicio();
@@ -5801,8 +5831,8 @@ function iniciarObservacion(){
   btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
     var ahora = tTap;
-    d.fecha = ahora.toISOString().slice(0,10);
-    d.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
+    d.fecha = fechaLocalISO(ahora);
+    d.hora = horaLocalHM(ahora);
     d.obsInicio = {
       lat: pos ? pos.coords.latitude : null, lon: pos ? pos.coords.longitude : null,
       accuracy: pos ? pos.coords.accuracy : null, horaTs: tTap.getTime(),
@@ -5883,8 +5913,8 @@ function capturarPuntoIncidental(){
   btn.textContent = "📡 Ubicando...";
   function conPosicion(pos){
     var ahora = tTap;
-    d.fecha = ahora.toISOString().slice(0,10);
-    d.hora = pad(ahora.getHours(),2)+":"+pad(ahora.getMinutes(),2);
+    d.fecha = fechaLocalISO(ahora);
+    d.hora = horaLocalHM(ahora);
     var punto = {
       lat: pos ? pos.coords.latitude : null, lon: pos ? pos.coords.longitude : null,
       accuracy: pos ? pos.coords.accuracy : null, horaTs: tTap.getTime(),
@@ -6754,7 +6784,7 @@ function renderPanelHuerfanos(){
   var sel = document.getElementById("sel-sesion-huerfanos");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
   sel.innerHTML = ordenadas.map(function(s){
-    return '<option value="'+s.id+'">'+escapeHtml(nombreSesionMostrar(s)+" · "+(s.fechaIni||s.creada.slice(0,10)))+'</option>';
+    return '<option value="'+s.id+'">'+escapeHtml(nombreSesionMostrar(s)+" · "+fechaSesion(s))+'</option>';
   }).join("");
 }
 document.getElementById("btn-reparar-huerfanos").addEventListener("click", function(){
@@ -6768,15 +6798,87 @@ document.getElementById("btn-reparar-huerfanos").addEventListener("click", funct
   renderExportar();
   toast("✅ "+huerfanos.length+" registro(s) reasignado(s)");
 });
+/* ---------------- Reparación de fechas guardadas en UTC (hasta v2.32) ---------------- */
+// Hasta v2.32: fecha = fecha UTC del instante de captura, hora = hora local. Dada la hora local y esa fecha UTC guardada,
+// se busca el día local que produce esa fecha UTC (con las reglas de huso horario del teléfono, horario de verano incluido).
+function fechaLocalDesdeFechaUtc(fechaUtc, hora){
+  var pf = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaUtc||"");
+  var ph = /^(\d{1,2}):(\d{2})/.exec(hora||"");
+  if(!pf || !ph) return null;
+  var orden = [0,-1,1]; // los candidatos se excluyen entre sí; 0 primero por si el huso es UTC
+  for(var i=0;i<orden.length;i++){
+    var d = new Date(+pf[1], +pf[2]-1, +pf[3]+orden[i], +ph[1], +ph[2]);
+    if(d.toISOString().slice(0,10)===fechaUtc) return fechaLocalISO(d);
+  }
+  return null;
+}
+// El identificador del registro contiene el instante en que se creó (evidencia independiente de la fecha guardada)
+function instanteCreacionRegistro(r){
+  var t = r.creadoTs;
+  if(!t){
+    var m = r.id && /^r([0-9a-z]{8})/.exec(String(r.id));
+    if(m){ var v = parseInt(m[1],36); if(v>1.4e12 && v<4.1e12) t = v; }
+  }
+  return t ? new Date(t) : null;
+}
+function registrosConFechaDesfasada(){
+  var salida = [];
+  state.registros.forEach(function(r){
+    if(r.fechaLocal) return; // guardado con la corrección o ya revisado
+    var propuesta = fechaLocalDesdeFechaUtc(r.fecha, r.hora);
+    if(!propuesta || propuesta===r.fecha) return;
+    var creado = instanteCreacionRegistro(r);
+    salida.push({r:r, propuesta:propuesta, creado:creado, apoya: creado ? (fechaLocalISO(creado)===propuesta) : null});
+  });
+  return salida;
+}
+function renderPanelFechas(){
+  var panel = document.getElementById("panel-fechas");
+  var lista = registrosConFechaDesfasada();
+  if(!lista.length){ panel.style.display = "none"; return; }
+  panel.style.display = "block";
+  document.getElementById("lista-fechas").innerHTML = lista.map(function(c){
+    var r = c.r, ti = TIPOS[r.tipo]||TIPOS.nota;
+    var titulo = r.codigo ? r.codigo : (r.notaTitulo || "Nota");
+    var ev = c.creado
+      ? ('Se creó el '+fechaCortaDMA(fechaLocalISO(c.creado))+' a las '+horaLocalHM(c.creado)+(c.apoya ? ' (respalda la corrección)' : ' (no coincide con la propuesta)'))
+      : 'Sin dato de creación: solo la hora sugiere el desfase';
+    return '<label style="display:flex; gap:10px; align-items:flex-start; font-size:.82rem; padding:7px 0; border-bottom:1px dashed var(--borde);">'+
+      '<input type="checkbox" class="chk-fecha-corr" data-id="'+escapeHtml(r.id)+'" style="width:20px; height:20px; flex:none; margin-top:2px;"'+(c.apoya===true?' checked':'')+'>'+
+      '<span><b>'+escapeHtml(titulo)+'</b> · '+ti.label+'<br>'+escapeHtml(fechaCortaDMA(r.fecha))+' · '+escapeHtml(r.hora||"")+' → <b>'+escapeHtml(fechaCortaDMA(c.propuesta))+'</b><br>'+
+      '<span style="color:var(--texto-sec);">'+escapeHtml(ev)+'</span></span></label>';
+  }).join("");
+}
+document.getElementById("btn-corregir-fechas").addEventListener("click", function(){
+  var marcados = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".chk-fecha-corr:checked"), function(c){ marcados[c.dataset.id] = true; });
+  var aplicar = registrosConFechaDesfasada().filter(function(c){ return marcados[c.r.id]; });
+  if(!aplicar.length){ toast("Marca al menos un registro"); return; }
+  if(!confirm("¿Corregir la fecha de "+aplicar.length+" registro(s) según la propuesta? Esto no se puede deshacer.")) return;
+  aplicar.forEach(function(c){ c.r.fecha = c.propuesta; c.r.fechaLocal = true; });
+  guardarRegistros();
+  renderPanelFechas();
+  toast("✅ "+aplicar.length+" fecha(s) corregida(s)");
+});
+document.getElementById("btn-revisadas-fechas").addEventListener("click", function(){
+  var lista = registrosConFechaDesfasada();
+  if(!lista.length) return;
+  if(!confirm("¿Dejar las fechas de estos "+lista.length+" registro(s) como están? Dejarán de mostrarse en este aviso.")) return;
+  lista.forEach(function(c){ c.r.fechaLocal = true; });
+  guardarRegistros();
+  renderPanelFechas();
+  toast("Registros marcados como revisados");
+});
 function renderExportar(){
   renderPanelHuerfanos();
+  renderPanelFechas();
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
   var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
   var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : "")];
   box.innerHTML = ordenadas.map(function(s){
     var esActiva = s.id===state.sesionActivaId;
-    var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + (s.fechaIni||s.creada.slice(0,10));
+    var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + fechaSesion(s);
     var badgeActiva = esActiva ? '<span class="badge-activa">ACTIVA</span>' : "";
     var expandida = state.sesionGestionId === s.id;
     var panelHtml = expandida ? renderPanelGestionSesion(s.id) : "";
@@ -6842,7 +6944,7 @@ function actualizarStatsExportar(){
   var ids = sesionesSeleccionadasExportar();
   var seleccionados = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0; });
   document.getElementById("stat-total").textContent = seleccionados.length;
-  var hoy = new Date().toISOString().slice(0,10);
+  var hoy = fechaLocalISO();
   document.getElementById("stat-hoy").textContent = seleccionados.filter(function(r){return r.fecha===hoy;}).length;
 }
 
@@ -7172,7 +7274,7 @@ document.getElementById("btn-descargar-dwc").addEventListener("click", function(
   var a = document.createElement("a");
   var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
   var sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
-  a.href = url; a.download = "LibretaDeCampo_DarwinCore_"+sufijo+"_"+new Date().toISOString().slice(0,10)+".csv";
+  a.href = url; a.download = "LibretaDeCampo_DarwinCore_"+sufijo+"_"+fechaLocalISO()+".csv";
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   toast("✅ Darwin Core (.csv) descargado — "+filas.length+" fila(s)");
@@ -7244,7 +7346,7 @@ document.getElementById("btn-export-xlsx-medicion").addEventListener("click", fu
   wsInfo['!cols'] = [{wch:100}];
   XLSX.utils.book_append_sheet(wb, wsInfo, "Instrucciones");
 
-  var nombreArchivo = "LibretaDeCampo_Medicion_"+new Date().toISOString().slice(0,10)+".xlsx";
+  var nombreArchivo = "LibretaDeCampo_Medicion_"+fechaLocalISO()+".xlsx";
   XLSX.writeFile(wb, nombreArchivo);
   toast("✅ Planilla de Medición generada — "+filas.length+" individuo(s)");
 });
@@ -7371,7 +7473,7 @@ document.getElementById("btn-descargar-unificado").addEventListener("click", fun
   var data = {sesiones:combinado.sesiones, sesionActivaId:state.sesionActivaId, registros:combinado.registros};
   var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   var url = URL.createObjectURL(blob); var a = document.createElement("a");
-  a.href=url; a.download="LibretaDeCampo_respaldo_unificado_"+new Date().toISOString().slice(0,10)+".json";
+  a.href=url; a.download="LibretaDeCampo_respaldo_unificado_"+fechaLocalISO()+".json";
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   toast("Respaldo unificado descargado");
 });
@@ -7475,6 +7577,8 @@ function init(){
   var ultimaVista = null;
   try{ ultimaVista = sessionStorage.getItem("libretacampo_ultima_vista"); }catch(e){}
   iniciarHistorialApp();
+  var nFechas = registrosConFechaDesfasada().length;
+  if(nFechas) setTimeout(function(){ toast("⚠️ "+nFechas+" registro(s) con fecha posiblemente desfasada. Revísalos en la pestaña Exportar", 6500); }, 900);
   irA(vistasRestaurables.indexOf(ultimaVista)>=0 ? ultimaVista : "sesion", {sinHistorial:true});
   sincronizarVistaHistorial();
 }
