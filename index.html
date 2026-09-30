@@ -165,11 +165,12 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 .narr-entrada{background:var(--card); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:16px; margin-bottom:16px; position:relative;}
 .narr-entrada.draft{border-left-color:var(--ambar); background:#fdf6e8;}
 .narr-entrada.narr-colapsada{padding:10px 16px; margin-bottom:8px;}
-.narr-sesion-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 4px 8px; margin-top:18px; border-bottom:1.5px solid var(--borde);}
+.narr-sesion-header{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:10px 4px 8px; margin-top:18px; border-bottom:1.5px solid var(--borde);}
 .narr-sesion-header:first-child{margin-top:0;}
-.narr-sesion-titulo{font-weight:800; font-size:.92rem; color:var(--texto);}
-.narr-sesion-acciones{display:flex; gap:6px; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;}
-.btn-finalizar-sesion-inline{font-size:.76rem; padding:5px 12px; border-radius:12px; border:1.5px solid var(--ambar); background:var(--card); color:var(--ambar-osc); cursor:pointer; white-space:nowrap; font-weight:700;}
+.narr-sesion-titulo{flex:1; min-width:0; font-weight:800; font-size:.92rem; line-height:1.35; color:var(--texto); overflow-wrap:anywhere; padding-top:5px;}
+.narr-sesion-acciones{display:flex; flex-direction:column; align-items:stretch; gap:6px; flex-shrink:0;}
+.narr-sesion-acciones button{text-align:center;}
+.btn-finalizar-sesion-inline{font-size:.76rem; padding:5px 10px; border-radius:12px; border:1.5px solid var(--ambar); background:var(--card); color:var(--ambar-osc); cursor:pointer; white-space:nowrap; font-weight:700;}
 .btn-restaurar-orden{font-size:.76rem; padding:5px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto-sec); cursor:pointer; white-space:nowrap;}
 .reg-handle{display:flex; align-items:center; justify-content:center; width:34px; min-width:34px; font-size:1.3rem; color:var(--texto-sec); touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none; border-radius:8px; background:var(--borde);}
 .card.arrastrando{opacity:.85; box-shadow:0 8px 22px rgba(0,0,0,.28); position:relative; z-index:5; transition:none;}
@@ -178,7 +179,7 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 .campo-aviso-codigo{display:none; margin:6px 12px 0; padding:7px 10px; border-radius:9px; font-size:.78rem; font-weight:600;}
 .campo-aviso-codigo.warn{background:rgba(217,119,6,.14); color:var(--ambar-osc); border:1px solid var(--ambar);}
 .campo-aviso-codigo.info{background:rgba(45,95,63,.10); color:var(--verde-osc); border:1px solid var(--borde);}
-.btn-colapsar-sesion{font-size:.76rem; padding:5px 12px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto-sec); cursor:pointer; white-space:nowrap;}
+.btn-colapsar-sesion{font-size:.76rem; padding:5px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto-sec); cursor:pointer; white-space:nowrap;}
 .narr-toggle{position:absolute; top:12px; right:12px; width:26px; height:26px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--fondo); color:var(--texto-sec); cursor:pointer; font-size:.85rem; user-select:none;}
 .narr-resumen-colapsado{font-size:.85rem; color:var(--texto); padding-right:32px;}
 .narr-resumen-colapsado .tag{font-size:.72rem; color:var(--texto-sec); margin-right:4px;}
@@ -783,8 +784,9 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
     <div class="section-title">Exportar sesiones seleccionadas</div>
     <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Registros (.zip)</button>
-    <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv)</button>
-    <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos.</p>
+    <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc-xlsx">🧬 Darwin Core (.xlsx) · para Excel</button>
+    <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv) · para GBIF y otros</button>
+    <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos. Excel a veces muestra mal las tildes de un .csv (aparecen como «Ã³», «Ã­»…); para abrirlo en Excel usa el .xlsx.</p>
     <div class="section-title">Registros de medición</div>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
     <div class="section-title">Respaldo e importación</div>
@@ -3417,7 +3419,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-29 · v2.33";
+var APP_BUILD = "2026-09-30 · v2.34";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4416,7 +4418,7 @@ function renderListaTarjetas(lista, justSavedId){
         '<div class="reg-meta">Toca para continuar y completarlo'+iconoFotosHtml(state.draft)+'</div>'+
       '</div><div class="reg-actions"><span class="btn-icon" style="border-color:var(--ambar); color:var(--ambar);">▸</span></div></div>') : "";
   var sActivaVacia = (lista.length===0 && sesionActiva() && !state.filtroSesionLista && !state.filtroTipo && !(document.getElementById("buscador").value||"").trim())
-    ? '<div class="narr-sesion-header"><span class="narr-sesion-titulo">'+iconoSesion(state.sesionActivaId)+' '+escapeHtml(etiquetaSesionCorta(state.sesionActivaId))+' <span style="font-weight:400; color:var(--texto-sec);">(0)</span></span><span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(state.sesionActivaId)+'</span></div>' : "";
+    ? '<div class="narr-sesion-header"><span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(state.sesionActivaId))+' <span style="font-weight:400; color:var(--texto-sec);">(0)</span></span><span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(state.sesionActivaId)+'</span></div>' : "";
   if(lista.length===0){
     cont.innerHTML = sActivaVacia + htmlDraft + '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>';
   } else {
@@ -4434,7 +4436,7 @@ function renderListaTarjetas(lista, justSavedId){
       var sesG = sesionPorId(g.sesionId);
       var restaurarHtml = (modoReordenarRegistros && sesG && sesG.ordenRegistros) ? '<button type="button" class="btn-restaurar-orden" data-restaurar-orden="'+escapeHtml(g.sesionId)+'">↺ Orden por fecha</button>' : '';
       var headerHtml = '<div class="narr-sesion-header">' +
-        '<span class="narr-sesion-titulo">'+iconoSesion(g.sesionId)+' '+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
+        '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
         '<span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+
         '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button></span>' +
       '</div>';
@@ -4635,7 +4637,7 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
     var idsGrupo = g.registros.map(function(r){return r.id;});
     var todosColapsados = idsGrupo.every(function(id){ return narrColapsadas.has(id); });
     var headerHtml = '<div class="narr-sesion-header">' +
-      '<span class="narr-sesion-titulo">'+iconoSesion(g.sesionId)+' '+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
+      '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
       '<span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(g.sesionId)+
       '<button type="button" class="btn-colapsar-sesion" data-sesion="'+escapeHtml(g.sesionId)+'">'+(todosColapsados?'▾ Expandir todas':'▸ Colapsar todas')+'</button></span>' +
     '</div>';
@@ -7262,22 +7264,50 @@ function filasACsv(cols, filas){
   filas.forEach(function(f){ lineas.push(cols.map(function(c){ return celdaCsv(f[c]); }).join(",")); });
   return lineas.join("\r\n");
 }
-document.getElementById("btn-descargar-dwc").addEventListener("click", function(){
+// Selección, filas y nombre comunes a las descargas .csv y .xlsx
+function prepararDescargaDwc(){
   var ids = sesionesSeleccionadasExportar();
-  if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return; }
+  if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return null; }
   var registrosFiltrados = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0; });
   var filas = construirFilasDarwinCore(registrosFiltrados);
-  if(filas.length===0){ toast("Las sesiones elegidas no tienen registros de Recolección u Observación"); return; }
-  var csv = "\ufeff" + filasACsv(COLS_DWC, filas);
+  if(filas.length===0){ toast("Las sesiones elegidas no tienen registros de Recolección u Observación"); return null; }
+  var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
+  var sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
+  return {filas:filas, sufijo:sufijo};
+}
+document.getElementById("btn-descargar-dwc").addEventListener("click", function(){
+  var d = prepararDescargaDwc(); if(!d) return;
+  // BOM UTF-8 al inicio: es lo que permite a Excel de Windows reconocer las tildes. Otras versiones de Excel
+  // (Mac, web, móvil) pueden ignorarlo; para esos casos existe la descarga .xlsx.
+  var csv = "\ufeff" + filasACsv(COLS_DWC, d.filas);
   var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
-  var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
-  var sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
-  a.href = url; a.download = "LibretaDeCampo_DarwinCore_"+sufijo+"_"+fechaLocalISO()+".csv";
+  a.href = url; a.download = "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".csv";
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  toast("✅ Darwin Core (.csv) descargado — "+filas.length+" fila(s)");
+  toast("✅ Darwin Core (.csv) descargado — "+d.filas.length+" fila(s)");
+});
+// .xlsx: Excel siempre lo lee como Unicode, sin depender de la codificación. Cifras como números, el resto como texto
+// (así fechas ISO y códigos como "JP-001" no son reinterpretados por Excel).
+var COLS_DWC_NUMERICAS = {individualCount:1, decimalLatitude:1, decimalLongitude:1, verbatimElevation:1, sampleSizeValue:1};
+var ANCHOS_DWC = {basisOfRecord:17, fieldNumber:12, scientificName:28, locality:26, verbatimLocality:28, eventDate:18, recordedBy:24, habitat:28, samplingProtocol:22, occurrenceRemarks:40, associatedMedia:36, references:24, institutionCode:14};
+function valorCeldaDwcXlsx(col, v){
+  if(v==null || v==="") return null;
+  var t = String(v).trim();
+  if(COLS_DWC_NUMERICAS[col] && /^-?\d+([.,]\d+)?$/.test(t)) return Number(t.replace(",","."));
+  return String(v);
+}
+document.getElementById("btn-descargar-dwc-xlsx").addEventListener("click", function(){
+  var d = prepararDescargaDwc(); if(!d) return;
+  var aoa = [COLS_DWC].concat(d.filas.map(function(f){ return COLS_DWC.map(function(c){ return valorCeldaDwcXlsx(c, f[c]); }); }));
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = COLS_DWC.map(function(c){ return {wch: ANCHOS_DWC[c] || 14}; });
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:aoa.length-1, c:COLS_DWC.length-1}})};
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "DarwinCore");
+  XLSX.writeFile(wb, "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".xlsx");
+  toast("✅ Darwin Core (.xlsx) descargado — "+d.filas.length+" fila(s)");
 });
 
 document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
