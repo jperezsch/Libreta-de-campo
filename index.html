@@ -427,15 +427,15 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 /* v2.35: sugerencias de localidad/estación, flechas de Consultando, registros sueltos */
 .chips-sug{display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;}
 .chips-sug:empty{display:none;}
-.chip-sug{font-size:.78rem; padding:5px 11px; border-radius:14px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); cursor:pointer; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.chip-sug.on{background:var(--verde-cl); border-color:var(--verde); color:var(--verde-osc); font-weight:700;}
-.btn-repetir{background:none; border:none; padding:6px 0 0; color:var(--verde); font-size:.8rem; font-weight:700; cursor:pointer; text-decoration:underline;}
+.chip-sug{font-size:.92rem; min-height:40px; padding:8px 15px; border-radius:20px; border:2px solid var(--verde); background:var(--verde-cl); color:var(--verde-osc); cursor:pointer; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;}
+.chip-sug.on{background:var(--verde); border-color:var(--verde); color:#fff; font-weight:700;}
+.chips-sug{gap:8px;}
 .preview-loc{display:block; font-size:.76rem; color:var(--texto-sec); margin-top:6px;}
-.cons-flecha{position:fixed; top:50%; transform:translateY(-50%); z-index:30; width:30px; height:56px; display:flex; align-items:center; justify-content:center; font-size:1.9rem; line-height:1; color:var(--texto); opacity:.22; background:transparent; border:none; padding:0; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;}
-.cons-flecha:active{opacity:.5;}
-.cons-flecha.sin-destino{opacity:.07; pointer-events:none;}
-.cons-flecha-izq{left:0;}
-.cons-flecha-der{right:0;}
+.cons-flecha{position:fixed; top:50%; transform:translateY(-50%); z-index:30; width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.1rem; line-height:1; padding:0 0 4px; color:#fff; background:rgba(30,64,41,.55); border:2px solid rgba(255,255,255,.55); box-shadow:0 1px 6px rgba(0,0,0,.28); opacity:.85; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;}
+.cons-flecha:active{opacity:1; background:rgba(30,64,41,.8);}
+.cons-flecha.sin-destino{opacity:.25; pointer-events:none;}
+.cons-flecha-izq{left:5px;}
+.cons-flecha-der{right:5px;}
 .sueltos-grupo{border:1.5px solid var(--borde); border-radius:10px; margin:8px 0; background:var(--card);}
 .sueltos-grupo-cab{display:flex; align-items:center; gap:8px; padding:9px 10px; font-weight:700; font-size:.85rem; border-bottom:1px solid var(--borde);}
 .sueltos-fila{display:flex; align-items:center; gap:8px; padding:7px 10px; font-size:.82rem; border-top:1px solid var(--borde);}
@@ -633,6 +633,56 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       </div>
     </div>
 
+    <div id="seccion-fotos">
+    <div class="section-title"><span class="n">📷</span>Fotografías</div>
+    <div class="foto-btns">
+      <button type="button" class="btnfull btn-amber" style="margin:0;" id="btn-tomar-foto">📷 Tomar foto</button>
+      <button type="button" class="btnfull btn-secondary" style="margin:0;" id="btn-galeria-foto">🖼 Seleccionar desde galería</button>
+    </div>
+    <input type="file" id="f-input-camara" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="f-input-galeria" accept="image/*" multiple style="display:none;">
+    <div id="fotos-lista"></div>
+    </div>
+
+    <div id="identificacion-individual">
+    <div class="section-title"><span class="n">🔎</span>Identificación</div>
+    <div class="nota">Usa el taxón preliminar más inclusivo posible, idealmente especie o género. Comentarios adicionales deben ir al final, en el campo <b>Notas</b>.</div>
+    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
+    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
+    <div class="field"><label>Condición / conservación</label>
+      <select id="f-condicion">
+        <option value="">—</option>
+        <option value="seco">Seco</option>
+        <option value="etanol70">Etanol 70%</option>
+        <option value="etanol96">Etanol 96%</option>
+        <option value="etanol_absoluto">Etanol absoluto</option>
+        <option value="formaldehido">Formaldehído</option>
+        <option value="congelado">Congelado</option>
+        <option value="glicerina">Glicerina</option>
+        <option value="vivo_liberado">Vivo / liberado</option>
+        <option value="fotografiado_sin_coleccion">Fotografiado (sin colecta)</option>
+        <option value="muerto_hallado_sin_coleccion">Muerto / hallado (sin colecta)</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
+    </div>
+
+    <div class="section-title" id="titulo-ubicacion"><span class="n">📍</span>Ubicación</div>
+    <div id="bloque-localidad-estacion">
+      <div class="field"><label>Localidad puntual</label>
+        <input type="text" id="f-localidad-puntual" spellcheck="true" list="dl-localidad-puntual" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
+        <datalist id="dl-localidad-puntual"></datalist>
+        <div class="chips-sug" id="chips-localidad-puntual"></div>
+        <span class="preview-loc" id="preview-localidad"></span>
+      </div>
+      <div class="field"><label>Estación <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
+        <input type="text" id="f-estacion" list="dl-estacion" autocomplete="off" placeholder="Código o nombre de la estación">
+        <datalist id="dl-estacion"></datalist>
+        <div class="chips-sug" id="chips-estacion"></div>
+      </div>
+    </div>
+
     <div id="seccion-ubicacion-general">
     <button type="button" class="btnfull btn-amber" id="btn-gps" style="padding:18px; font-size:1.1rem; margin-top:16px;">📍 Capturar ubicación</button>
     <div class="gpsbox" id="gpsbox">
@@ -648,22 +698,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       </div>
       <div class="field" style="margin-top:10px;"><label>Altitud (m)</label><input type="text" id="f-altitud"></div>
     </div>
-    </div>
-
-    <div id="bloque-localidad-estacion" style="margin-top:14px;">
-      <div class="field"><label>Localidad puntual <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
-        <input type="text" id="f-localidad-puntual" spellcheck="true" list="dl-localidad-puntual" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
-        <datalist id="dl-localidad-puntual"></datalist>
-        <div class="chips-sug" id="chips-localidad-puntual"></div>
-        <button type="button" class="btn-repetir" id="btn-repetir-localidad">↺ Repetir la del registro anterior</button>
-        <span class="preview-loc" id="preview-localidad"></span>
-      </div>
-      <div class="field"><label>Estación <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
-        <input type="text" id="f-estacion" list="dl-estacion" autocomplete="off" placeholder="Código o nombre de la estación">
-        <datalist id="dl-estacion"></datalist>
-        <div class="chips-sug" id="chips-estacion"></div>
-        <button type="button" class="btn-repetir" id="btn-repetir-estacion">↺ Repetir la del registro anterior</button>
-      </div>
     </div>
 
     <div id="obs-principal" style="display:none; margin-top:16px;">
@@ -709,48 +743,15 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <datalist id="dl-localidad-individuo"></datalist>
     </div>
 
-    <div class="row2" id="fecha-hora-row" style="margin-top:14px; display:none;">
-      <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
-      <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
-    </div>
     <div id="habitat-microhabitat-principal">
     <div class="field" style="margin-top:14px;"><label>Microhábitat</label><input type="text" id="f-referencia" spellcheck="true" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
     </div>
 
-    <div id="identificacion-individual">
-    <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="nota">Usa el taxón preliminar más inclusivo posible, idealmente especie o género. Comentarios adicionales deben ir al final, en el campo <b>Notas</b>.</div>
-    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
-    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
-    <div class="field"><label>Condición / conservación</label>
-      <select id="f-condicion">
-        <option value="">—</option>
-        <option value="seco">Seco</option>
-        <option value="etanol70">Etanol 70%</option>
-        <option value="etanol96">Etanol 96%</option>
-        <option value="etanol_absoluto">Etanol absoluto</option>
-        <option value="formaldehido">Formaldehído</option>
-        <option value="congelado">Congelado</option>
-        <option value="glicerina">Glicerina</option>
-        <option value="vivo_liberado">Vivo / liberado</option>
-        <option value="fotografiado_sin_coleccion">Fotografiado (sin colecta)</option>
-        <option value="muerto_hallado_sin_coleccion">Muerto / hallado (sin colecta)</option>
-        <option value="otro">Otro</option>
-      </select>
+    <div class="row2" id="fecha-hora-row" style="margin-top:14px; display:none;">
+      <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
     </div>
-    <div class="switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
-    </div>
-
     <div id="seccion-fotos-notas">
-    <div class="section-title"><span class="n">📷</span>Fotografías</div>
-    <div class="foto-btns">
-      <button type="button" class="btnfull btn-amber" style="margin:0;" id="btn-tomar-foto">📷 Tomar foto</button>
-      <button type="button" class="btnfull btn-secondary" style="margin:0;" id="btn-galeria-foto">🖼 Seleccionar desde galería</button>
-    </div>
-    <input type="file" id="f-input-camara" accept="image/*" capture="environment" style="display:none;">
-    <input type="file" id="f-input-galeria" accept="image/*" multiple style="display:none;">
-    <div id="fotos-lista"></div>
-
     <div id="metodo-principal" class="field" style="margin-top:14px;"><label>Método de recolección</label>
       <select id="f-metodo">
         <option value="">—</option>
@@ -3470,7 +3471,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-30 · v2.35";
+var APP_BUILD = "2026-10-01 · v2.36";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -4959,7 +4960,7 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
       if(!dataURL) return;
       var conExif = incrustarExif(dataURL, item.foto.comentario, item.registro.lat, item.registro.lon, item.registro.altitud);
       var base64 = conExif.split(",")[1];
-      var filename = nombreUnico(sanitizarNombreArchivo(item.registro.codigo || item.registro.id)+"__"+sanitizarNombreArchivo(item.foto.nombre)+".jpg");
+      var filename = nombreUnico(sanitizarNombreArchivo(item.registro.codigo || item.registro.id)+"__"+sanitizarNombreFoto(item.foto.nombre)+".jpg");
       carpetaFotos.file(filename, base64, {base64:true});
     }).catch(function(){});
   });
@@ -5881,6 +5882,11 @@ function renderBloqueEspecifico(){
 }
 
 /* ---------------- Observación: pantalla adaptada según tipo, con desplegable de preconfiguración ---------------- */
+function mostrarSeccionFotosNotas(visible){
+  var v = visible ? "block" : "none";
+  document.getElementById("seccion-fotos").style.display = v;
+  document.getElementById("seccion-fotos-notas").style.display = v;
+}
 function ajustarPantallaSegunTipo(tipo){
   var esObs = tipo === "observacion";
   var esMed = tipo === "medicion";
@@ -5899,7 +5905,7 @@ function ajustarPantallaSegunTipo(tipo){
   document.getElementById("codigo-banner-wrap").style.display = esNota ? "none" : "inline";
   if(!esObs){
     document.getElementById("obs-tracking-flotante").style.display = "none";
-    document.getElementById("seccion-fotos-notas").style.display = "block";
+    mostrarSeccionFotosNotas(true);
   }
 }
 function renderPreconfigObservacion(){
@@ -5997,7 +6003,7 @@ function actualizarEstadoObsPrincipal(){
     document.getElementById("f-duracion-real").value = d.duracionReal!=null ? d.duracionReal : "";
     document.getElementById("f-distancia-real").value = d.distanciaReal!=null ? d.distanciaReal : "";
   }
-  document.getElementById("seccion-fotos-notas").style.display = yaEmpezoObservacion ? "block" : "none";
+  mostrarSeccionFotosNotas(!!yaEmpezoObservacion);
 }
 document.getElementById("f-duracion-real").addEventListener("input", sincronizarDraftDesdeFormulario);
 document.getElementById("f-distancia-real").addEventListener("input", sincronizarDraftDesdeFormulario);
@@ -6689,7 +6695,7 @@ function descargarFotoComoArchivo(foto, registro){
   return leerFotoDB(foto.id).then(function(dataURL){
     if(!dataURL) return;
     var conExif = incrustarExif(dataURL, foto.comentario, registro.lat, registro.lon, registro.altitud);
-    var filename = sanitizarNombreArchivo(registro.codigo || registro.id)+"__"+sanitizarNombreArchivo(foto.nombre)+".jpg";
+    var filename = sanitizarNombreArchivo(registro.codigo || registro.id)+"__"+sanitizarNombreFoto(foto.nombre)+".jpg";
     var a = document.createElement("a");
     a.href = conExif;
     a.download = filename;
@@ -6713,6 +6719,17 @@ function descargarFotosPendientes(registro){
   });
   return p;
 }
+// v2.36: nombre corto por defecto (foto1, foto2...), editable. Antes se conservaba el largo nombre de archivo de la cámara o la galería.
+function nombreFotoCorto(){
+  var usados = {};
+  state.fotosTemp.forEach(function(f){ usados[f.nombre] = 1; });
+  var n = state.fotosTemp.length + 1;
+  while(usados["foto"+n]) n++;
+  return "foto" + n;
+}
+function sanitizarNombreFoto(s){
+  return (sanitizarNombreArchivo(s).slice(0, 24).replace(/_+$/, "")) || "foto";
+}
 function procesarSiguienteFoto(){
   if(colaFotos.length===0) return;
   var file = colaFotos.shift();
@@ -6734,7 +6751,7 @@ document.getElementById("btn-caption-guardar").addEventListener("click", functio
   if(!state.captionPending) return;
   var id = uid();
   var comentario = document.getElementById("caption-texto").value.trim();
-  var nombre = state.captionPending.nombre;
+  var nombre = nombreFotoCorto();
   guardarFotoDB(id, state.captionPending.dataURL).then(function(){
     state.fotosTemp.push({id:id, nombre:nombre, comentario:comentario, descargada:false, nombreDescargado:null});
     if(state.draft && !state.draft.fotoPortadaId) state.draft.fotoPortadaId = id;
@@ -6870,9 +6887,21 @@ function valoresUsadosCampo(campo, sesionIdPrioritaria, excluirRegistroId){
   });
 }
 var CAMPOS_LOC_EST = [
-  {campo:"localidadPuntual", input:"f-localidad-puntual", lista:"dl-localidad-puntual", chips:"chips-localidad-puntual", repetir:"btn-repetir-localidad", etiqueta:"localidad puntual"},
-  {campo:"estacion", input:"f-estacion", lista:"dl-estacion", chips:"chips-estacion", repetir:"btn-repetir-estacion", etiqueta:"estación"}
+  {campo:"localidadPuntual", input:"f-localidad-puntual", lista:"dl-localidad-puntual", chips:"chips-localidad-puntual", etiqueta:"localidad puntual"},
+  {campo:"estacion", input:"f-estacion", lista:"dl-estacion", chips:"chips-estacion", etiqueta:"estación"}
 ];
+// Valor del registro anterior (el más reciente de la sesión; si la sesión no tiene, el más reciente de todos): se ofrece como primer botón con ↺
+function valorAnteriorCampo(campo, sesionId, excluirId){
+  var mejor = null, mejorSesion = null;
+  state.registros.forEach(function(r){
+    if(r.id === excluirId || !(r[campo]||"").trim()) return;
+    var t = timestampCreacionRegistro(r);
+    if(!mejor || t > timestampCreacionRegistro(mejor)) mejor = r;
+    if(r.sesionId === sesionId && (!mejorSesion || t > timestampCreacionRegistro(mejorSesion))) mejorSesion = r;
+  });
+  var r = mejorSesion || mejor;
+  return r ? r[campo].trim() : "";
+}
 function poblarSugerenciasLocalidadEstacion(){
   var sid = state.draft ? state.draft.sesionId : state.sesionActivaId;
   var excl = state.draft ? state.draft.id : null;
@@ -6880,8 +6909,12 @@ function poblarSugerenciasLocalidadEstacion(){
     var vals = valoresUsadosCampo(c.campo, sid, excl);
     document.getElementById(c.lista).innerHTML = vals.map(function(v){ return '<option value="'+escapeHtml(v.texto)+'">'; }).join("");
     var actual = normalizarTextoComparar(document.getElementById(c.input).value);
-    document.getElementById(c.chips).innerHTML = vals.slice(0, 6).map(function(v){
-      return '<button type="button" class="chip-sug'+(normalizarTextoComparar(v.texto)===actual ? " on" : "")+'" data-input="'+c.input+'" data-val="'+escapeHtml(v.texto)+'">'+escapeHtml(v.texto)+'</button>';
+    var ant = valorAnteriorCampo(c.campo, sid, excl), kAnt = normalizarTextoComparar(ant);
+    var lista = [];
+    if(ant) lista.push({texto:ant, anterior:true});
+    vals.forEach(function(v){ if(normalizarTextoComparar(v.texto) !== kAnt) lista.push({texto:v.texto, anterior:false}); });
+    document.getElementById(c.chips).innerHTML = lista.slice(0, 6).map(function(v){
+      return '<button type="button" class="chip-sug'+(normalizarTextoComparar(v.texto)===actual ? " on" : "")+'" data-input="'+c.input+'" data-val="'+escapeHtml(v.texto)+'"'+(v.anterior ? ' title="Registro anterior"' : '')+'>'+(v.anterior ? '↺ ' : '')+escapeHtml(v.texto)+'</button>';
     }).join("");
   });
 }
@@ -6920,21 +6953,6 @@ CAMPOS_LOC_EST.forEach(function(c){
     var b = e.target.closest ? e.target.closest(".chip-sug") : null; if(!b) return;
     el.value = b.dataset.val;
     refrescar();
-  });
-  document.getElementById(c.repetir).addEventListener("click", function(){
-    if(!state.draft) return;
-    var sid = state.draft.sesionId, previo = null, anterior = null;
-    for(var i = state.registros.length - 1; i >= 0; i--){
-      var r = state.registros[i];
-      if(r.id === state.draft.id || !(r[c.campo]||"").trim()) continue;
-      if(r.sesionId === sid){ previo = r; break; }
-      if(!anterior) anterior = r;
-    }
-    previo = previo || anterior;
-    if(!previo){ toast("Aún no hay una " + c.etiqueta + " anterior para repetir"); return; }
-    el.value = previo[c.campo];
-    refrescar();
-    toast("Se repitió «" + previo[c.campo] + "»");
   });
 });
 
@@ -7393,7 +7411,7 @@ function filaSesionExport(s){
     sesion_institucion:s.institucion||"", sesion_clima:s.clima||"", sesion_notas:s.notas||""};
 }
 function nombreArchivoFotoExport(codigo, nombreFoto){
-  return sanitizarNombreArchivo(codigo)+"__"+sanitizarNombreArchivo(nombreFoto)+".jpg";
+  return sanitizarNombreArchivo(codigo)+"__"+sanitizarNombreFoto(nombreFoto)+".jpg";
 }
 function ordenarFotosConPortadaPrimero(r){
   var fotos = (r.fotos||[]).slice();
