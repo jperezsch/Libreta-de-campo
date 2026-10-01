@@ -466,10 +466,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div class="section-title-row">
     </div>
-    <div class="field"><label>Localidad de la sesión</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Identifica la salida y viaja como localidad de todos sus registros.</span></div>
+    <div class="field"><label>Localidad general</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Identifica la salida y viaja con todos sus registros.</span></div>
     <div class="row2">
-      <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint"></span></div>
-      <div class="field"><label>Nombre de la sesión</label><input type="text" id="ss-proyecto" readonly tabindex="-1"><span class="campo-ayuda">Localidad y número, se arma solo.</span></div>
+      <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint">Correlativo para diferenciar sesiones en una misma localidad general</span></div>
+      <div class="field"><label>Nombre de la sesión</label><input type="text" id="ss-proyecto" readonly tabindex="-1"><span class="campo-ayuda">Localidad general y número, se arma solo.</span></div>
     </div>
     <div class="field"><label>Objetivo</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
@@ -670,10 +670,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div class="section-title" id="titulo-ubicacion"><span class="n">📍</span>Ubicación</div>
     <div id="bloque-localidad-estacion">
-      <div class="field"><label>Localidad puntual</label>
-        <input type="text" id="f-localidad-puntual" spellcheck="true" list="dl-localidad-puntual" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
-        <datalist id="dl-localidad-puntual"></datalist>
-        <div class="chips-sug" id="chips-localidad-puntual"></div>
+      <div class="field"><label>Localidad específica</label>
+        <input type="text" id="f-localidad-especifica" spellcheck="true" list="dl-localidad-especifica" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
+        <datalist id="dl-localidad-especifica"></datalist>
+        <div class="chips-sug" id="chips-localidad-especifica"></div>
         <span class="preview-loc" id="preview-localidad"></span>
       </div>
       <div class="field"><label>Estación <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
@@ -3471,7 +3471,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-01 · v2.37";
+var APP_BUILD = "2026-10-01 · v2.38";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3644,6 +3644,15 @@ function setLS(key, value){
     return false;
   }
 }
+// v2.38: el campo "localidadPuntual" (v2.35 a v2.37) pasó a llamarse "localidadEspecifica". Se migra al cargar y al importar.
+function migrarLocalidadEspecifica(r){
+  var viejo = "localidad" + "Puntual";
+  if(r && r[viejo] !== undefined){
+    if(!r.localidadEspecifica) r.localidadEspecifica = r[viejo];
+    delete r[viejo];
+  }
+  return r;
+}
 function cargar(){
   try{ var lista=JSON.parse(localStorage.getItem(LSK.sesiones)); if(lista && lista.length) state.sesiones=lista; }catch(e){}
   var sinActivaAdrede = false;
@@ -3652,6 +3661,8 @@ function cargar(){
   try{ var r=JSON.parse(localStorage.getItem(LSK.reg)); if(r) state.registros=r; }catch(e){}
   try{ var h=JSON.parse(localStorage.getItem(LSK.hist)); if(h) state.historial=h; }catch(e){}
   try{ var d=JSON.parse(localStorage.getItem(LSK.draft)); if(d) state.draft=d; }catch(e){}
+  state.registros.forEach(migrarLocalidadEspecifica);
+  if(state.draft) migrarLocalidadEspecifica(state.draft);
 
   // Migración: formato anterior de una sola sesión (sin lista de sesiones todavía)
   if(state.sesiones.length===0){
@@ -4076,9 +4087,6 @@ function actualizarCamposNombreSesion(s){
   if(!inp || !nom || !hint || !s) return;
   if(document.activeElement !== inp) inp.value = (s.correlativo != null && s.correlativo !== "") ? s.correlativo : "";
   nom.value = s.proyecto || "";
-  hint.textContent = sesionUsaFormatoNuevo(s)
-    ? (s.corrManual ? "Número elegido por ti." : "Se propone solo el siguiente para esta localidad.")
-    : "Sesión anterior al número: conserva su nombre. Escribe un N° para usar el formato nuevo.";
 }
 function valoresZonaSesiones(){
   var cuenta = {}, orden = [];
@@ -4238,7 +4246,7 @@ document.getElementById("ss-correlativo").addEventListener("input", function(){
   var v = parseInt(txt, 10);
   if(isNaN(v) || v < 1) return;
   if(!sesionUsaFormatoNuevo(s)){
-    if(!(s.zona||"").trim()){ this.value = ""; toast("Escribe primero la localidad de la sesión"); return; }
+    if(!(s.zona||"").trim()){ this.value = ""; toast("Escribe primero la localidad general"); return; }
     s.formatoNombre = 2;
   }
   s.correlativo = v; s.corrManual = true;
@@ -4532,7 +4540,7 @@ function obtenerListaFiltrada(){
   if(state.filtroTipo) lista = lista.filter(function(r){ return r.tipo===state.filtroTipo; });
   if(q) lista = lista.filter(function(r){
     var textoBusqueda = [
-      r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.localidadPuntual, r.estacion, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
+      r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.localidadEspecifica, r.estacion, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
       (r.especies||[]).map(function(e){return e.nombre;}).join(" ")
     ].join(" ").toLowerCase();
     return textoBusqueda.indexOf(q)>=0;
@@ -4674,7 +4682,7 @@ function textoEntradaNarrativa(r){
   if(r.lat && r.lon){
     partes.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+'</div>');
   }
-  if(r.localidadPuntual) partes.push('<div class="narr-linea"><b>Localidad puntual:</b> '+escapeHtml(r.localidadPuntual)+'</div>');
+  if(r.localidadEspecifica) partes.push('<div class="narr-linea"><b>Localidad específica:</b> '+escapeHtml(r.localidadEspecifica)+'</div>');
   if(r.estacion) partes.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
   if(r.referencia) partes.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
   if(r.habitat) partes.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
@@ -5063,7 +5071,7 @@ function iniciarNuevoRegistro(){
     id: uid(), codigo: proximoCodigo(sesionActiva()), sesionId: state.sesionActivaId,
     fecha: fechaLocalISO(ahora), fechaLocal: true,
     hora: horaLocalHM(ahora),
-    lat:"", lon:"", altitud:null, referencia:"", localidadPuntual:"", estacion:"", tipo:tipoDefault,
+    lat:"", lon:"", altitud:null, referencia:"", localidadEspecifica:"", estacion:"", tipo:tipoDefault,
     taxonLibre:"", nind:"", metodo:"", condicion:"", habitat:((sesionActiva() && sesionActiva().habitat) || ""), sustrato:"",
     unidad:"", esfuerzo:"", colector: "", notas:"",
     duracionObjetivo:"", distanciaObjetivo:"", anchoBanda:"", duracionReal:null, distanciaReal:null,
@@ -5089,7 +5097,7 @@ function cargarDraftEnFormulario(){
   document.getElementById("fecha-hora-row").style.display = (d._editando || d._viendo) ? "grid" : "none";
   document.getElementById("f-altitud").value = d.altitud!=null ? d.altitud : "";
   document.getElementById("f-referencia").value = d.referencia;
-  document.getElementById("f-localidad-puntual").value = d.localidadPuntual || "";
+  document.getElementById("f-localidad-especifica").value = d.localidadEspecifica || "";
   document.getElementById("f-estacion").value = d.estacion || "";
   document.getElementById("f-tipo").value = d.tipo;
   actualizarBotonesTipo();
@@ -5230,7 +5238,7 @@ function sincronizarDraftDesdeFormulario(){
   d.fecha = document.getElementById("f-fecha").value; d.hora = document.getElementById("f-hora").value;
   d.altitud = document.getElementById("f-altitud").value;
   d.referencia = document.getElementById("f-referencia").value.trim();
-  d.localidadPuntual = d.tipo==="medicion" ? "" : document.getElementById("f-localidad-puntual").value.trim();
+  d.localidadEspecifica = d.tipo==="medicion" ? "" : document.getElementById("f-localidad-especifica").value.trim();
   d.estacion = d.tipo==="medicion" ? "" : document.getElementById("f-estacion").value.trim();
   d.notaTitulo = document.getElementById("f-nota-titulo").value.trim();
   d.colector = obtenerColectorSeleccionado();
@@ -5640,7 +5648,7 @@ function htmlConsultaRegistro(r){
   if(r.habitat) p.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
   if(r.notas) p.push('<div class="narr-linea"><b>Notas:</b></div><div class="narr-notas" style="margin-top:0;">'+formatearNotasHtml(r.notas)+'</div>');
   // Resto de la información registrada
-  if(r.localidadPuntual) p.push('<div class="narr-linea"><b>Localidad puntual:</b> '+escapeHtml(r.localidadPuntual)+'</div>');
+  if(r.localidadEspecifica) p.push('<div class="narr-linea"><b>Localidad específica:</b> '+escapeHtml(r.localidadEspecifica)+'</div>');
   if(r.estacion) p.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
   if(r.referencia) p.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
   if(r.sustrato) p.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
@@ -6864,7 +6872,7 @@ document.getElementById("btn-lightbox-eliminar").addEventListener("click", funct
   sincronizarDraftDesdeFormulario();
 });
 
-/* ---------------- Localidad puntual y Estación (v2.35) ----------------
+/* ---------------- Localidad específica y Estación (v2.35) ----------------
    Campos opcionales por registro. Para mantener nombres estandarizados: sugerencias (lista y botones) con lo ya usado,
    y al salir del campo se reemplaza lo escrito por la grafía ya registrada si solo cambian mayúsculas, tildes o espacios. */
 function valoresUsadosCampo(campo, sesionIdPrioritaria, excluirRegistroId){
@@ -6887,7 +6895,7 @@ function valoresUsadosCampo(campo, sesionIdPrioritaria, excluirRegistroId){
   });
 }
 var CAMPOS_LOC_EST = [
-  {campo:"localidadPuntual", input:"f-localidad-puntual", lista:"dl-localidad-puntual", chips:"chips-localidad-puntual", etiqueta:"localidad puntual"},
+  {campo:"localidadEspecifica", input:"f-localidad-especifica", lista:"dl-localidad-especifica", chips:"chips-localidad-especifica", etiqueta:"localidad específica"},
   {campo:"estacion", input:"f-estacion", lista:"dl-estacion", chips:"chips-estacion", etiqueta:"estación"}
 ];
 // Valor del registro anterior (el más reciente de la sesión; si la sesión no tiene, el más reciente de todos): se ofrece como primer botón con ↺
@@ -6922,10 +6930,10 @@ function actualizarPreviewLocalidad(){
   var el = document.getElementById("preview-localidad"); if(!el) return;
   var d = state.draft; if(!d){ el.textContent = ""; return; }
   var s = sesionPorId(d.sesionId) || {};
-  var p = (document.getElementById("f-localidad-puntual").value || "").trim();
+  var p = (document.getElementById("f-localidad-especifica").value || "").trim();
   var z = (s.zona || "").trim();
   var txt = (p && z) ? (p + ", " + z) : (p || z);
-  el.textContent = txt ? ("Localidad completa en la exportación: «" + txt + "»") : "Define la localidad de la sesión en la pestaña Sesión.";
+  el.textContent = txt ? ("Localidad completa en la exportación: «" + txt + "»") : "Define la localidad general en la pestaña Sesión.";
 }
 function canonizarCampoLocEst(c){
   var el = document.getElementById(c.input);
@@ -7389,14 +7397,14 @@ function moverRegistrosSeleccionados(sesionOrigenId){
   toast(ids.length+" registro(s) movido(s)"+(esNueva?" a una nueva sesión (archivada) — complétala en la pestaña Sesión":"")+(renumerar?" y renumerados":""));
   renderExportar();
 }
-// v2.35: localidad puntual y texto de la sesión (sin correlativo). Sin puntual, se conserva solo el de la sesión.
+// v2.35: localidad específica y localidad general (texto de la sesión sin correlativo). Sin específica, se conserva solo la general.
 function textoLocalidadSesion(s){ return ((s && s.zona) || "").trim(); }
 function localidadExportar(r, s){
-  var p = (r.localidadPuntual || "").trim();
+  var p = (r.localidadEspecifica || "").trim();
   return p || textoLocalidadSesion(s);
 }
 function localidadVerbatimExportar(r, s){
-  var p = (r.localidadPuntual || "").trim(), z = textoLocalidadSesion(s);
+  var p = (r.localidadEspecifica || "").trim(), z = textoLocalidadSesion(s);
   return (p && z) ? (p + ", " + z) : (p || z);
 }
 var COLS_SESION_EXPORT = [
@@ -7710,7 +7718,7 @@ function renderSueltos(){
   ordenSes.forEach(function(s){
     var regs = registrosDeSesionOrdenados(s.id).filter(function(r){
       if(!q) return true;
-      var t = normalizarTextoComparar([r.codigo, r.notaTitulo, r.taxonLibre, r.localidadPuntual, r.estacion, r.referencia,
+      var t = normalizarTextoComparar([r.codigo, r.notaTitulo, r.taxonLibre, r.localidadEspecifica, r.estacion, r.referencia,
         (r.especies||[]).map(function(e){ return e.nombre; }).join(" ")].join(" "));
       return t.indexOf(q) >= 0;
     });
@@ -7720,7 +7728,7 @@ function renderSueltos(){
       '<span>'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+' · '+marcados+'/'+regs.length+'</span></div>';
     regs.forEach(function(r){
       var ti = TIPOS[r.tipo] || TIPOS.nota;
-      var detalle = r.taxonLibre || r.localidadPuntual || r.referencia || "";
+      var detalle = r.taxonLibre || r.localidadEspecifica || r.referencia || "";
       html += '<label class="sueltos-fila"><input type="checkbox" class="sueltos-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id] ? " checked" : "")+'>'+
         '<span>'+(r.codigo ? '<b>'+escapeHtml(r.codigo)+'</b> · ' : (r.notaTitulo ? '<b>'+escapeHtml(r.notaTitulo)+'</b> · ' : ''))+ti.label+(detalle ? ' · '+escapeHtml(detalle) : '')+'</span></label>';
     });
@@ -7880,7 +7888,7 @@ function combinarConSeleccionados(){
   var idsReg = {}; registrosComb.forEach(function(r){ idsReg[r.id]=true; });
   archivosImportados.filter(function(a){return a.seleccionado;}).forEach(function(a){
     a.sesiones.forEach(function(s){ if(!idsSes[s.id]){ sesionesComb.push(s); idsSes[s.id]=true; } });
-    a.registros.forEach(function(r){ if(!idsReg[r.id]){ registrosComb.push(r); idsReg[r.id]=true; } });
+    a.registros.forEach(function(r){ migrarLocalidadEspecifica(r); if(!idsReg[r.id]){ registrosComb.push(r); idsReg[r.id]=true; } });
   });
   return {sesiones:sesionesComb, registros:registrosComb};
 }
