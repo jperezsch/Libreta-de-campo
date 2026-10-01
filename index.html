@@ -424,6 +424,23 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
 /* Espacio suficiente para que Notas y Guardar no queden tapados por las barras fijas */
 #s-form .pad{padding-bottom:190px;}
+/* v2.35: sugerencias de localidad/estación, flechas de Consultando, registros sueltos */
+.chips-sug{display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;}
+.chips-sug:empty{display:none;}
+.chip-sug{font-size:.78rem; padding:5px 11px; border-radius:14px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); cursor:pointer; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.chip-sug.on{background:var(--verde-cl); border-color:var(--verde); color:var(--verde-osc); font-weight:700;}
+.btn-repetir{background:none; border:none; padding:6px 0 0; color:var(--verde); font-size:.8rem; font-weight:700; cursor:pointer; text-decoration:underline;}
+.preview-loc{display:block; font-size:.76rem; color:var(--texto-sec); margin-top:6px;}
+.cons-flecha{position:fixed; top:50%; transform:translateY(-50%); z-index:30; width:30px; height:56px; display:flex; align-items:center; justify-content:center; font-size:1.9rem; line-height:1; color:var(--texto); opacity:.22; background:transparent; border:none; padding:0; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;}
+.cons-flecha:active{opacity:.5;}
+.cons-flecha.sin-destino{opacity:.07; pointer-events:none;}
+.cons-flecha-izq{left:0;}
+.cons-flecha-der{right:0;}
+.sueltos-grupo{border:1.5px solid var(--borde); border-radius:10px; margin:8px 0; background:var(--card);}
+.sueltos-grupo-cab{display:flex; align-items:center; gap:8px; padding:9px 10px; font-weight:700; font-size:.85rem; border-bottom:1px solid var(--borde);}
+.sueltos-fila{display:flex; align-items:center; gap:8px; padding:7px 10px; font-size:.82rem; border-top:1px solid var(--borde);}
+.sueltos-fila input, .sueltos-grupo-cab input{width:auto; flex:0 0 auto;}
+.sueltos-lista-scroll{max-height:380px; overflow-y:auto;}
 </style>
 </head>
 <body>
@@ -449,10 +466,13 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
     <div class="section-title-row">
     </div>
-    <div class="field"><label>Nombre de la sesión</label><input type="text" id="ss-proyecto" spellcheck="true" list="dl-ss-proyecto"><datalist id="dl-ss-proyecto"></datalist></div>
+    <div class="field"><label>Localidad de la sesión</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Identifica la salida y viaja como localidad de todos sus registros.</span></div>
+    <div class="row2">
+      <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint"></span></div>
+      <div class="field"><label>Nombre de la sesión</label><input type="text" id="ss-proyecto" readonly tabindex="-1"><span class="campo-ayuda">Localidad y número, se arma solo.</span></div>
+    </div>
     <div class="field"><label>Objetivo</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
-    <div class="field"><label>Localidad general / zona</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona"><datalist id="dl-ss-zona"></datalist></div>
     <div class="field"><label>Hábitat general</label>
       <select id="ss-habitat">
         <option value="">—</option>
@@ -630,6 +650,22 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
     </div>
 
+    <div id="bloque-localidad-estacion" style="margin-top:14px;">
+      <div class="field"><label>Localidad puntual <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
+        <input type="text" id="f-localidad-puntual" spellcheck="true" list="dl-localidad-puntual" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
+        <datalist id="dl-localidad-puntual"></datalist>
+        <div class="chips-sug" id="chips-localidad-puntual"></div>
+        <button type="button" class="btn-repetir" id="btn-repetir-localidad">↺ Repetir la del registro anterior</button>
+        <span class="preview-loc" id="preview-localidad"></span>
+      </div>
+      <div class="field"><label>Estación <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
+        <input type="text" id="f-estacion" list="dl-estacion" autocomplete="off" placeholder="Código o nombre de la estación">
+        <datalist id="dl-estacion"></datalist>
+        <div class="chips-sug" id="chips-estacion"></div>
+        <button type="button" class="btn-repetir" id="btn-repetir-estacion">↺ Repetir la del registro anterior</button>
+      </div>
+    </div>
+
     <div id="obs-principal" style="display:none; margin-top:16px;">
       <button type="button" class="btnfull btn-amber" id="btn-obs-inicio-principal" style="padding:18px; font-size:1.1rem;">📍 Capturar punto de inicio</button>
       <div class="gpsbox" id="obs-info-inicio" style="display:none;"></div>
@@ -789,6 +825,19 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos. Excel a veces muestra mal las tildes de un .csv (aparecen como «Ã³», «Ã­»…); para abrirlo en Excel usa el .xlsx.</p>
     <div class="section-title">Registros de medición</div>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
+    <div class="section-title">Registros sueltos</div>
+    <p class="campo-ayuda" style="margin:-4px 0 10px;">Elige registros individuales, de cualquier sesión, sin marcar su sesión arriba.</p>
+    <button type="button" class="btnfull btn-secondary" id="btn-sueltos-abrir">🎯 Elegir registros sueltos</button>
+    <div id="panel-sueltos" style="display:none; margin-top:10px;">
+      <input type="search" class="search" id="sueltos-buscador" placeholder="Filtrar por código, taxón, localidad...">
+      <div class="sueltos-lista-scroll" id="sueltos-lista"></div>
+      <div class="gestion-contador" id="sueltos-contador" style="margin:8px 0;">0 registros elegidos</div>
+      <button type="button" class="btnfull btn-primary" id="btn-sueltos-zip">📦 Registros elegidos (.zip)</button>
+      <button type="button" class="btnfull btn-primary" id="btn-sueltos-dwc-xlsx">🧬 Darwin Core (.xlsx) · elegidos</button>
+      <button type="button" class="btnfull btn-primary" id="btn-sueltos-dwc-csv">🧬 Darwin Core (.csv) · elegidos</button>
+      <button type="button" class="btnfull btn-primary" id="btn-sueltos-med">📐 Mediciones elegidas (.xlsx)</button>
+      <button type="button" class="btnfull btn-secondary" id="btn-sueltos-limpiar">Limpiar selección</button>
+    </div>
     <div class="section-title">Respaldo e importación</div>
     <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.zip)</label>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
@@ -816,6 +865,8 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 
 <!-- ===================== CONSULTA (solo lectura) ===================== -->
 <div class="screen" id="s-consulta">
+  <button type="button" class="cons-flecha cons-flecha-izq sin-destino" id="cons-flecha-izq" aria-label="Registro anterior (menor)">‹</button>
+  <button type="button" class="cons-flecha cons-flecha-der sin-destino" id="cons-flecha-der" aria-label="Registro siguiente (mayor)">›</button>
   <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura — desliza a los lados para cambiar de registro</p></div></div></div>
   <div class="pad">
     <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Mantener la pantalla encendida</span></label>
@@ -3419,7 +3470,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-09-30 · v2.34";
+var APP_BUILD = "2026-09-30 · v2.35";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3479,7 +3530,8 @@ function sesionVacia(){
     id: uid(), creada: new Date().toISOString(), archivada:false, icono: icono,
     proyecto:"", objetivo:"", participantes:"",
     zona:"", habitat:"", institucion:"", clima:"", notas:"",
-    prefijo:"CAMPO", inicio:1, contador:1
+    prefijo:"CAMPO", inicio:1, contador:1,
+    formatoNombre:2, correlativo:1, corrManual:false
   };
 }
 
@@ -3606,7 +3658,7 @@ function cargar(){
     try{ previa = JSON.parse(localStorage.getItem(LSK.sesOld)); }catch(e){}
     var nueva = sesionVacia();
     if(previa){
-      nueva = Object.assign(nueva, previa, {id: nueva.id, archivada:false});
+      nueva = Object.assign(nueva, previa, {id: nueva.id, archivada:false, formatoNombre:undefined, correlativo:undefined, corrManual:undefined});
     }
     state.sesiones = [nueva];
     // Todos los registros existentes (de antes de este cambio) quedan asociados a esta sesión migrada
@@ -3743,8 +3795,8 @@ function ligarSugerencia(inputId, datalistId, campo){
   el.addEventListener("blur", function(){ recordarValor(campo, el.value.trim()); poblarSugerencias(datalistId, campo); });
 }
 function poblarTodasLasSugerenciasSesion(){
-  [["ss-proyecto","dl-ss-proyecto"],["ss-objetivo","dl-ss-objetivo"],["ss-participantes","dl-ss-participantes"],
-   ["ss-zona","dl-ss-zona"],["ss-institucion","dl-ss-institucion"],["ss-prefijo","dl-ss-prefijo"],
+  [["ss-objetivo","dl-ss-objetivo"],["ss-participantes","dl-ss-participantes"],
+   ["ss-institucion","dl-ss-institucion"],["ss-prefijo","dl-ss-prefijo"],
    ["ss-clima","dl-ss-clima"]].forEach(function(p){
     poblarSugerencias(p[1], p[0]);
   });
@@ -3982,6 +4034,69 @@ window.addEventListener("beforeunload", function(e){
   return "";
 });
 
+/* ---------------- Nombre de sesión con correlativo (v2.35) ----------------
+   El nombre de la sesión se arma solo: texto de la localidad + número ("Rucamanque, Temuco 01").
+   s.zona guarda el texto sin número (es el que viaja a localidad y localidadVerbatim);
+   s.correlativo guarda el número aparte. Las sesiones anteriores (sin formatoNombre) conservan nombre y zona. */
+function normalizarTextoComparar(t){
+  var s = String(t==null ? "" : t);
+  try{ s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }catch(e){}
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+function nombreSesionCompuesto(zona, corr){
+  zona = (zona||"").trim();
+  if(!zona) return "";
+  var n = parseInt(corr, 10);
+  return (isNaN(n) || n < 1) ? zona : (zona + " " + pad(n, 2));
+}
+function sesionUsaFormatoNuevo(s){ return !!s && s.formatoNombre === 2; }
+function proponerCorrelativoSesion(s){
+  var base = normalizarTextoComparar(s.zona);
+  if(!base) return 1;
+  var max = 0;
+  state.sesiones.forEach(function(x){
+    if(x.id === s.id) return;
+    if(normalizarTextoComparar(x.zona) !== base) return;
+    var n = parseInt(x.correlativo, 10);
+    var v = (x.formatoNombre === 2 && !isNaN(n) && n > 0) ? n : 1;
+    if(v > max) max = v;
+  });
+  return max + 1;
+}
+function recomponerNombreSesion(s){
+  if(!sesionUsaFormatoNuevo(s)) return;
+  if(!s.corrManual) s.correlativo = proponerCorrelativoSesion(s);
+  s.proyecto = nombreSesionCompuesto(s.zona, s.correlativo);
+}
+function actualizarCamposNombreSesion(s){
+  var inp = document.getElementById("ss-correlativo");
+  var nom = document.getElementById("ss-proyecto");
+  var hint = document.getElementById("ss-correlativo-hint");
+  if(!inp || !nom || !hint || !s) return;
+  if(document.activeElement !== inp) inp.value = (s.correlativo != null && s.correlativo !== "") ? s.correlativo : "";
+  nom.value = s.proyecto || "";
+  hint.textContent = sesionUsaFormatoNuevo(s)
+    ? (s.corrManual ? "Número elegido por ti." : "Se propone solo el siguiente para esta localidad.")
+    : "Sesión anterior al número: conserva su nombre. Escribe un N° para usar el formato nuevo.";
+}
+function valoresZonaSesiones(){
+  var cuenta = {}, orden = [];
+  state.sesiones.forEach(function(x){
+    var v = (x.zona||"").trim(); if(!v) return;
+    var k = normalizarTextoComparar(v);
+    if(!cuenta[k]){ cuenta[k] = {texto:v, n:0}; orden.push(k); }
+    cuenta[k].n++;
+  });
+  return orden.map(function(k){ return cuenta[k]; }).sort(function(a,b){ return b.n - a.n || a.texto.localeCompare(b.texto); });
+}
+function poblarSugerenciasZona(){
+  var dl = document.getElementById("dl-ss-zona"); if(!dl) return;
+  var vistos = {}, textos = [];
+  valoresZonaSesiones().forEach(function(x){ vistos[normalizarTextoComparar(x.texto)] = 1; textos.push(x.texto); });
+  (state.historial.zona || []).forEach(function(v){ var k = normalizarTextoComparar(v); if(k && !vistos[k]){ vistos[k] = 1; textos.push(v); } });
+  dl.innerHTML = textos.map(function(v){ return '<option value="'+escapeHtml(v)+'">'; }).join("");
+}
+
 /* ---------------- SESIÓN (autoguardado) ---------------- */
 var SS_MAP = {"ss-proyecto":"proyecto","ss-objetivo":"objetivo",
   "ss-participantes":"participantes","ss-zona":"zona","ss-institucion":"institucion",
@@ -3992,6 +4107,8 @@ function renderSesion(){
   state.sesionEnPantallaId = s.id;
   Object.keys(SS_MAP).forEach(function(id){ document.getElementById(id).value = s[SS_MAP[id]] || ""; });
   document.getElementById("ss-inicio").value = s.inicio;
+  actualizarCamposNombreSesion(s);
+  poblarSugerenciasZona();
   setSelectOtro("ss-habitat","ss-habitat-otro", s.habitat);
   poblarSugerencias("dl-habitat-otro","habitatOtro");
   actualizarCamposProximo(s);
@@ -4007,7 +4124,7 @@ function sesionEsNuevaVacia(s){
   return !!s && s.id===state.sesionActivaId && !(s.proyecto||"").trim() &&
     !state.registros.some(function(r){ return r.sesionId===s.id; });
 }
-var IDS_CAMPOS_SESION = Object.keys(SS_MAP).concat(["ss-inicio","ss-siguiente"]);
+var IDS_CAMPOS_SESION = Object.keys(SS_MAP).filter(function(id){ return id!=="ss-proyecto"; }).concat(["ss-correlativo","ss-inicio","ss-siguiente"]);
 function aplicarModoEdicionSesion(){
   var s = sesionEnPantalla(); if(!s) return;
   var editando = !!state.sesionEditando || sesionEsNuevaVacia(s);
@@ -4062,8 +4179,8 @@ document.getElementById("ss-selector-sesion").addEventListener("change", functio
   state.sesionEditando = false;
   renderSesion();
 });
-[["ss-proyecto","dl-ss-proyecto","proyecto"],["ss-objetivo","dl-ss-objetivo","objetivo"],["ss-participantes","dl-ss-participantes","participantes"],
- ["ss-zona","dl-ss-zona","zona"],["ss-institucion","dl-ss-institucion","institucion"],["ss-prefijo","dl-ss-prefijo","prefijo"],
+[["ss-objetivo","dl-ss-objetivo","objetivo"],["ss-participantes","dl-ss-participantes","participantes"],
+ ["ss-institucion","dl-ss-institucion","institucion"],["ss-prefijo","dl-ss-prefijo","prefijo"],
  ["ss-clima","dl-ss-clima","clima"]].forEach(function(p){
   ligarSugerencia(p[0], p[1], p[2]);
 });
@@ -4082,6 +4199,7 @@ Object.keys(SS_MAP).forEach(function(id){
   document.getElementById(id).addEventListener("input", function(){
     var s = sesionEnPantalla();
     s[SS_MAP[id]] = this.value;
+    if(id==="ss-zona"){ recomponerNombreSesion(s); actualizarCamposNombreSesion(s); }
     if(id==="ss-prefijo"){
       actualizarCamposProximo(s);
       actualizarHintPrefijo();
@@ -4090,6 +4208,44 @@ Object.keys(SS_MAP).forEach(function(id){
     guardarSesion();
   });
 });
+document.getElementById("ss-zona").addEventListener("blur", function(){
+  var s = sesionEnPantalla(); if(!s) return;
+  var v = this.value.trim();
+  if(v){
+    // Estandarización: si ya existe esa localidad escrita de otra forma (mayúsculas, tildes, espacios), se usa la grafía existente
+    var k = normalizarTextoComparar(v), hallada = null;
+    state.sesiones.forEach(function(x){
+      if(!hallada && x.id!==s.id && (x.zona||"").trim() && normalizarTextoComparar(x.zona)===k) hallada = x.zona.trim();
+    });
+    if(hallada && hallada!==v){ this.value = hallada; toast("Se usó «"+hallada+"», ya registrada"); }
+  }
+  s.zona = this.value.trim();
+  recordarValor("zona", s.zona);
+  recomponerNombreSesion(s);
+  actualizarCamposNombreSesion(s);
+  poblarSugerenciasZona();
+  guardarSesion();
+});
+document.getElementById("ss-correlativo").addEventListener("input", function(){
+  var s = sesionEnPantalla(); if(!s) return;
+  var txt = this.value.trim();
+  if(txt === ""){
+    if(sesionUsaFormatoNuevo(s)){ s.corrManual = false; recomponerNombreSesion(s); guardarSesion(); }
+    actualizarCamposNombreSesion(s);
+    return;
+  }
+  var v = parseInt(txt, 10);
+  if(isNaN(v) || v < 1) return;
+  if(!sesionUsaFormatoNuevo(s)){
+    if(!(s.zona||"").trim()){ this.value = ""; toast("Escribe primero la localidad de la sesión"); return; }
+    s.formatoNombre = 2;
+  }
+  s.correlativo = v; s.corrManual = true;
+  recomponerNombreSesion(s);
+  actualizarCamposNombreSesion(s);
+  guardarSesion();
+});
+document.getElementById("ss-correlativo").addEventListener("blur", function(){ actualizarCamposNombreSesion(sesionEnPantalla()); });
 document.getElementById("ss-inicio").addEventListener("input", function(){
   var s = sesionEnPantalla();
   var v = parseInt(this.value,10); if(isNaN(v)) v=0;
@@ -4130,7 +4286,7 @@ document.getElementById("btn-guardar-sesion").addEventListener("click", function
 document.getElementById("btn-editar-sesion").addEventListener("click", function(){
   state.sesionEditando = true;
   aplicarModoEdicionSesion();
-  var el = document.getElementById("ss-proyecto"); if(el) el.focus();
+  var el = document.getElementById("ss-zona"); if(el) el.focus();
 });
 function cerrarConfirmSesion(){ document.getElementById("modal-confirm-sesion").classList.remove("on"); }
 document.getElementById("btn-confirm-sesion-x").addEventListener("click", cerrarConfirmSesion);
@@ -4375,7 +4531,7 @@ function obtenerListaFiltrada(){
   if(state.filtroTipo) lista = lista.filter(function(r){ return r.tipo===state.filtroTipo; });
   if(q) lista = lista.filter(function(r){
     var textoBusqueda = [
-      r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
+      r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.localidadPuntual, r.estacion, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
       (r.especies||[]).map(function(e){return e.nombre;}).join(" ")
     ].join(" ").toLowerCase();
     return textoBusqueda.indexOf(q)>=0;
@@ -4517,6 +4673,8 @@ function textoEntradaNarrativa(r){
   if(r.lat && r.lon){
     partes.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+'</div>');
   }
+  if(r.localidadPuntual) partes.push('<div class="narr-linea"><b>Localidad puntual:</b> '+escapeHtml(r.localidadPuntual)+'</div>');
+  if(r.estacion) partes.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
   if(r.referencia) partes.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
   if(r.habitat) partes.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
   if(r.sustrato) partes.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
@@ -4777,9 +4935,10 @@ function exportarLibretaHTML(lista){
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 
-function generarPaqueteZip(idsSesiones){
+function generarPaqueteZip(idsSesiones, idsRegistros){
   if(typeof JSZip === "undefined"){ toast("No se pudo cargar el componente de compresión"); return Promise.reject(); }
-  var registrosFiltrados = idsSesiones ? state.registros.filter(function(r){ return idsSesiones.indexOf(r.sesionId)>=0; }) : state.registros;
+  var registrosFiltrados = idsRegistros ? state.registros.filter(function(r){ return idsRegistros.indexOf(r.id)>=0; })
+    : (idsSesiones ? state.registros.filter(function(r){ return idsSesiones.indexOf(r.sesionId)>=0; }) : state.registros);
   var todasLasFotos = [];
   registrosFiltrados.forEach(function(r){
     (r.fotos||[]).forEach(function(f){ todasLasFotos.push({foto:f, registro:r}); });
@@ -4809,7 +4968,8 @@ function generarPaqueteZip(idsSesiones){
     if(gpx) carpetaTracks.file(nombreArchivoTrack(r), gpx);
   });
   return Promise.all(promesas).then(function(){
-    var sesionesFiltradas = idsSesiones ? state.sesiones.filter(function(s){ return idsSesiones.indexOf(s.id)>=0; }) : state.sesiones;
+    var sesionesFiltradas = idsRegistros ? state.sesiones.filter(function(s){ return registrosFiltrados.some(function(r){ return r.sesionId===s.id; }); })
+      : (idsSesiones ? state.sesiones.filter(function(s){ return idsSesiones.indexOf(s.id)>=0; }) : state.sesiones);
     var data = {sesiones:sesionesFiltradas, sesionActivaId:state.sesionActivaId, registros:registrosFiltrados};
     zip.file("respaldo.json", JSON.stringify(data, null, 2));
     var filasEstandar = construirFilasEstandar(registrosFiltrados);
@@ -4902,7 +5062,7 @@ function iniciarNuevoRegistro(){
     id: uid(), codigo: proximoCodigo(sesionActiva()), sesionId: state.sesionActivaId,
     fecha: fechaLocalISO(ahora), fechaLocal: true,
     hora: horaLocalHM(ahora),
-    lat:"", lon:"", altitud:null, referencia:"", tipo:tipoDefault,
+    lat:"", lon:"", altitud:null, referencia:"", localidadPuntual:"", estacion:"", tipo:tipoDefault,
     taxonLibre:"", nind:"", metodo:"", condicion:"", habitat:((sesionActiva() && sesionActiva().habitat) || ""), sustrato:"",
     unidad:"", esfuerzo:"", colector: "", notas:"",
     duracionObjetivo:"", distanciaObjetivo:"", anchoBanda:"", duracionReal:null, distanciaReal:null,
@@ -4928,6 +5088,8 @@ function cargarDraftEnFormulario(){
   document.getElementById("fecha-hora-row").style.display = (d._editando || d._viendo) ? "grid" : "none";
   document.getElementById("f-altitud").value = d.altitud!=null ? d.altitud : "";
   document.getElementById("f-referencia").value = d.referencia;
+  document.getElementById("f-localidad-puntual").value = d.localidadPuntual || "";
+  document.getElementById("f-estacion").value = d.estacion || "";
   document.getElementById("f-tipo").value = d.tipo;
   actualizarBotonesTipo();
   document.getElementById("f-notas").value = d.notas;
@@ -4967,6 +5129,8 @@ function cargarDraftEnFormulario(){
   actualizarResumenDg();
   poblarSugerencias("dl-taxon","taxonLibre");
   poblarSugerencias("dl-referencia","referencia");
+  poblarSugerenciasLocalidadEstacion();
+  actualizarPreviewLocalidad();
   actualizarBannerSesionRegistro();
   actualizarModoRegistro();
   posicionarTrackingFlotante();
@@ -5065,6 +5229,8 @@ function sincronizarDraftDesdeFormulario(){
   d.fecha = document.getElementById("f-fecha").value; d.hora = document.getElementById("f-hora").value;
   d.altitud = document.getElementById("f-altitud").value;
   d.referencia = document.getElementById("f-referencia").value.trim();
+  d.localidadPuntual = d.tipo==="medicion" ? "" : document.getElementById("f-localidad-puntual").value.trim();
+  d.estacion = d.tipo==="medicion" ? "" : document.getElementById("f-estacion").value.trim();
   d.notaTitulo = document.getElementById("f-nota-titulo").value.trim();
   d.colector = obtenerColectorSeleccionado();
   if(d.tipo==="medicion"){
@@ -5412,20 +5578,23 @@ function abrirRegistro(){
 // Recorrido de la vista Consulta, de izquierda (más antiguo) a derecha (más reciente). Parte del orden de la vista Lista:
 // sesiones según el criterio elegido y, dentro de cada una, el orden manual o por creación. La vista Libreta ya es cronológica.
 function listaNavegacionConsulta(){
+  // v2.35: el deslizamiento va siempre de menor a mayor, de izquierda a derecha, en cualquier vista y con cualquier
+  // criterio de orden de la lista: sesiones de la más antigua a la más reciente y, dentro de cada una,
+  // registros por fecha, hora y código ascendentes.
   var lista = obtenerListaFiltrada();
-  if(state.vistaRegistros==="narrativa") return lista;
   var porSesion = {}, ids = [];
   lista.forEach(function(r){
     if(!porSesion[r.sesionId]){ porSesion[r.sesionId] = []; ids.push(r.sesionId); }
     porSesion[r.sesionId].push(r);
   });
-  var cmp = comparadorSesionesPorCriterio(state.ordenSesionesRegistros);
-  ids.sort(function(a,b){ return cmp(sesionPorId(a), sesionPorId(b)); });
+  function claveSesion(id){
+    var s = sesionPorId(id);
+    return s ? (fechaSesion(s) + "|" + (s.creada || "")) : "";
+  }
+  ids.sort(function(a,b){ return claveSesion(a).localeCompare(claveSesion(b)); });
   var salida = [];
-  ids.forEach(function(sid){ salida = salida.concat(ordenarRegistrosDeSesion(sid, porSesion[sid])); });
-  // La Lista muestra lo más reciente arriba; al deslizar se lee como una línea de tiempo normal:
-  // más antiguos a la izquierda, más recientes a la derecha (respetando también el orden manual, invertido).
-  return salida.reverse();
+  ids.forEach(function(sid){ salida = salida.concat(porSesion[sid].slice().sort(compararRegistrosPorFechaYCodigo)); });
+  return salida;
 }
 function fechaCortaDMA(f){
   var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(f||"");
@@ -5470,6 +5639,8 @@ function htmlConsultaRegistro(r){
   if(r.habitat) p.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
   if(r.notas) p.push('<div class="narr-linea"><b>Notas:</b></div><div class="narr-notas" style="margin-top:0;">'+formatearNotasHtml(r.notas)+'</div>');
   // Resto de la información registrada
+  if(r.localidadPuntual) p.push('<div class="narr-linea"><b>Localidad puntual:</b> '+escapeHtml(r.localidadPuntual)+'</div>');
+  if(r.estacion) p.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
   if(r.referencia) p.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
   if(r.sustrato) p.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
   if(r.metodo) p.push('<div class="narr-linea"><b>Método:</b> '+escapeHtml(r.metodo)+'</div>');
@@ -5581,6 +5752,8 @@ function renderConsulta(id){
   var listaNav = listaNavegacionConsulta();
   var idxNav = listaNav.findIndex(function(x){ return x.id===id; });
   posEl.textContent = (idxNav>=0 ? ("Registro "+(idxNav+1)+" de "+listaNav.length+" — ") : "") + "desliza a los lados para cambiar";
+  document.getElementById("cons-flecha-izq").classList.toggle("sin-destino", idxNav <= 0);
+  document.getElementById("cons-flecha-der").classList.toggle("sin-destino", idxNav < 0 || idxNav >= listaNav.length - 1);
   var op = ordenarFotosConPortada(r);
   var fotosHtml = "";
   if(op.portada){
@@ -5641,6 +5814,8 @@ function navegarConsulta(delta){
     xInicioSwipe = null; yInicioSwipe = null;
   });
 })();
+document.getElementById("cons-flecha-izq").addEventListener("click", function(){ navegarConsulta(-1); });
+document.getElementById("cons-flecha-der").addEventListener("click", function(){ navegarConsulta(1); });
 function confirmarDescartarEdicionSiCorresponde(idDestino){
   if(state.draft && state.draft._editando && state.draft.id !== idDestino){
     var msg = "Tienes una edición sin guardar del registro "+(state.draft.codigo||"")+" en curso.\n\n"+
@@ -5717,6 +5892,7 @@ function ajustarPantallaSegunTipo(tipo){
   document.getElementById("medicion-principal").style.display = esMed ? "block" : "none";
   document.getElementById("metodo-principal").style.display = (esObs||esNota||esMed) ? "none" : "block";
   document.getElementById("habitat-microhabitat-principal").style.display = (esObs||esNota||esMed) ? "none" : "block";
+  document.getElementById("bloque-localidad-estacion").style.display = esMed ? "none" : "block";
   document.getElementById("identificacion-individual").style.display = (esObs||esMed||esNota) ? "none" : "block";
   document.getElementById("nota-subtipo-wrap").style.display = esNota ? "flex" : "none";
   document.getElementById("campo-nota-titulo").style.display = esNota ? "block" : "none";
@@ -6671,6 +6847,97 @@ document.getElementById("btn-lightbox-eliminar").addEventListener("click", funct
   sincronizarDraftDesdeFormulario();
 });
 
+/* ---------------- Localidad puntual y Estación (v2.35) ----------------
+   Campos opcionales por registro. Para mantener nombres estandarizados: sugerencias (lista y botones) con lo ya usado,
+   y al salir del campo se reemplaza lo escrito por la grafía ya registrada si solo cambian mayúsculas, tildes o espacios. */
+function valoresUsadosCampo(campo, sesionIdPrioritaria, excluirRegistroId){
+  var cuenta = {}, orden = [];
+  state.registros.forEach(function(r){
+    if(excluirRegistroId && r.id === excluirRegistroId) return;
+    var v = (r[campo]||"").trim(); if(!v) return;
+    var k = normalizarTextoComparar(v);
+    if(!cuenta[k]){ cuenta[k] = {texto:v, n:0, enSesion:false, ultimo:0}; orden.push(k); }
+    cuenta[k].n++;
+    var t = timestampCreacionRegistro(r);
+    if(t > cuenta[k].ultimo) cuenta[k].ultimo = t;
+    if(sesionIdPrioritaria && r.sesionId === sesionIdPrioritaria) cuenta[k].enSesion = true;
+  });
+  return orden.map(function(k){ return cuenta[k]; }).sort(function(a,b){
+    if(a.enSesion !== b.enSesion) return a.enSesion ? -1 : 1;
+    if(a.n !== b.n) return b.n - a.n;
+    if(a.ultimo !== b.ultimo) return b.ultimo - a.ultimo;
+    return a.texto.localeCompare(b.texto);
+  });
+}
+var CAMPOS_LOC_EST = [
+  {campo:"localidadPuntual", input:"f-localidad-puntual", lista:"dl-localidad-puntual", chips:"chips-localidad-puntual", repetir:"btn-repetir-localidad", etiqueta:"localidad puntual"},
+  {campo:"estacion", input:"f-estacion", lista:"dl-estacion", chips:"chips-estacion", repetir:"btn-repetir-estacion", etiqueta:"estación"}
+];
+function poblarSugerenciasLocalidadEstacion(){
+  var sid = state.draft ? state.draft.sesionId : state.sesionActivaId;
+  var excl = state.draft ? state.draft.id : null;
+  CAMPOS_LOC_EST.forEach(function(c){
+    var vals = valoresUsadosCampo(c.campo, sid, excl);
+    document.getElementById(c.lista).innerHTML = vals.map(function(v){ return '<option value="'+escapeHtml(v.texto)+'">'; }).join("");
+    var actual = normalizarTextoComparar(document.getElementById(c.input).value);
+    document.getElementById(c.chips).innerHTML = vals.slice(0, 6).map(function(v){
+      return '<button type="button" class="chip-sug'+(normalizarTextoComparar(v.texto)===actual ? " on" : "")+'" data-input="'+c.input+'" data-val="'+escapeHtml(v.texto)+'">'+escapeHtml(v.texto)+'</button>';
+    }).join("");
+  });
+}
+function actualizarPreviewLocalidad(){
+  var el = document.getElementById("preview-localidad"); if(!el) return;
+  var d = state.draft; if(!d){ el.textContent = ""; return; }
+  var s = sesionPorId(d.sesionId) || {};
+  var p = (document.getElementById("f-localidad-puntual").value || "").trim();
+  var z = (s.zona || "").trim();
+  var txt = (p && z) ? (p + ", " + z) : (p || z);
+  el.textContent = txt ? ("Localidad completa en la exportación: «" + txt + "»") : "Define la localidad de la sesión en la pestaña Sesión.";
+}
+function canonizarCampoLocEst(c){
+  var el = document.getElementById(c.input);
+  var v = el.value.trim();
+  if(v){
+    var k = normalizarTextoComparar(v), hallado = null;
+    valoresUsadosCampo(c.campo, null, state.draft ? state.draft.id : null).forEach(function(x){
+      if(!hallado && normalizarTextoComparar(x.texto) === k) hallado = x.texto;
+    });
+    if(hallado && hallado !== v){ v = hallado; toast("Se usó «"+hallado+"», ya registrada"); }
+  }
+  el.value = v;
+}
+CAMPOS_LOC_EST.forEach(function(c){
+  var el = document.getElementById(c.input);
+  function refrescar(){ sincronizarDraftDesdeFormulario(); actualizarPreviewLocalidad(); poblarSugerenciasLocalidadEstacion(); }
+  el.addEventListener("input", function(){
+    sincronizarDraftDesdeFormulario(); actualizarPreviewLocalidad();
+    var actual = normalizarTextoComparar(el.value);
+    document.querySelectorAll('#'+c.chips+' .chip-sug').forEach(function(b){ b.classList.toggle("on", normalizarTextoComparar(b.dataset.val)===actual); });
+  });
+  el.addEventListener("change", function(){ canonizarCampoLocEst(c); refrescar(); });
+  el.addEventListener("blur", function(){ canonizarCampoLocEst(c); refrescar(); });
+  document.getElementById(c.chips).addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest(".chip-sug") : null; if(!b) return;
+    el.value = b.dataset.val;
+    refrescar();
+  });
+  document.getElementById(c.repetir).addEventListener("click", function(){
+    if(!state.draft) return;
+    var sid = state.draft.sesionId, previo = null, anterior = null;
+    for(var i = state.registros.length - 1; i >= 0; i--){
+      var r = state.registros[i];
+      if(r.id === state.draft.id || !(r[c.campo]||"").trim()) continue;
+      if(r.sesionId === sid){ previo = r; break; }
+      if(!anterior) anterior = r;
+    }
+    previo = previo || anterior;
+    if(!previo){ toast("Aún no hay una " + c.etiqueta + " anterior para repetir"); return; }
+    el.value = previo[c.campo];
+    refrescar();
+    toast("Se repitió «" + previo[c.campo] + "»");
+  });
+});
+
 /* ---------------- Guardar ---------------- */
 document.getElementById("btn-guardar").addEventListener("click", function(){
   if(!state.draft) return;
@@ -6906,6 +7173,8 @@ function renderExportar(){
   });
   ligarEventosPanelGestion(box);
   actualizarStatsExportar();
+  var panelSueltos = document.getElementById("panel-sueltos");
+  if(panelSueltos && panelSueltos.style.display !== "none") renderSueltos();
 }
 function verEnSesion(id){
   var s = sesionPorId(id);
@@ -7102,6 +7371,16 @@ function moverRegistrosSeleccionados(sesionOrigenId){
   toast(ids.length+" registro(s) movido(s)"+(esNueva?" a una nueva sesión (archivada) — complétala en la pestaña Sesión":"")+(renumerar?" y renumerados":""));
   renderExportar();
 }
+// v2.35: localidad puntual y texto de la sesión (sin correlativo). Sin puntual, se conserva solo el de la sesión.
+function textoLocalidadSesion(s){ return ((s && s.zona) || "").trim(); }
+function localidadExportar(r, s){
+  var p = (r.localidadPuntual || "").trim();
+  return p || textoLocalidadSesion(s);
+}
+function localidadVerbatimExportar(r, s){
+  var p = (r.localidadPuntual || "").trim(), z = textoLocalidadSesion(s);
+  return (p && z) ? (p + ", " + z) : (p || z);
+}
 var COLS_SESION_EXPORT = [
   ["sesion_nombre","[Sesión] Nombre"],["sesion_objetivo","[Sesión] Objetivo"],
   ["sesion_participantes","[Sesión] Participantes"],["sesion_zona","[Sesión] Zona"],
@@ -7135,7 +7414,7 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride){
   fila.determinador=""; fila.determinadorFecha="";
   fila.individuos = individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:"");
   fila.sexo=""; fila.estadoDesarrollo=""; fila.region=""; fila.provincia=""; fila.comuna="";
-  fila.localidad = s.zona||""; fila.localidadVerbatim = r.referencia||"";
+  fila.localidad = localidadExportar(r, s); fila.localidadVerbatim = localidadVerbatimExportar(r, s); fila.estacion = r.estacion||"";
   fila.lat = r.lat||""; fila.lng = r.lon||""; fila.fechaColecta = r.fecha||""; fila.colector = r.colector||"";
   fila.fechaIngreso=""; fila.procedencia=""; fila.destino=""; fila.ubicacionColeccion=""; fila.privacidad="";
   fila.conservacion = r.tipo==="coleccion" ? (r.condicion||"") : "";
@@ -7185,7 +7464,7 @@ function construirFilasEstandar(registros){
 var COLS_DWC = [
   "basisOfRecord","fieldNumber","scientificName",
   "phylum","class","order","family","genus",
-  "individualCount","locality","verbatimLocality","decimalLatitude","decimalLongitude",
+  "individualCount","locality","verbatimLocality","locationID","decimalLatitude","decimalLongitude",
   "eventDate","recordedBy","verbatimElevation","habitat","samplingProtocol",
   "sampleSizeValue","sampleSizeUnit","preparations","occurrenceRemarks",
   "associatedMedia","references","institutionCode"
@@ -7198,7 +7477,8 @@ function basisOfRecordDwC(tipo){
 function eventDateDwC(r){
   if(!r.fecha) return "";
   var inicio = r.fecha + (r.hora ? ("T"+r.hora) : "");
-  if(r.tipo==="observacion" && r.horaTermino) return inicio + "/" + r.fecha + "T" + r.horaTermino;
+  var horaFin = (r.obsTermino && r.obsTermino.hora) || r.horaTermino;
+  if(r.tipo==="observacion" && r.hora && horaFin) return inicio + "/" + r.fecha + "T" + horaFin;
   return inicio;
 }
 function muestraTamanoDwC(r){
@@ -7224,8 +7504,9 @@ function filaDarwinCore(r, s, taxonOverride, individuosOverride){
     scientificName: taxonOverride!=null ? taxonOverride : (r.taxonLibre||""),
     phylum:"", class:"", order:"", family:"", genus:"",
     individualCount: individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:""),
-    locality: s.zona||"",
-    verbatimLocality: r.referencia||"",
+    locality: localidadExportar(r, s),
+    verbatimLocality: localidadVerbatimExportar(r, s),
+    locationID: r.estacion||"",
     decimalLatitude: r.lat||"",
     decimalLongitude: r.lon||"",
     eventDate: eventDateDwC(r),
@@ -7265,18 +7546,23 @@ function filasACsv(cols, filas){
   return lineas.join("\r\n");
 }
 // Selección, filas y nombre comunes a las descargas .csv y .xlsx
-function prepararDescargaDwc(){
-  var ids = sesionesSeleccionadasExportar();
-  if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return null; }
-  var registrosFiltrados = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0; });
+function prepararDescargaDwc(idsRegistros){
+  var registrosFiltrados, sufijo;
+  if(idsRegistros){
+    registrosFiltrados = state.registros.filter(function(r){ return idsRegistros.indexOf(r.id)>=0; });
+    sufijo = "registros_sueltos_" + registrosFiltrados.length;
+  } else {
+    var ids = sesionesSeleccionadasExportar();
+    if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return null; }
+    registrosFiltrados = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0; });
+    var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
+    sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
+  }
   var filas = construirFilasDarwinCore(registrosFiltrados);
-  if(filas.length===0){ toast("Las sesiones elegidas no tienen registros de Recolección u Observación"); return null; }
-  var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
-  var sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
+  if(filas.length===0){ toast(idsRegistros ? "Los registros elegidos no son de Recolección ni Observación" : "Las sesiones elegidas no tienen registros de Recolección u Observación"); return null; }
   return {filas:filas, sufijo:sufijo};
 }
-document.getElementById("btn-descargar-dwc").addEventListener("click", function(){
-  var d = prepararDescargaDwc(); if(!d) return;
+function descargarDwcCsv(d){
   // BOM UTF-8 al inicio: es lo que permite a Excel de Windows reconocer las tildes. Otras versiones de Excel
   // (Mac, web, móvil) pueden ignorarlo; para esos casos existe la descarga .xlsx.
   var csv = "\ufeff" + filasACsv(COLS_DWC, d.filas);
@@ -7287,19 +7573,19 @@ document.getElementById("btn-descargar-dwc").addEventListener("click", function(
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   toast("✅ Darwin Core (.csv) descargado — "+d.filas.length+" fila(s)");
-});
+}
+document.getElementById("btn-descargar-dwc").addEventListener("click", function(){ var d = prepararDescargaDwc(); if(d) descargarDwcCsv(d); });
 // .xlsx: Excel siempre lo lee como Unicode, sin depender de la codificación. Cifras como números, el resto como texto
 // (así fechas ISO y códigos como "JP-001" no son reinterpretados por Excel).
 var COLS_DWC_NUMERICAS = {individualCount:1, decimalLatitude:1, decimalLongitude:1, verbatimElevation:1, sampleSizeValue:1};
-var ANCHOS_DWC = {basisOfRecord:17, fieldNumber:12, scientificName:28, locality:26, verbatimLocality:28, eventDate:18, recordedBy:24, habitat:28, samplingProtocol:22, occurrenceRemarks:40, associatedMedia:36, references:24, institutionCode:14};
+var ANCHOS_DWC = {basisOfRecord:17, fieldNumber:12, scientificName:28, locality:26, verbatimLocality:28, locationID:16, eventDate:18, recordedBy:24, habitat:28, samplingProtocol:22, occurrenceRemarks:40, associatedMedia:36, references:24, institutionCode:14};
 function valorCeldaDwcXlsx(col, v){
   if(v==null || v==="") return null;
   var t = String(v).trim();
   if(COLS_DWC_NUMERICAS[col] && /^-?\d+([.,]\d+)?$/.test(t)) return Number(t.replace(",","."));
   return String(v);
 }
-document.getElementById("btn-descargar-dwc-xlsx").addEventListener("click", function(){
-  var d = prepararDescargaDwc(); if(!d) return;
+function descargarDwcXlsx(d){
   var aoa = [COLS_DWC].concat(d.filas.map(function(f){ return COLS_DWC.map(function(c){ return valorCeldaDwcXlsx(c, f[c]); }); }));
   var ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = COLS_DWC.map(function(c){ return {wch: ANCHOS_DWC[c] || 14}; });
@@ -7308,13 +7594,11 @@ document.getElementById("btn-descargar-dwc-xlsx").addEventListener("click", func
   XLSX.utils.book_append_sheet(wb, ws, "DarwinCore");
   XLSX.writeFile(wb, "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".xlsx");
   toast("✅ Darwin Core (.xlsx) descargado — "+d.filas.length+" fila(s)");
-});
+}
+document.getElementById("btn-descargar-dwc-xlsx").addEventListener("click", function(){ var d = prepararDescargaDwc(); if(d) descargarDwcXlsx(d); });
 
-document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
-  var ids = sesionesSeleccionadasExportar();
-  if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
-  var registrosMed = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0 && r.tipo==="medicion"; });
-  if(registrosMed.length===0){ toast("Las sesiones elegidas no tienen registros de Medición"); return; }
+function exportarMedicionXlsx(registrosMed){
+  if(registrosMed.length===0){ toast("No hay registros de Medición en lo elegido"); return; }
 
   var combosMap = {}; var combosOrden = [];
   registrosMed.forEach(function(r){
@@ -7379,6 +7663,104 @@ document.getElementById("btn-export-xlsx-medicion").addEventListener("click", fu
   var nombreArchivo = "LibretaDeCampo_Medicion_"+fechaLocalISO()+".xlsx";
   XLSX.writeFile(wb, nombreArchivo);
   toast("✅ Planilla de Medición generada — "+filas.length+" individuo(s)");
+}
+document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
+  var ids = sesionesSeleccionadasExportar();
+  if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
+  var registrosMed = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0 && r.tipo==="medicion"; });
+  if(registrosMed.length===0){ toast("Las sesiones elegidas no tienen registros de Medición"); return; }
+  exportarMedicionXlsx(registrosMed);
+});
+
+/* ---------------- Registros sueltos (v2.35) ----------------
+   Permite exportar registros elegidos uno a uno, de cualquier sesión, sin marcar su sesión arriba. */
+state.sueltosSel = {};
+function idsSueltosElegidos(){
+  return Object.keys(state.sueltosSel).filter(function(id){
+    return state.sueltosSel[id] && state.registros.some(function(r){ return r.id===id; });
+  });
+}
+function actualizarContadorSueltos(){
+  var n = idsSueltosElegidos().length;
+  document.getElementById("sueltos-contador").textContent = n + (n===1 ? " registro elegido" : " registros elegidos");
+}
+function renderSueltos(){
+  var cont = document.getElementById("sueltos-lista");
+  var q = normalizarTextoComparar(document.getElementById("sueltos-buscador").value);
+  var ordenSes = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
+  var html = "";
+  ordenSes.forEach(function(s){
+    var regs = registrosDeSesionOrdenados(s.id).filter(function(r){
+      if(!q) return true;
+      var t = normalizarTextoComparar([r.codigo, r.notaTitulo, r.taxonLibre, r.localidadPuntual, r.estacion, r.referencia,
+        (r.especies||[]).map(function(e){ return e.nombre; }).join(" ")].join(" "));
+      return t.indexOf(q) >= 0;
+    });
+    if(!regs.length) return;
+    var marcados = regs.filter(function(r){ return state.sueltosSel[r.id]; }).length;
+    html += '<div class="sueltos-grupo"><div class="sueltos-grupo-cab"><input type="checkbox" class="sueltos-todos" data-ids="'+regs.map(function(r){ return r.id; }).join(",")+'"'+(marcados===regs.length ? " checked" : "")+'>'+
+      '<span>'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+' · '+marcados+'/'+regs.length+'</span></div>';
+    regs.forEach(function(r){
+      var ti = TIPOS[r.tipo] || TIPOS.nota;
+      var detalle = r.taxonLibre || r.localidadPuntual || r.referencia || "";
+      html += '<label class="sueltos-fila"><input type="checkbox" class="sueltos-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id] ? " checked" : "")+'>'+
+        '<span>'+(r.codigo ? '<b>'+escapeHtml(r.codigo)+'</b> · ' : (r.notaTitulo ? '<b>'+escapeHtml(r.notaTitulo)+'</b> · ' : ''))+ti.label+(detalle ? ' · '+escapeHtml(detalle) : '')+'</span></label>';
+    });
+    html += '</div>';
+  });
+  cont.innerHTML = html || '<div class="empty">No hay registros para mostrar.</div>';
+  cont.querySelectorAll(".sueltos-check").forEach(function(c){
+    c.addEventListener("change", function(){ state.sueltosSel[c.dataset.id] = c.checked; renderSueltos(); });
+  });
+  cont.querySelectorAll(".sueltos-todos").forEach(function(c){
+    c.addEventListener("change", function(){
+      c.dataset.ids.split(",").forEach(function(id){ state.sueltosSel[id] = c.checked; });
+      renderSueltos();
+    });
+  });
+  actualizarContadorSueltos();
+}
+document.getElementById("btn-sueltos-abrir").addEventListener("click", function(){
+  var panel = document.getElementById("panel-sueltos");
+  var abrir = panel.style.display === "none";
+  panel.style.display = abrir ? "block" : "none";
+  this.textContent = abrir ? "▾ Cerrar registros sueltos" : "🎯 Elegir registros sueltos";
+  if(abrir) renderSueltos();
+});
+document.getElementById("sueltos-buscador").addEventListener("input", renderSueltos);
+document.getElementById("btn-sueltos-limpiar").addEventListener("click", function(){ state.sueltosSel = {}; renderSueltos(); });
+document.getElementById("btn-sueltos-zip").addEventListener("click", function(){
+  var ids = idsSueltosElegidos();
+  if(ids.length===0){ toast("Elige al menos un registro"); return; }
+  var btn = this;
+  btn.disabled = true; btn.textContent = "📦 Preparando paquete...";
+  generarPaqueteZip(null, ids).then(function(blob){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "LibretaDeCampo_registros_sueltos_"+ids.length+"_"+fechaLocalISO()+".zip";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    btn.disabled = false; btn.textContent = "📦 Registros elegidos (.zip)";
+    toast("✅ Paquete .zip listo — "+ids.length+" registro(s)");
+  }).catch(function(){
+    btn.disabled = false; btn.textContent = "📦 Registros elegidos (.zip)";
+    toast("No se pudo generar el paquete");
+  });
+});
+document.getElementById("btn-sueltos-dwc-xlsx").addEventListener("click", function(){
+  var ids = idsSueltosElegidos();
+  if(ids.length===0){ toast("Elige al menos un registro"); return; }
+  var d = prepararDescargaDwc(ids); if(d) descargarDwcXlsx(d);
+});
+document.getElementById("btn-sueltos-dwc-csv").addEventListener("click", function(){
+  var ids = idsSueltosElegidos();
+  if(ids.length===0){ toast("Elige al menos un registro"); return; }
+  var d = prepararDescargaDwc(ids); if(d) descargarDwcCsv(d);
+});
+document.getElementById("btn-sueltos-med").addEventListener("click", function(){
+  var ids = idsSueltosElegidos();
+  if(ids.length===0){ toast("Elige al menos un registro"); return; }
+  exportarMedicionXlsx(state.registros.filter(function(r){ return ids.indexOf(r.id)>=0 && r.tipo==="medicion"; }));
 });
 var archivosImportados = []; // {nombre, sesiones:[], registros:[], seleccionado:true, valido:true}
 
@@ -7433,7 +7815,7 @@ document.getElementById("input-import-json").addEventListener("change", function
           if(data.sesiones){
             sesiones = data.sesiones;
           } else if(data.sesion){
-            var migrada = Object.assign(sesionVacia(), data.sesion, {archivada:true});
+            var migrada = Object.assign(sesionVacia(), data.sesion, {archivada:true, formatoNombre:undefined, correlativo:undefined, corrManual:undefined});
             sesiones = [migrada];
             registros.forEach(function(r){ if(!r.sesionId) r.sesionId = migrada.id; });
           } else {
