@@ -165,9 +165,9 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 .narr-entrada{background:var(--card); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:16px; margin-bottom:16px; position:relative;}
 .narr-entrada.draft{border-left-color:var(--ambar); background:#fdf6e8;}
 .narr-entrada.narr-colapsada{padding:10px 16px; margin-bottom:8px;}
-.narr-sesion-header{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:10px 4px 8px; margin-top:18px; border-bottom:1.5px solid var(--borde);}
+.narr-sesion-header{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:10px 10px 10px 12px; margin-top:22px; margin-bottom:8px; background:var(--verde-cl); border-left:5px solid var(--verde); border-radius:10px;}
 .narr-sesion-header:first-child{margin-top:0;}
-.narr-sesion-titulo{flex:1; min-width:0; font-weight:800; font-size:.92rem; line-height:1.35; color:var(--texto); overflow-wrap:anywhere; padding-top:5px;}
+.narr-sesion-titulo{flex:1; min-width:0; font-weight:800; font-size:1.16rem; line-height:1.3; color:var(--verde-osc); overflow-wrap:anywhere; padding-top:4px;}
 .narr-sesion-acciones{display:flex; flex-direction:column; align-items:stretch; gap:6px; flex-shrink:0;}
 .narr-sesion-acciones button{text-align:center;}
 .btn-finalizar-sesion-inline{font-size:.76rem; padding:5px 10px; border-radius:12px; border:1.5px solid var(--ambar); background:var(--card); color:var(--ambar-osc); cursor:pointer; white-space:nowrap; font-weight:700;}
@@ -442,6 +442,9 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 .sueltos-fila input, .sueltos-grupo-cab input{width:auto; flex:0 0 auto;}
 .sueltos-lista-scroll{max-height:380px; overflow-y:auto;}
 .navbtn.oculto{display:none;}
+.cons-compartir-fila{display:flex; justify-content:flex-end; margin:0 0 8px;}
+.btn-compartir{font-size:.85rem; padding:8px 14px; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-weight:700; cursor:pointer;}
+.cons-ubic-mapa{display:inline-block; margin-left:4px; padding:3px 10px; font-size:.82rem; font-weight:700; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); cursor:pointer; vertical-align:baseline;}
 .mapa-cfg-card{border:1px solid var(--borde); border-radius:12px; padding:12px; margin:0 0 10px; background:var(--card);}
 .mapa-cfg-card .estado{font-size:.86rem; margin:0 0 8px; font-weight:700;}
 .mapa-cfg-card .estado.on{color:#2e7d32;}
@@ -879,6 +882,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura — desliza a los lados para cambiar de registro</p></div></div></div>
   <div class="pad">
     <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Mantener la pantalla encendida</span></label>
+    <div class="cons-compartir-fila"><button type="button" class="btn-compartir" id="btn-consulta-compartir">📤 Compartir o copiar</button></div>
     <div class="narr-entrada" id="consulta-tarjeta"></div>
     <label class="consulta-opcion" style="margin-top:12px;"><input type="checkbox" id="consulta-transcrito"><span>✍️ Ya transcrito en libreta física</span></label>
     <div id="consulta-espacio" style="height:calc(190px + env(safe-area-inset-bottom, 0px));"></div>
@@ -3482,7 +3486,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-02 · v2.40";
+var APP_BUILD = "2026-10-02 · v2.41";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5628,7 +5632,7 @@ function precisionGpsDeRegistro(r){
   return (a!=null && isFinite(a)) ? a : null;
 }
 // Contenido de la vista Consulta: Sesión, tipo + n° de campo, taxón, ubicación (con precisión), fecha, colector, hábitat, notas y el resto
-function htmlConsultaRegistro(r){
+function htmlConsultaRegistro(r, conBotonMapa){
   var ti = TIPOS[r.tipo]||TIPOS.nota;
   var p = [];
   var sesR = sesionPorId(r.sesionId);
@@ -5652,7 +5656,8 @@ function htmlConsultaRegistro(r){
     var prec = precisionGpsDeRegistro(r);
     var clsPrec = prec==null ? "" : (prec<=10 ? "" : (prec<=25 ? "precision-moderada" : "precision-baja"));
     p.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null&&r.altitud!==""?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+
-      (prec!=null?(' · <span class="'+clsPrec+'" style="font-weight:600;">±'+Math.round(prec)+' m</span>'):'')+'</div>');
+      (prec!=null?(' · <span class="'+clsPrec+'" style="font-weight:600;">±'+Math.round(prec)+' m</span>'):'')+
+      (conBotonMapa && mapaPestanaVisible() ? ' <button type="button" class="cons-ubic-mapa">🗺️ Ver en el mapa</button>' : '')+'</div>');
   }
   // Fecha dd/mm/aa
   if(r.fecha || r.hora) p.push('<div class="narr-linea"><b>Fecha:</b> '+escapeHtml(fechaCortaDMA(r.fecha))+(r.hora?(' · '+escapeHtml(r.hora)):'')+'</div>');
@@ -5787,7 +5792,12 @@ function renderConsulta(id){
       return '<div class="narr-foto"><img id="consulta-thumb-'+f.id+'" src=""><div class="cap">'+escapeHtml(f.comentario||f.nombre)+'</div></div>';
     }).join("")+'</div>';
   }
-  cont.innerHTML = htmlConsultaRegistro(r) + fotosHtml;
+  cont.innerHTML = htmlConsultaRegistro(r, true) + fotosHtml;
+  var btnMapa = cont.querySelector(".cons-ubic-mapa");
+  if(btnMapa) btnMapa.addEventListener("click", function(){
+    if(window.MapaPro && MapaPro.verPunto) MapaPro.verPunto({id:r.id, lat:parseFloat(r.lat), lon:parseFloat(r.lon), sesionId:r.sesionId});
+    else toast("El mapa todavía se está cargando. Intenta de nuevo en unos segundos.");
+  });
   cont.style.borderLeftColor = colorSesion(r.sesionId);
   var ordenCompleto = (op.portada ? [op.portada] : []).concat(op.resto);
   if(ordenCompleto.length){
@@ -5805,6 +5815,57 @@ function renderConsulta(id){
     });
   }
 }
+/* ---------------- Consultando: compartir o copiar el registro como texto ---------------- */
+function textoRegistroConsulta(r){
+  var d = document.createElement("div");
+  d.innerHTML = htmlConsultaRegistro(r, false);
+  function limpio(t){ return String(t||"").replace(/\s+/g," ").trim(); }
+  var cab = "", sesion = "", cuerpo = [];
+  Array.prototype.forEach.call(d.children, function(el){
+    if(el.classList.contains("cons-sesion")){ sesion = limpio(el.textContent); return; }
+    if(el.classList.contains("narr-cabecera")){ cab = Array.prototype.map.call(el.children, function(c){ return limpio(c.textContent); }).filter(Boolean).join(" · "); return; }
+    if(el.tagName==="UL"){ Array.prototype.forEach.call(el.children, function(li){ cuerpo.push("  • "+limpio(li.textContent)); }); return; }
+    if(el.classList.contains("narr-notas")){ cuerpo.push(String(r.notas||"").trim()); return; }
+    var t = limpio(el.textContent); if(t) cuerpo.push(t);
+  });
+  var L = [];
+  if(cab) L.push(cab);
+  if(sesion) L.push("Sesión: " + sesion);
+  cuerpo.forEach(function(t){ L.push(t); });
+  if(r.lat && r.lon) L.push("Mapa: https://www.google.com/maps?q=" + encodeURIComponent(r.lat) + "," + encodeURIComponent(r.lon));
+  var nf = (r.fotos || []).length;
+  if(nf) L.push("📷 " + nf + (nf===1 ? " foto (no incluida en este texto)" : " fotos (no incluidas en este texto)"));
+  L.push("— Libreta de Campo · WikiTaxa");
+  return L.join("\n");
+}
+function copiarTextoPortapapeles(t){
+  if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+  return new Promise(function(res, rej){
+    var ta = document.createElement("textarea");
+    ta.value = t; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    var ok = false; try{ ok = document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+    ok ? res() : rej(new Error("copiar"));
+  });
+}
+function compartirRegistroConsulta(){
+  var r = state.registros.filter(function(x){ return x.id===state.consultaId; })[0];
+  if(!r){ toast("Este registro ya no existe"); return; }
+  var texto = textoRegistroConsulta(r);
+  var copiar = function(){
+    copiarTextoPortapapeles(texto).then(function(){ toast("Registro copiado: ya puedes pegarlo donde quieras"); },
+      function(){ toast("No se pudo copiar. Mantén presionado el texto de la tarjeta para seleccionarlo."); });
+  };
+  if(navigator.share){
+    navigator.share({ title: r.codigo || r.notaTitulo || "Registro", text: texto }).catch(function(e){
+      if(e && e.name==="AbortError") return;   // el usuario cerró el menú de compartir
+      copiar();
+    });
+  } else copiar();
+}
+document.getElementById("btn-consulta-compartir").addEventListener("click", compartirRegistroConsulta);
+
 document.getElementById("btn-consulta-volver").addEventListener("click", function(){ irA(state.consultaVolverA==="mapa" ? "mapa" : "lista"); });
 document.getElementById("btn-consulta-editar").addEventListener("click", function(){
   var id = state.consultaId;
@@ -7045,6 +7106,51 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
 });
 
 /* ---------------- Exportar ---------------- */
+// Un borrador "vacío" es el registro en curso que la app deja listo tras cada guardado: no tiene ningún dato escrito por el usuario.
+function borradorVacio(d){
+  if(!d) return true;
+  var textos = ["lat","lon","referencia","localidadEspecifica","estacion","taxonLibre","nind","metodo","condicion","sustrato","unidad","esfuerzo","notas","notaTitulo","variable","valormed"];
+  for(var i=0;i<textos.length;i++){ if(String(d[textos[i]]==null ? "" : d[textos[i]]).trim()) return false; }
+  if(d.altitud!=null && d.altitud!=="") return false;
+  if(d.tejidoConservado) return false;
+  if((d.fotos||[]).length || (d.especies||[]).length || (d.individuos||[]).length || (d.trackPuntos||[]).length) return false;
+  if(d.obsInicio || d.obsTermino) return false;
+  return true;
+}
+function eliminarSesionConRegistros(id){
+  var s = sesionPorId(id);
+  if(!s) return;
+  var regs = state.registros.filter(function(r){ return r.sesionId===id; });
+  var draftDeSesion = !!(state.draft && !state.draft._viendo && state.draft.sesionId===id);
+  if(draftDeSesion && !borradorVacio(state.draft)){ toast("No se puede borrar: hay un registro sin guardar en curso, con datos, asociado a esta sesión. Guárdalo o descártalo primero."); return; }
+  if(state.sesiones.length<=1){ toast("Debe quedar al menos una sesión. Para borrarlo todo usa Config, Borrar todos los registros y sesiones."); return; }
+  var nFotos = regs.reduce(function(t, r){ return t + (r.fotos ? r.fotos.length : 0); }, 0);
+  var nombre = nombreSesionMostrar(s);
+  var eraActiva = (id === state.sesionActivaId);
+  var msg1 = '¿Borrar la sesión "'+nombre+'" junto con sus '+regs.length+(regs.length===1?' registro':' registros')+(nFotos?(' y '+nFotos+(nFotos===1?' foto':' fotos')):'')+'?\n\n'+
+    'Esta acción NO se puede deshacer. Si aún no lo hiciste, exporta antes el paquete .zip de esta sesión.'+
+    (eraActiva ? '\n\nEs la sesión activa: se activará otra en su lugar.' : '')+
+    (draftDeSesion ? '\n\nEl registro en curso, que todavía está vacío, también se descartará.' : '');
+  if(!confirm(msg1)) return;
+  if(!confirm('Última confirmación: se borrarán para siempre la sesión "'+nombre+'" y sus '+regs.length+(regs.length===1?' registro':' registros')+'. ¿Continuar?')) return;
+  regs.forEach(function(r){ (r.fotos || []).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); }); });
+  state.registros = state.registros.filter(function(r){ return r.sesionId!==id; });
+  guardarRegistros();
+  if(state.draft && state.draft.sesionId===id){ state.draft = null; guardarDraft(); }
+  state.sesiones = state.sesiones.filter(function(x){ return x.id!==id; });
+  if(eraActiva){
+    var candidatas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
+    var nueva = candidatas[0];
+    nueva.archivada = false;
+    state.sesionActivaId = nueva.id;
+    guardarSesionActivaLS();
+  }
+  if(state.sesionEnPantallaId === id) state.sesionEnPantallaId = state.sesionActivaId;
+  if(state.sesionGestionId === id) state.sesionGestionId = null;
+  guardarListaSesiones();
+  toast('Sesión "'+nombre+'" borrada con sus '+regs.length+(regs.length===1?' registro':' registros'));
+  renderExportar();
+}
 function eliminarSesionVacia(id){
   var s = sesionPorId(id);
   if(!s) return;
@@ -7293,6 +7399,7 @@ function renderPanelGestionSesion(sesionId){
       borrarSesionBtn+
     '</div>';
   }
+  var borrarCompletaBtn = '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'" style="margin-top:12px;">🗑 Borrar esta sesión y sus '+registros.length+(registros.length===1?' registro':' registros')+'</button>';
   var opcionesDestino = otrasSesiones.map(function(s){
     return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+'</option>';
   }).join("");
@@ -7311,6 +7418,7 @@ function renderPanelGestionSesion(sesionId){
       '<select id="gestion-select-destino"><option value="">Mover a...</option>'+opcionesDestino+'<option value="__nueva__">＋ Mover a nueva sesión...</option></select>'+
       '<button type="button" id="btn-gestion-mover">Mover</button>'+
     '</div>'+
+    borrarCompletaBtn+
   '</div>';
 }
 function ligarEventosPanelGestion(container){
@@ -7325,7 +7433,10 @@ function ligarEventosPanelGestion(container){
     b.addEventListener("click", function(){ verEnSesion(b.dataset.sesion); });
   });
   container.querySelectorAll(".btn-borrar-sesion-panel").forEach(function(b){
-    b.addEventListener("click", function(){ eliminarSesionVacia(b.dataset.sesion); });
+    b.addEventListener("click", function(){
+      var hay = state.registros.some(function(r){ return r.sesionId===b.dataset.sesion; });
+      if(hay) eliminarSesionConRegistros(b.dataset.sesion); else eliminarSesionVacia(b.dataset.sesion);
+    });
   });
   container.querySelectorAll(".gestion-check").forEach(function(chk){
 

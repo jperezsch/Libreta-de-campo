@@ -3,7 +3,7 @@
 // Así los cambios nuevos se ven de inmediato en cuanto hay internet.
 // Mapa opcional: los paquetes .pmtiles y las descargas con cache "no-store" (catálogo, mapas) NO pasan por aquí.
 // Las cachés se comparten entre todas las apps del dominio, por eso solo se borran las propias (prefijo "libreta-campo-").
-var CACHE_NAME = "libreta-campo-v7";
+var CACHE_NAME = "libreta-campo-v8";
 var ARCHIVOS = [
   "./",
   "./index.html",

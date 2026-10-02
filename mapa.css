@@ -1,0 +1,50 @@
+/* Libreta de Campo · estilos del mapa.
+   Usan las mismas variables, radios, botones y chips que el resto de la app, así que respetan los modos Normal, Pleno sol y Noche. */
+
+/* ---- Pantalla: barra superior de la app (más baja, para dejar espacio al mapa) + lienzo ---- */
+#s-mapa{position:fixed; left:0; right:0; top:0; bottom:70px; padding:0; overflow:hidden; background:var(--fondo); z-index:5; flex-direction:column;}
+#s-mapa.on{display:flex;}
+.mp-topbar{padding:9px 16px 8px; flex:0 0 auto; position:relative;}
+.mp-topbar .ic{font-size:1.35rem;}
+.mp-topbar h2{font-size:1.02rem;}
+#mp-lienzo{position:relative; flex:1 1 auto; min-height:0; background:#dfe5df;}
+#mp-mapa{position:absolute; inset:0; touch-action:none;}
+
+/* ---- Indicadores (mismo estilo que las fichas de la app) ---- */
+.mp-chip{display:inline-block; padding:5px 12px; border-radius:20px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.8rem; font-weight:700; box-shadow:var(--sombra); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.mp-chip.ok{background:var(--verde); color:#fff; border-color:var(--verde);}
+.mp-chip.ambar{background:var(--ambar); color:#fff; border-color:var(--ambar);}
+.mp-chip.rojo{background:var(--rojo); color:#fff; border-color:var(--rojo);}
+#mp-barra{position:absolute; top:8px; left:8px; right:64px; display:flex; gap:6px; flex-wrap:wrap; pointer-events:none; z-index:2;}
+#mp-ctrl{position:absolute; top:8px; right:8px; display:flex; flex-direction:column; gap:8px; z-index:2;}
+
+/* ---- Botones (mismo estilo que los botones de la app: secundario verde con borde, primario verde lleno) ---- */
+.mp-btn{min-width:48px; min-height:48px; padding:0 10px; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-size:.95rem; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.22); cursor:pointer;}
+.mp-btn:active{filter:brightness(.94);}
+.mp-btn.on{background:var(--verde); color:#fff;}
+.mp-btn.chico{font-size:.72rem; min-height:44px;}
+#mp-guardar{position:absolute; left:50%; transform:translateX(-50%); bottom:14px; min-height:52px; padding:0 24px; background:var(--verde); color:#fff; font-size:1rem; box-shadow:0 2px 8px rgba(0,0,0,.35); z-index:2; max-width:calc(100% - 140px); white-space:nowrap;}
+#mp-aviso{position:absolute; left:8px; right:64px; top:54px; background:var(--nota-bg); color:var(--nota-txt); border:1px solid var(--nota-borde); border-radius:10px; padding:9px 10px; font-size:.82rem; display:none; z-index:2;}
+#mp-tarjeta{position:absolute; left:8px; right:64px; bottom:80px; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:12px; box-shadow:0 2px 8px rgba(0,0,0,.35); display:none; z-index:3; font-size:.9rem; max-height:50%; overflow:auto;}
+#mp-tarjeta b{font-size:1.02rem;}
+#s-mapa .maplibregl-ctrl-bottom-left{bottom:0;}
+#s-mapa .maplibregl-ctrl-bottom-right{bottom:0; right:0;}
+
+/* ---- Gestor "Mapas sin conexión" ---- */
+#mp-modal-mapas .modal{max-height:92vh;}
+.mp-caja{border:1px solid var(--borde); border-radius:var(--radio); padding:12px; margin:0 0 12px; background:var(--card); box-shadow:var(--sombra);}
+.mp-caja h3{margin:0 0 4px; font-size:1.02rem;}
+.mp-suave{color:var(--texto-sec); font-size:.82rem; margin:3px 0;}
+.mp-fila{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center;}
+.mp-fila button{min-height:44px; padding:0 14px; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-weight:700; font-size:.88rem; cursor:pointer;}
+.mp-fila button.primario{background:var(--verde); color:#fff;}
+.mp-fila button:disabled{opacity:.45;}
+.mp-caja progress{width:100%; height:18px; accent-color:var(--verde);}
+.mp-chk{display:flex; align-items:center; gap:12px; min-height:44px; font-size:.95rem;}
+.mp-chk input{width:22px; height:22px; flex:0 0 auto; accent-color:var(--verde);}
+.mp-pre{white-space:pre-wrap; word-break:break-word; font-size:.72rem; background:var(--fondo); border:1px solid var(--borde); border-radius:8px; padding:10px; margin:0 0 10px; color:var(--texto);}
+
+/* ---- Bloque Mapa asociado (pestaña Sesión) ---- */
+.mp-asoc-estado{font-size:.84rem; margin:6px 0 0; color:var(--texto-sec);}
+.mp-asoc-estado.ok{color:var(--verde); font-weight:700;}
+.mp-asoc-estado.aviso{color:var(--ambar-osc); font-weight:700;}

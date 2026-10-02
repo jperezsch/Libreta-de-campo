@@ -1,0 +1,19 @@
+[
+ "estilo-base.json",
+ "fuentes/NotoSans-Italic/0-255.pbf",
+ "fuentes/NotoSans-Italic/256-511.pbf",
+ "fuentes/NotoSans-Italic/8192-8447.pbf",
+ "fuentes/NotoSans-Medium/0-255.pbf",
+ "fuentes/NotoSans-Medium/256-511.pbf",
+ "fuentes/NotoSans-Medium/8192-8447.pbf",
+ "fuentes/NotoSans-Regular/0-255.pbf",
+ "fuentes/NotoSans-Regular/256-511.pbf",
+ "fuentes/NotoSans-Regular/8192-8447.pbf",
+ "mapa.css",
+ "mapa.js",
+ "vendor/maplibre-contour.min.js",
+ "vendor/maplibre-gl.css",
+ "vendor/maplibre-gl.js",
+ "vendor/pmtiles.js",
+ "vendor/shp.min.js"
+]
