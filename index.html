@@ -441,6 +441,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 .sueltos-fila{display:flex; align-items:center; gap:8px; padding:7px 10px; font-size:.82rem; border-top:1px solid var(--borde);}
 .sueltos-fila input, .sueltos-grupo-cab input{width:auto; flex:0 0 auto;}
 .sueltos-lista-scroll{max-height:380px; overflow-y:auto;}
+.navbtn.oculto{display:none;}
+.mapa-cfg-card{border:1px solid var(--borde); border-radius:12px; padding:12px; margin:0 0 10px; background:var(--card);}
+.mapa-cfg-card .estado{font-size:.86rem; margin:0 0 8px; font-weight:700;}
+.mapa-cfg-card .estado.on{color:#2e7d32;}
+#modal-mapa-url .modal input{width:100%;}
 </style>
 </head>
 <body>
@@ -499,6 +504,8 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <input type="text" id="ss-habitat-otro" spellcheck="true" list="dl-habitat-otro" placeholder="Especifica el hábitat" style="display:none; margin-top:7px;"><datalist id="dl-habitat-otro"></datalist>
       <span class="campo-ayuda">Se asigna a cada registro nuevo de Recolección y Observación. Si cambia durante la salida, cámbialo aquí.</span>
     </div>
+
+    <div id="sesion-mapa-asoc"></div>
 
     <div class="section-title">Contexto adicional</div>
     <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" spellcheck="true" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
@@ -859,6 +866,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="section-title">Aplicación</div>
     <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
     <div class="version-info" id="version-info">Comprobando versión...</div>
+    <div id="config-mapa"></div>
     <div class="section-title">Datos</div>
     <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
   </div>
@@ -881,10 +889,13 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
   </div>
 </div>
 
+<div class="screen" id="s-mapa"></div>
+
 <div class="navbar">
   <button class="navbtn on" data-s="sesion"><span class="ic">🧭</span>Sesión</button>
   <button class="navbtn" data-s="form"><span class="ic">➕</span>Nuevo</button>
   <button class="navbtn" data-s="lista"><span class="ic">📋</span>Registros</button>
+  <button class="navbtn oculto" data-s="mapa"><span class="ic">🗺️</span>Mapa</button>
   <button class="navbtn" data-s="exportar"><span class="ic">📊</span>Exportar</button>
   <button class="navbtn" data-s="config"><span class="ic">⚙️</span>Config</button>
 </div>
@@ -3471,7 +3482,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-01 · v2.38";
+var APP_BUILD = "2026-10-02 · v2.39";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -3539,6 +3550,7 @@ function sesionVacia(){
 var state = {
   currentView: "sesion",
   consultaId: null,       // id del registro que se está mostrando en la vista de consulta (solo lectura)
+  consultaVolverA: null,  // "mapa" si el registro se abrió desde el mapa (el botón Volver regresa allí)
   volverConsultaId: null, // si se editó desde la vista de consulta, id al que volver tras guardar
   sesiones: [],           // todas las sesiones (activa + archivadas)
   sesionActivaId: null,   // la sesión "en curso" — a ella se asignan los registros nuevos
@@ -3931,6 +3943,7 @@ function irA(view, opts){
   if(view==="exportar") renderExportar();
   if(view==="config") renderConfig();
   if(view==="consulta") renderConsulta(state.consultaId);
+  if(window.MapaPro){ if(view==="mapa") MapaPro.alMostrar(); else MapaPro.alOcultar(); }
   if(view==="lista") irBajarFinal(); else irSubirInicio();
   if(!(opts && opts.sinHistorial)) registrarVistaEnHistorial(view);
   actualizarWakeLock();
@@ -4126,6 +4139,7 @@ function renderSesion(){
   renderSesionModo();
   renderSelectorSesiones();
   aplicarModoEdicionSesion();
+  mapaRenderSesion(s);
 }
 // Modo consulta por defecto: los campos son de solo lectura hasta pulsar "Editar". Una sesión activa recién creada
 // (sin nombre ni registros) abre directo en edición, porque no hay nada que consultar todavía.
@@ -4354,7 +4368,7 @@ function crearNuevaSalida(opts){
   }
   var nueva = sesionVacia();
   // La numeración continúa sin cortes: mismo prefijo y correlativo donde iba la anterior
-  if(base){ nueva.prefijo = base.prefijo; nueva.inicio = base.inicio; nueva.contador = base.contador; }
+  if(base){ nueva.prefijo = base.prefijo; nueva.inicio = base.inicio; nueva.contador = base.contador; if(base.mapaId) nueva.mapaId = base.mapaId; }
   state.sesiones.push(nueva);
   state.sesionActivaId = nueva.id;
   state.sesionEnPantallaId = nueva.id;
@@ -5791,7 +5805,7 @@ function renderConsulta(id){
     });
   }
 }
-document.getElementById("btn-consulta-volver").addEventListener("click", function(){ irA("lista"); });
+document.getElementById("btn-consulta-volver").addEventListener("click", function(){ irA(state.consultaVolverA==="mapa" ? "mapa" : "lista"); });
 document.getElementById("btn-consulta-editar").addEventListener("click", function(){
   var id = state.consultaId;
   editarRegistroExistente(id);
@@ -5846,11 +5860,12 @@ function editarRegistroExistente(id){
   cargarDraftEnFormulario();
   irA("form");
 }
-function verRegistroExistente(id){
+function verRegistroExistente(id, desde){
   if(!confirmarDescartarEdicionSiCorresponde(id)) return;
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   if(!r) return;
   state.consultaId = id;
+  state.consultaVolverA = desde || null;
   irA("consulta");
 }
 document.getElementById("btn-guardar").addEventListener("click", function(e){
@@ -7916,9 +7931,170 @@ document.getElementById("btn-descargar-unificado").addEventListener("click", fun
   toast("Respaldo unificado descargado");
 });
 
+
+/* ================= Mapa sin conexión (opcional) =================
+   Apagado por defecto: con el mapa desactivado no se carga ninguna librería ni archivo del mapa y la app
+   se comporta como siempre. Al activarlo se pide UNA vez la dirección del catálogo (queda guardada). */
+var MAPA_CFG_KEY = "libretacampo_mapa_cfg_v1";
+var MAPA_IDX_KEY = "libretacampo_mapa_instalados_v1";
+var mapaModulo = { estado:"no", promesa:null };   // no | cargando | listo | error
+function mapaCfg(){
+  try{
+    var c = JSON.parse(localStorage.getItem(MAPA_CFG_KEY) || "null");
+    if(c && typeof c==="object") return { activo:!!c.activo, catalogoUrl:String(c.catalogoUrl||""), pestana: c.pestana==="siempre" ? "siempre" : "auto" };
+  }catch(e){}
+  return { activo:false, catalogoUrl:"", pestana:"auto" };
+}
+function mapaGuardarCfg(c){ return setLS(MAPA_CFG_KEY, JSON.stringify(c)); }
+function mapaInstalados(){ try{ return JSON.parse(localStorage.getItem(MAPA_IDX_KEY) || "{}") || {}; }catch(e){ return {}; } }
+function mapaPestanaVisible(){
+  var c = mapaCfg(); if(!c.activo) return false;
+  if(c.pestana==="siempre") return true;
+  var s = sesionActiva() || sesionEnPantalla();
+  return !!(s && s.mapaId && mapaInstalados()[s.mapaId]);
+}
+function navOrderActual(){
+  var o = ["sesion","form","lista"];
+  if(mapaPestanaVisible()) o.push("mapa");
+  o.push("exportar","config");
+  return o;
+}
+function actualizarPestanaMapa(){
+  var vis = mapaPestanaVisible();
+  var b = document.querySelector('.navbtn[data-s="mapa"]');
+  if(b) b.classList.toggle("oculto", !vis);
+  if(!vis && state.currentView==="mapa") irA("sesion");
+}
+function mapaRenderSesion(s){
+  var cont = document.getElementById("sesion-mapa-asoc");
+  if(window.MapaPro && mapaCfg().activo){ MapaPro.renderAsociado(s); }
+  else if(cont){ cont.textContent = ""; }
+  actualizarPestanaMapa();
+}
+function mapaCargarArchivo(tag, url){
+  return new Promise(function(res, rej){
+    var n = document.createElement(tag);
+    if(tag==="script"){ n.src = url; } else { n.rel = "stylesheet"; n.href = url; }
+    n.onload = function(){ res(); };
+    n.onerror = function(){ rej(new Error("No se pudo cargar " + url)); };
+    document.head.appendChild(n);
+  });
+}
+function mapaCargarModulo(){
+  if(mapaModulo.estado==="cargando" || mapaModulo.estado==="listo") return mapaModulo.promesa;
+  mapaModulo.estado = "cargando";
+  var B = "mapa/";
+  mapaModulo.promesa = Promise.all([
+    mapaCargarArchivo("link", B+"vendor/maplibre-gl.css"), mapaCargarArchivo("link", B+"mapa.css"),
+    mapaCargarArchivo("script", B+"vendor/maplibre-gl.js"), mapaCargarArchivo("script", B+"vendor/pmtiles.js"),
+    mapaCargarArchivo("script", B+"vendor/maplibre-contour.min.js")
+  ]).then(function(){ return mapaCargarArchivo("script", B+"mapa.js"); })
+    .then(function(){ mapaModulo.estado = "listo"; return window.MapaPro.init(window.LC); })
+    .catch(function(e){
+      mapaModulo.estado = "error";
+      toast("No se pudo cargar el mapa. La primera vez necesita conexión.", 5000);
+      var sm = document.getElementById("s-mapa");
+      if(sm && !sm.firstChild){ sm.innerHTML = '<div class="pad"><p class="campo-ayuda">🗺️ El mapa no está disponible: no se pudieron cargar sus archivos. Conéctate a internet y reinicia la app.</p></div>'; }
+      if(window.console) console.warn(e);
+    });
+  return mapaModulo.promesa;
+}
+function mapaArrancar(){ if(mapaCfg().activo) mapaCargarModulo(); }
+function mapaValidarCatalogo(url){
+  return fetch(url, {cache:"no-store"}).then(function(r){
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  }).then(function(j){
+    if(!j || j.esquema!==1 || !Array.isArray(j.mapas)) throw new Error("formato");
+    return true;
+  });
+}
+function mapaActivar(url){
+  var c = mapaCfg();
+  c.activo = true; if(url) c.catalogoUrl = url;
+  if(!mapaGuardarCfg(c)){ toast("No se pudo guardar la configuración"); return; }
+  toast("🗺️ Mapa activado");
+  mapaCargarModulo().then(function(){ actualizarPestanaMapa(); renderSesion(); });
+  renderConfigMapa(); actualizarPestanaMapa();
+}
+function mapaPedirDireccion(){
+  var m = document.getElementById("modal-mapa-url");
+  if(!m){
+    m = document.createElement("div"); m.className = "modal-bg"; m.id = "modal-mapa-url";
+    m.innerHTML = '<div class="modal"><h2 style="margin:0 0 8px;font-size:1.1rem;">🗺️ Activar el mapa</h2>'+
+      '<p class="campo-ayuda" style="margin:0 0 10px;">Escribe o pega la dirección del catálogo de mapas que te entregó quien lo administra. Se guarda en este teléfono y no se vuelve a pedir.</p>'+
+      '<div class="field"><input type="url" id="mapa-url-input" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://…/catalogo.json"></div>'+
+      '<p class="campo-ayuda" id="mapa-url-msg" style="min-height:1.2em;"></p>'+
+      '<div style="display:flex;gap:8px;"><button type="button" class="btnfull btn-secondary" style="flex:1;margin:0;" id="mapa-url-cancelar">Cancelar</button>'+
+      '<button type="button" class="btnfull btn-primary" style="flex:1;margin:0;" id="mapa-url-ok">Activar</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function(e){ if(e.target===m) m.classList.remove("on"); });
+    document.getElementById("mapa-url-cancelar").addEventListener("click", function(){ m.classList.remove("on"); });
+    document.getElementById("mapa-url-ok").addEventListener("click", function(){
+      var inp = document.getElementById("mapa-url-input"), msg = document.getElementById("mapa-url-msg");
+      var url = inp.value.trim(), u = null;
+      try{ u = new URL(url); }catch(e){}
+      if(!u || !/^https?:$/.test(u.protocol)){ msg.textContent = "La dirección no es válida. Debe empezar con https://"; return; }
+      msg.textContent = "Comprobando el catálogo…";
+      mapaValidarCatalogo(url).then(function(){ m.classList.remove("on"); mapaActivar(url); }).catch(function(){
+        if(navigator.onLine===false){
+          if(confirm("Sin conexión no se puede comprobar la dirección. ¿Guardarla igual?")){ m.classList.remove("on"); mapaActivar(url); }
+        } else msg.textContent = "No se pudo leer el catálogo en esa dirección. Revisa que esté bien escrita.";
+      });
+    });
+  }
+  document.getElementById("mapa-url-input").value = mapaCfg().catalogoUrl || "";
+  document.getElementById("mapa-url-msg").textContent = "";
+  m.classList.add("on");
+}
+function renderConfigMapa(){
+  var cont = document.getElementById("config-mapa"); if(!cont) return;
+  var c = mapaCfg(), h = '<div class="section-title">Mapa sin conexión (opcional)</div><div class="mapa-cfg-card">';
+  if(!c.activo){
+    var idx = mapaInstalados(), nInst = Object.keys(idx).length, bytes = 0;
+    Object.keys(idx).forEach(function(k){ (idx[k].archivos||[]).forEach(function(a){ bytes += a.bytes||0; }); });
+    h += '<p class="estado">Desactivado</p>'+
+      '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Función opcional para ver tus registros sobre un mapa guardado en el teléfono, también sin conexión. Necesita la dirección de un catálogo de mapas.</span>'+
+      (nInst ? '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Hay '+nInst+' mapa(s) descargado(s) en este teléfono ('+(bytes/1048576).toFixed(1)+' MB). Se conservan; actívalo para administrarlos.</span>' : '')+
+      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-activar" style="margin:0;">🗺️ Activar el mapa</button>';
+  } else {
+    var host = ""; try{ host = new URL(c.catalogoUrl).host; }catch(e){}
+    h += '<p class="estado on">✅ Activado'+(host ? ' · catálogo en '+escapeHtml(host) : '')+'</p>'+
+      '<div class="field"><label>Pestaña Mapa</label><select id="mapa-cfg-pestana">'+
+        '<option value="auto"'+(c.pestana==="auto"?' selected':'')+'>Solo con mapa en la sesión</option>'+
+        '<option value="siempre"'+(c.pestana==="siempre"?' selected':'')+'>Siempre visible</option>'+
+      '</select><span class="campo-ayuda">Solo con mapa en la sesión: la pestaña aparece mientras la sesión tiene un mapa asociado e instalado. Siempre visible: aparece aunque no haya mapa para el área visitada.</span></div>'+
+      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-gestor" style="margin:0 0 8px;">⚙️ Mapas descargados y catálogo</button>'+
+      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-cambiar-url" style="margin:0 0 8px;">✏️ Cambiar la dirección del catálogo</button>'+
+      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-desactivar" style="margin:0;">⏻ Desactivar el mapa</button>';
+  }
+  h += '</div>';
+  cont.innerHTML = h;
+  var b;
+  if((b = document.getElementById("btn-mapa-activar"))) b.addEventListener("click", function(){
+    if(mapaCfg().catalogoUrl) mapaActivar(null); else mapaPedirDireccion();
+  });
+  if((b = document.getElementById("mapa-cfg-pestana"))) b.addEventListener("change", function(){
+    var cc = mapaCfg(); cc.pestana = this.value==="siempre" ? "siempre" : "auto"; mapaGuardarCfg(cc);
+    actualizarPestanaMapa(); toast(cc.pestana==="siempre" ? "La pestaña Mapa queda siempre visible" : "La pestaña Mapa aparece solo si la sesión tiene mapa");
+  });
+  if((b = document.getElementById("btn-mapa-gestor"))) b.addEventListener("click", function(){
+    if(window.MapaPro) MapaPro.abrirGestor("mapas"); else { toast("Cargando el mapa…"); mapaCargarModulo().then(function(){ if(window.MapaPro) MapaPro.abrirGestor("mapas"); }); }
+  });
+  if((b = document.getElementById("btn-mapa-cambiar-url"))) b.addEventListener("click", mapaPedirDireccion);
+  if((b = document.getElementById("btn-mapa-desactivar"))) b.addEventListener("click", function(){
+    if(!confirm("¿Desactivar el mapa?\n\nLa pestaña Mapa y el bloque de la sesión se ocultan. Los mapas descargados y la dirección del catálogo se conservan.")) return;
+    var cc = mapaCfg(); cc.activo = false; mapaGuardarCfg(cc);
+    if(window.MapaPro) MapaPro.alDesactivar();
+    actualizarPestanaMapa(); renderConfigMapa(); renderSesion();
+    toast("Mapa desactivado");
+  });
+}
+
 /* ---------------- Config ---------------- */
 function renderConfig(){
   document.getElementById("version-info").textContent = "Versión cargada: " + APP_BUILD;
+  renderConfigMapa();
 }
 document.getElementById("btn-buscar-actualizacion").addEventListener("click", function(){
   if(!("serviceWorker" in navigator)){ toast("Este navegador no admite actualización automática"); return; }
@@ -7964,7 +8140,6 @@ document.getElementById("btn-borrar-todo").addEventListener("click", function(){
 
 /* ---------------- Deslizar para cambiar de pestaña ---------------- */
 (function(){
-  var navOrder = ["sesion","form","lista","exportar","config"];
   var touchStartX=0, touchStartY=0, touchStartTarget=null;
   document.addEventListener("touchstart", function(e){
     if(e.touches.length!==1) return;
@@ -7975,11 +8150,12 @@ document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   document.addEventListener("touchend", function(e){
     if(!touchStartTarget) return;
     var t = touchStartTarget; touchStartTarget=null;
-    if(t.closest && (t.closest(".chipbar") || t.closest("select") || t.closest("input") || t.closest("textarea") || t.closest(".modal-bg.on"))) return;
+    if(t.closest && (t.closest(".chipbar") || t.closest("select") || t.closest("input") || t.closest("textarea") || t.closest(".modal-bg.on") || t.closest("#s-mapa"))) return;
     var touch = e.changedTouches[0];
     var dx = touch.clientX - touchStartX;
     var dy = touch.clientY - touchStartY;
     if(Math.abs(dx) < 70 || Math.abs(dy) > 60) return;
+    var navOrder = navOrderActual();
     var idx = navOrder.indexOf(state.currentView);
     if(idx<0) return;
     if(dx<0 && idx < navOrder.length-1){
@@ -8020,7 +8196,43 @@ function init(){
   irA(vistasRestaurables.indexOf(ultimaVista)>=0 ? ultimaVista : "sesion", {sinHistorial:true});
   sincronizarVistaHistorial();
 }
+
+/* ---------------- Puente con el módulo del mapa ---------------- */
+// Pone la posición ya capturada (desde el mapa) en el registro en curso. Mismos campos que capturarGPS().
+function aplicarPosicionAlBorrador(lat, lon, alt, accuracy, nLecturas){
+  if(!state.draft) return false;
+  var ahora = new Date();
+  state.draft.lat = lat.toFixed(6);
+  state.draft.lon = lon.toFixed(6);
+  state.draft.altitud = alt!=null ? Math.round(alt) : null;
+  state.draft.precisionGps = accuracy!=null ? accuracy : null;
+  state.draft.fecha = fechaLocalISO(ahora);
+  state.draft.hora = horaLocalHM(ahora);
+  guardarDraft();
+  document.getElementById("f-lat").value = state.draft.lat;
+  document.getElementById("f-lon").value = state.draft.lon;
+  document.getElementById("f-altitud").value = state.draft.altitud!=null ? state.draft.altitud : "";
+  document.getElementById("f-fecha").value = state.draft.fecha;
+  document.getElementById("f-hora").value = state.draft.hora;
+  document.getElementById("gpsbox").classList.remove("error");
+  actualizarGpsBox();
+  var b = document.getElementById("btn-gps"); if(b){ b.disabled = false; b.textContent = "📍 Recapturar ubicación"; }
+  toast("Ubicación tomada desde el mapa" + (accuracy!=null ? " · ±"+Math.round(accuracy)+" m" : "") + (nLecturas>1 ? " ("+nLecturas+" lecturas)" : ""));
+  return true;
+}
+window.LC = {
+  state: state, appBuild: APP_BUILD,
+  irA: irA, toast: toast, escapeHtml: escapeHtml,
+  colorSesion: colorSesion, sesionActiva: sesionActiva, sesionEnPantalla: sesionEnPantalla, sesionPorId: sesionPorId,
+  nombreSesionMostrar: nombreSesionMostrar, guardarListaSesiones: guardarListaSesiones,
+  verRegistroExistente: verRegistroExistente, abrirRegistro: abrirRegistro,
+  obtenerPosicionMejorada: obtenerPosicionMejorada, gpsCapturaActiva: function(){ return gpsCapturaActiva; },
+  aplicarPosicionAlBorrador: aplicarPosicionAlBorrador,
+  mapaCfg: mapaCfg, actualizarPestanaMapa: actualizarPestanaMapa
+};
+
 init();
+setTimeout(mapaArrancar, 400);   // el mapa (si está activado) se carga después de que la app ya arrancó
 
 })();
 
