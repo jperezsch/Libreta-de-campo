@@ -33,3 +33,7 @@ body.vista-mapa #temabtn{display:none;}
 .mp-asoc-estado{font-size:.84rem; margin:6px 0 0; color:var(--texto-sec);}
 .mp-asoc-estado.ok{color:#2e7d32; font-weight:700;}
 .mp-asoc-estado.aviso{color:#b26a00; font-weight:700;}
+
+/* tarjeta informativa de una estación o línea de capa */
+#mp-tarjeta{position:absolute; left:8px; right:64px; bottom:84px; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:12px; padding:12px; box-shadow:0 2px 8px rgba(0,0,0,.4); display:none; z-index:3; font-size:.9rem; max-height:50%; overflow:auto;}
+#mp-tarjeta b{font-size:1rem;}

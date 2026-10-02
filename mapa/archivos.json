@@ -14,5 +14,6 @@
  "vendor/maplibre-contour.min.js",
  "vendor/maplibre-gl.css",
  "vendor/maplibre-gl.js",
- "vendor/pmtiles.js"
+ "vendor/pmtiles.js",
+ "vendor/shp.min.js"
 ]

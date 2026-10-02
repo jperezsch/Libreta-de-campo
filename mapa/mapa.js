@@ -8,7 +8,7 @@ var PARAMS = new URLSearchParams(location.search);
 var FORZAR_IDB = PARAMS.get("idb") === "1";
 var RUTA_MAPA = "mapa/";   /* carpeta de apoyo, relativa a la página */
 var DIR = "libretacampo_mapas";   /* subcarpeta de OPFS: no se mezcla con otros archivos del mismo dominio */
-var LS_IDX = "libretacampo_mapa_instalados_v1", LS_CAT = "libretacampo_mapa_catalogo_v1", LS_ACTUAL = "libretacampo_mapa_actual_v1", LS_CAPAS = "libretacampo_mapa_capas_v1", LS_PRECARGA = "libretacampo_mapa_precarga_v1";
+var LS_IDX = "libretacampo_mapa_instalados_v1", LS_CAT = "libretacampo_mapa_catalogo_v1", LS_ACTUAL = "libretacampo_mapa_actual_v1", LS_CAPAS = "libretacampo_mapa_capas_v1", LS_PRECARGA = "libretacampo_mapa_precarga_v1", LS_CAPAS_LOC = "libretacampo_mapa_capas_locales_v1";
 var LISTO = typeof maplibregl !== "undefined" && typeof pmtiles !== "undefined" && typeof mlcontour !== "undefined";
 
 var LC = null;
@@ -44,6 +44,8 @@ function anotarError(origen, e) {
 var metricas = { descargas: [], aperturaMs: null, fluidez: null, gpsUltimo: null };
 var tiemposCurvas = [];
 
+function cancelarLector(reader) { try { var pc = reader.cancel(); if (pc && pc.catch) pc.catch(function () {}); } catch (_) {} }
+
 /* ---------- almacenamiento de archivos ---------- */
 var pmCache = {};
 var Alm = (function () {
@@ -71,6 +73,13 @@ var Alm = (function () {
   async function dir() { return (await navigator.storage.getDirectory()).getDirectoryHandle(DIR, { create: true }); }
   return {
     modo: function () { return opfs ? "OPFS" : "IndexedDB (respaldo)"; },
+    guardar: async function (nombre, blob) {
+      if (opfs) {
+        var fh = await (await dir()).getFileHandle(nombre, { create: true });
+        var w = await fh.createWritable();
+        try { await w.write(blob); await w.close(); } catch (e) { try { await w.abort(); } catch (_) {} throw e; }
+      } else await idbOp("readwrite", function (s) { return s.put(blob, nombre); });
+    },
     leer: async function (nombre) {
       if (opfs) {
         try { return await (await (await dir()).getFileHandle(nombre)).getFile(); }
@@ -89,42 +98,53 @@ var Alm = (function () {
       else out = (await idbOp("readonly", function (s) { return s.getAllKeys(); })) || [];
       return out;
     },
-    descargar: async function (url, nombre, bytesEsperados, onBytes, signal) {
+    /* Descarga en flujo. No toca un archivo ya instalado hasta saber que el nuevo está completo: si algo falla, lo anterior queda intacto. */
+    descargar: async function (url, nombre, bytesEsperados, onBytes, signal, validar) {
       var resp = await fetch(url, { signal: signal, cache: "no-store" });
       if (!resp.ok) throw new Error("El servidor respondió " + resp.status);
       if (!resp.body) throw new Error("El navegador no entrega la descarga por partes");
-      var reader = resp.body.getReader(), recibido = 0;
+      var existia = !!(await this.leer(nombre));
+      var reader = resp.body.getReader(), recibido = 0, cab = [], revisarCab = validar !== "ninguna";
+      function revisarMagia(trozo) {
+        if (!revisarCab) return;
+        for (var i = 0; i < trozo.length && cab.length < 7; i++) cab.push(trozo[i]);
+        if (cab.length >= 7) { revisarCab = false; if (String.fromCharCode.apply(null, cab) !== "PMTiles") throw new Error("El archivo no es un paquete PMTiles válido"); }
+      }
+      function verificarTamano() { if (bytesEsperados && recibido !== bytesEsperados) throw new Error("Tamaño recibido " + recibido + " distinto del esperado " + bytesEsperados); }
       if (opfs) {
         var fh = await (await dir()).getFileHandle(nombre, { create: true });
-        var w = await fh.createWritable();
+        var w = await fh.createWritable(), cerrado = false;
         try {
           for (;;) {
             var r = await reader.read();
             if (r.done) break;
+            revisarMagia(r.value);
             await w.write(r.value); recibido += r.value.length; onBytes(r.value.length);
           }
-          await w.close();
-        } catch (e) { try { await w.abort(); } catch (_) {} try { reader.cancel(); } catch (_) {} await this.borrar(nombre); throw e; }
+          if (recibido < 7 && validar !== "ninguna") throw new Error("El archivo no es un paquete PMTiles válido");
+          verificarTamano();
+          await w.close(); cerrado = true;
+        } catch (e) {
+          cancelarLector(reader);
+          if (!cerrado) { try { await w.abort(); } catch (_) {} }
+          if (!existia) await this.borrar(nombre);   /* si ya existía, el abort descarta lo escrito y el archivo anterior sigue igual */
+          throw e;
+        }
       } else {
         var trozos = [];
         try {
           for (;;) {
             var r2 = await reader.read();
             if (r2.done) break;
+            revisarMagia(r2.value);
             trozos.push(r2.value); recibido += r2.value.length; onBytes(r2.value.length);
           }
-        } catch (e) { try { reader.cancel(); } catch (_) {} throw e; }
-        var blob = new Blob(trozos, { type: "application/octet-stream" });
-        await idbOp("readwrite", function (s) { return s.put(blob, nombre); });
+          if (recibido < 7 && validar !== "ninguna") throw new Error("El archivo no es un paquete PMTiles válido");
+          verificarTamano();
+        } catch (e) { cancelarLector(reader); throw e; }
+        await idbOp("readwrite", function (st) { return st.put(new Blob(trozos, { type: "application/octet-stream" }), nombre); });
       }
-      if (bytesEsperados && recibido !== bytesEsperados) {
-        await this.borrar(nombre);
-        throw new Error("Tamaño recibido " + recibido + " distinto del esperado " + bytesEsperados);
-      }
-      var f = await this.leer(nombre);
-      if (!f) throw new Error("El archivo no quedó guardado");
-      var cab = new Uint8Array(await f.slice(0, 7).arrayBuffer());
-      if (String.fromCharCode.apply(null, cab) !== "PMTiles") { await this.borrar(nombre); throw new Error("El archivo no es un paquete PMTiles válido"); }
+      if (!(await this.leer(nombre))) throw new Error("El archivo no quedó guardado");
       return recibido;
     }
   };
@@ -195,11 +215,225 @@ var bateria = "";
 
 function nombreDeUrl(u) { return decodeURIComponent(new URL(u, location.href).pathname.split("/").pop()); }
 function archivosDe(e) { return (e.archivos || []).filter(function (a) { return a.tipo === "base" || a.tipo === "relieve"; }); }
-function totalBytes(e) { return archivosDe(e).reduce(function (s, a) { return s + (a.bytes || 0); }, 0); }
+function capasDe(e) { return ((e && e.capas) || []).filter(function (c) { return c && c.id && c.url && /^(geojson|gpx|shapefile_zip|shapefile)$/.test(c.tipo || "geojson"); }); }
+function capaInstalada(m, c) { return !!(m && (m.capas || []).some(function (x) { return x.id === c.id && x.url === c.url; })); }
+function capasPendientes(e) { var m = inst[e.id]; return m ? capasDe(e).filter(function (c) { return !capaInstalada(m, c); }) : capasDe(e); }
+function totalBytes(e) { return archivosDe(e).concat(capasDe(e)).reduce(function (s, a) { return s + (a.bytes || 0); }, 0); }
 function archivoTipo(m, tipo) { var a = (m.archivos || []).filter(function (x) { return x.tipo === tipo; })[0]; return a ? a.nombre : null; }
 function nombreCorto(n) { return String(n || "").replace(/\s*\(SINTETICO.*$/, ""); }
 function entradaCatalogo(id) { return cat ? (cat.mapas.filter(function (m) { return m.id === id; })[0] || null) : null; }
 function sesionesQueUsan(id) { return LC.state.sesiones.filter(function (s) { return s.mapaId === id; }).length; }
+
+/* ---------- capas: estaciones, tracks y límites ---------- */
+var capasCache = {}, capasLoc = leerJSON(LS_CAPAS_LOC, []), capasActuales = [], shpPromesa = null;
+var COL_CAT = "#6a1b9a", COL_LOC = "#e65100";
+function sinTildes(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+function normClave(k) { return sinTildes(k).toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""); }
+function normProps(p) {
+  var o = {};
+  if (p && typeof p === "object") Object.keys(p).forEach(function (k) {
+    var v = p[k]; if (v === null || v === undefined || typeof v === "object") return;
+    o[normClave(k)] = v;
+  });
+  if (o.name !== undefined && o.nombre === undefined) o.nombre = o.name;
+  if (o.descripcio !== undefined && o.descripcion === undefined) o.descripcion = o.descripcio;   /* el shapefile corta los nombres a 10 letras */
+  ["nombre", "estacion", "descripcion", "localidad_especifica", "localidad"].forEach(function (k) { if (o[k] !== undefined) o[k] = String(o[k]); });
+  return o;
+}
+function familiaGeom(t) { return /Point/.test(t) ? "puntos" : /LineString/.test(t) ? "lineas" : /Polygon/.test(t) ? "poligonos" : null; }
+function recorrerCoords(c, f) { if (typeof c[0] === "number") { f(c); return; } for (var i = 0; i < c.length; i++) recorrerCoords(c[i], f); }
+function normalizarFC(j) {
+  var feats = [], bbox = [180, 90, -180, -90], cuenta = { puntos: 0, lineas: 0, poligonos: 0 };
+  function add(g, props) {
+    if (!g) return;
+    if (g.type === "GeometryCollection") { (g.geometries || []).forEach(function (x) { add(x, props); }); return; }
+    var fam = familiaGeom(g.type || "");
+    if (!fam || !g.coordinates) throw new Error("Geometría no admitida: " + g.type);
+    recorrerCoords(g.coordinates, function (c) {
+      var lo = c[0], la = c[1];
+      if (!isFinite(lo) || !isFinite(la) || Math.abs(lo) > 180 || Math.abs(la) > 90) throw new Error("Coordenadas fuera de rango (deben estar en grados, EPSG:4326)");
+      if (lo < bbox[0]) bbox[0] = lo; if (la < bbox[1]) bbox[1] = la; if (lo > bbox[2]) bbox[2] = lo; if (la > bbox[3]) bbox[3] = la;
+    });
+    cuenta[fam]++;
+    feats.push({ type: "Feature", properties: props, geometry: { type: g.type, coordinates: g.coordinates } });
+  }
+  (Array.isArray(j) ? j : [j]).forEach(function (x) {
+    if (!x) return;
+    if (x.type === "FeatureCollection") (x.features || []).forEach(function (f) { if (f) add(f.geometry, normProps(f.properties)); });
+    else if (x.type === "Feature") add(x.geometry, normProps(x.properties));
+    else add(x, {});
+  });
+  if (!feats.length) throw new Error("La capa no tiene elementos");
+  return { fc: { type: "FeatureCollection", features: feats }, bbox: bbox, cuenta: cuenta };
+}
+function gpxAGeoJSON(txt) {
+  var doc = new DOMParser().parseFromString(txt, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) throw new Error("El archivo GPX no es válido");
+  var feats = [], cada = Array.prototype.forEach, mapa = Array.prototype.map;
+  function txtDe(n, tag) { var e = n.getElementsByTagName(tag)[0]; return e && e.textContent ? e.textContent.trim() : ""; }
+  function pt(n) { return [parseFloat(n.getAttribute("lon")), parseFloat(n.getAttribute("lat"))]; }
+  cada.call(doc.getElementsByTagName("wpt"), function (w) {
+    var nombre = txtDe(w, "name");
+    feats.push({ type: "Feature", properties: { nombre: nombre, estacion: nombre, descripcion: txtDe(w, "desc") || txtDe(w, "cmt") }, geometry: { type: "Point", coordinates: pt(w) } });
+  });
+  cada.call(doc.getElementsByTagName("trk"), function (t) {
+    var segs = mapa.call(t.getElementsByTagName("trkseg"), function (sg) { return mapa.call(sg.getElementsByTagName("trkpt"), pt); }).filter(function (sg) { return sg.length > 1; });
+    if (!segs.length) return;
+    feats.push({ type: "Feature", properties: { nombre: txtDe(t, "name") }, geometry: segs.length === 1 ? { type: "LineString", coordinates: segs[0] } : { type: "MultiLineString", coordinates: segs } });
+  });
+  cada.call(doc.getElementsByTagName("rte"), function (r) {
+    var pts = mapa.call(r.getElementsByTagName("rtept"), pt);
+    if (pts.length > 1) feats.push({ type: "Feature", properties: { nombre: txtDe(r, "name") }, geometry: { type: "LineString", coordinates: pts } });
+  });
+  return { type: "FeatureCollection", features: feats };
+}
+function cargarShp() {
+  if (window.shp) return Promise.resolve();
+  if (!shpPromesa) shpPromesa = new Promise(function (res, rej) {
+    var sc = document.createElement("script"); sc.src = RUTA_MAPA + "vendor/shp.min.js";
+    sc.onload = function () { res(); };
+    sc.onerror = function () { shpPromesa = null; rej(new Error("No se pudo cargar el lector de shapefile")); };
+    document.head.appendChild(sc);
+  });
+  return shpPromesa;
+}
+function tipoPorNombre(n) { n = String(n).toLowerCase(); if (/\.(geo)?json$/.test(n)) return "geojson"; if (/\.gpx$/.test(n)) return "gpx"; if (/\.zip$/.test(n)) return "shapefile_zip"; return null; }
+function tipoCapa(t) { return t === "shapefile" ? "shapefile_zip" : (t || "geojson"); }
+async function parsearCapa(file, tipo) {
+  var j;
+  if (tipo === "geojson") j = JSON.parse(await file.text());
+  else if (tipo === "gpx") j = gpxAGeoJSON(await file.text());
+  else if (tipo === "shapefile_zip") {
+    await cargarShp();
+    var buf = await file.arrayBuffer(), sinPrj = false;
+    try { j = await window.shp(buf); }
+    catch (e) {
+      /* un .prj en un formato que el lector no entiende: se reintenta sin él, asumiendo grados (WGS 84) */
+      try {
+        if (typeof JSZip === "undefined") throw e;
+        var z = await JSZip.loadAsync(buf);
+        Object.keys(z.files).forEach(function (n) { if (/\.prj$/i.test(n)) z.remove(n); });
+        j = await window.shp(await z.generateAsync({ type: "arraybuffer" })); sinPrj = true;
+      } catch (e2) { throw new Error("No se pudo leer el shapefile. Revisa que el .zip traiga .shp y .dbf (y .prj, idealmente en WGS 84). Detalle: " + String((e && e.message) || e).slice(0, 70)); }
+    }
+    if (sinPrj) {
+      try { return normalizarFC(j); }
+      catch (e3) { throw new Error("El shapefile usa un sistema de coordenadas que no se pudo leer. Expórtalo desde QGIS en WGS 84 (EPSG:4326)."); }
+    }
+  }
+  else throw new Error("Formato de capa no admitido: " + tipo);
+  return normalizarFC(j);
+}
+function capasDelMapa(mapaId) {
+  var m = inst[mapaId], out = [];
+  if (m && m.capas) m.capas.forEach(function (c) { out.push({ clave: "c:" + mapaId + ":" + c.id, id: c.id, nombre: c.nombre || c.id, origen: "catalogo", archivo: c.archivo, tipo: c.tipo }); });
+  capasLoc.filter(function (c) { return c.mapaId === mapaId; }).forEach(function (c) { out.push({ clave: "l:" + c.id, id: c.id, nombre: c.nombre, origen: "local", archivo: c.archivo, tipo: c.tipo }); });
+  return out;
+}
+async function cargarCapasMapa(mapaId) {
+  var lista = mapaId ? capasDelMapa(mapaId) : [], res = [];
+  for (var i = 0; i < lista.length; i++) {
+    var c = lista[i];
+    try {
+      if (!capasCache[c.archivo]) {
+        var f = await Alm.leer(c.archivo); if (!f) throw new Error("archivo ausente");
+        capasCache[c.archivo] = await parsearCapa(f, "geojson");
+      }
+      c.datos = capasCache[c.archivo]; res.push(c);
+    } catch (e) { anotarError("capa " + c.nombre, e); }
+  }
+  capasActuales = res;
+  return res;
+}
+function visCapa(clave) { return !(capasVis.capas && capasVis.capas[clave] === false); }
+function clavesVisibles() { return capasActuales.filter(function (c) { return visCapa(c.clave); }).map(function (c) { return c.clave; }); }
+function geoCapas() {
+  var fs = [];
+  capasActuales.forEach(function (c) {
+    c.datos.fc.features.forEach(function (f) {
+      fs.push({ type: "Feature", properties: Object.assign({}, f.properties, { _capa: c.clave, _origen: c.origen }), geometry: f.geometry });
+    });
+  });
+  return { type: "FeatureCollection", features: fs };
+}
+var TIPOS_CAPA = { "capas-pol-relleno": ["Polygon", "MultiPolygon"], "capas-pol-borde": ["Polygon", "MultiPolygon"], "capas-lineas": ["LineString", "MultiLineString"], "capas-lineas-texto": ["LineString", "MultiLineString"], "capas-estaciones": ["Point", "MultiPoint"] };
+function filtroCapas(id) {
+  var f = ["all", ["in", ["get", "_capa"], ["literal", clavesVisibles()]], ["in", ["geometry-type"], ["literal", TIPOS_CAPA[id]]]];
+  if (id === "capas-lineas-texto") f.push(["has", "nombre"]);
+  return f;
+}
+function aplicarFiltrosCapas() {
+  if (!map || !mapaListo) return;
+  Object.keys(TIPOS_CAPA).forEach(function (id) { if (map.getLayer(id)) map.setFilter(id, filtroCapas(id)); });
+}
+function refrescarCapasMapa() {
+  if (map && mapaListo && map.getSource("capas")) { map.getSource("capas").setData(geoCapas()); aplicarFiltrosCapas(); }
+}
+async function recargarCapas() { await cargarCapasMapa(estiloId); refrescarCapasMapa(); renderGestor(); }
+function crearRombo(col) {
+  var c = document.createElement("canvas"); c.width = c.height = 32;
+  var g = c.getContext("2d");
+  g.beginPath(); g.moveTo(16, 2); g.lineTo(30, 16); g.lineTo(16, 30); g.lineTo(2, 16); g.closePath();
+  g.fillStyle = col; g.fill(); g.lineWidth = 3; g.strokeStyle = "#ffffff"; g.stroke();
+  var d = g.getImageData(0, 0, 32, 32);
+  return { width: 32, height: 32, data: d.data };
+}
+function resumenCuenta(c) {
+  var t = [];
+  if (c && c.puntos) t.push(c.puntos + (c.puntos === 1 ? " punto" : " puntos"));
+  if (c && c.lineas) t.push(c.lineas + (c.lineas === 1 ? " línea" : " líneas"));
+  if (c && c.poligonos) t.push(c.poligonos + (c.poligonos === 1 ? " polígono" : " polígonos"));
+  return t.join(", ");
+}
+function cerrarTarjeta() { var t = $("mp-tarjeta"); if (t) t.style.display = "none"; }
+function mostrarTarjetaCapa(f, lngLat) {
+  var t = $("mp-tarjeta"); if (!t) return;
+  var p = f.properties || {}, capa = capasActuales.filter(function (c) { return c.clave === p._capa; })[0];
+  var esPunto = /Point/.test(f.geometry.type);
+  var titulo = p.nombre || p.estacion || (esPunto ? "Punto de referencia" : "Línea");
+  t.textContent = "";
+  t.appendChild(el("b", { texto: titulo }));
+  function linea(rot, v) { if (v !== undefined && v !== null && v !== "") t.appendChild(el("div", { class: "mp-suave", texto: rot + ": " + v })); }
+  if (esPunto) { linea("Estación", p.estacion); linea("Localidad específica", p.localidad_especifica); if (!p.localidad_especifica) linea("Localidad", p.localidad); }
+  linea("Descripción", p.descripcion);
+  var c = esPunto ? f.geometry.coordinates : [lngLat.lng, lngLat.lat];
+  linea(esPunto ? "Coordenadas" : "Punto tocado", c[1].toFixed(5) + ", " + c[0].toFixed(5));
+  linea("Capa", capa ? capa.nombre + (capa.origen === "local" ? " (importada, solo en este teléfono)" : " (del catálogo)") : "");
+  t.appendChild(el("div", { class: "mp-suave", texto: "Es un punto de referencia: no es un registro de la libreta." }));
+  t.appendChild(el("div", { class: "mp-fila" }, [el("button", { texto: "Cerrar", onclick: cerrarTarjeta })]));
+  t.style.display = "block";
+}
+async function importarCapaLocal(file) {
+  if (!estiloId || !inst[estiloId]) { LC.toast("Abre un mapa primero"); return; }
+  var tipo = tipoPorNombre(file.name);
+  if (!tipo) { LC.toast("Formato no admitido. Usa GeoJSON, GPX o shapefile en .zip", 5000); return; }
+  if (file.size > 25 * 1048576) { LC.toast("El archivo pesa más de 25 MB", 5000); return; }
+  var m = inst[estiloId], r;
+  try { r = await parsearCapa(file, tipo); }
+  catch (e) { LC.toast("No se pudo leer la capa: " + (e.message || e), 6000); anotarError("importar capa", e); return; }
+  var total = r.cuenta.puntos + r.cuenta.lineas + r.cuenta.poligonos, a = m.area;
+  if (a && (r.bbox[2] < a[0] || r.bbox[0] > a[2] || r.bbox[3] < a[1] || r.bbox[1] > a[3])) {
+    var msg = "Ningún elemento de la capa cae dentro del área de este mapa.";
+    if (!(r.bbox[3] < a[0] || r.bbox[1] > a[2] || r.bbox[2] < a[1] || r.bbox[0] > a[3])) msg += " Parece que las coordenadas están en orden latitud, longitud.";
+    if (!confirm(msg + "\n\n¿Importarla igual?")) return;
+  }
+  if (total > 5000 && !confirm("La capa tiene " + total + " elementos y puede volver lento el mapa.\n\n¿Importarla igual?")) return;
+  var id = "l" + Date.now().toString(36), archivo = "capa-local-" + id + ".geojson", blob = new Blob([JSON.stringify(r.fc)], { type: "application/geo+json" });
+  try { await Alm.guardar(archivo, blob); }
+  catch (e) { LC.toast("No se pudo guardar la capa: " + (e.message || e), 6000); anotarError("guardar capa", e); return; }
+  capasLoc.push({ id: id, mapaId: estiloId, nombre: file.name.replace(/\.[^.]+$/, ""), archivo: archivo, tipo: tipo, bytes: blob.size, fecha: fechaHM(), elementos: r.cuenta });
+  guardarJSON(LS_CAPAS_LOC, capasLoc);
+  await recargarCapas();
+  LC.toast("Capa importada: " + resumenCuenta(r.cuenta));
+}
+async function eliminarCapaLocal(id) {
+  var c = capasLoc.filter(function (x) { return x.id === id; })[0]; if (!c) return;
+  await Alm.borrar(c.archivo); delete capasCache[c.archivo];
+  capasLoc = capasLoc.filter(function (x) { return x.id !== id; });
+  guardarJSON(LS_CAPAS_LOC, capasLoc);
+  await recargarCapas();
+  LC.toast("Capa eliminada");
+}
 
 /* ---------- catálogo ---------- */
 function catalogoUrl() { return PARAMS.get("catalogo") || (LC && LC.mapaCfg().catalogoUrl) || ""; }
@@ -235,11 +469,28 @@ async function reconciliar() {
     }
     if (!ok) { perdidos.push(inst[id].nombre); delete inst[id]; }
   }
+  for (var id2 in inst) {
+    var okC = [];
+    for (var ci = 0; ci < (inst[id2].capas || []).length; ci++) {
+      var cc = inst[id2].capas[ci], fc2 = null;
+      try { fc2 = await Alm.leer(cc.archivo); } catch (e) { anotarError("leer " + cc.archivo, e); }
+      if (fc2) okC.push(cc);
+    }
+    inst[id2].capas = okC;
+  }
+  var locOk = [];
+  for (var li = 0; li < capasLoc.length; li++) {
+    var fl = null;
+    try { fl = await Alm.leer(capasLoc[li].archivo); } catch (e) { anotarError("leer " + capasLoc[li].archivo, e); }
+    if (fl && inst[capasLoc[li].mapaId]) locOk.push(capasLoc[li]); else if (fl) await Alm.borrar(capasLoc[li].archivo);
+  }
+  capasLoc = locOk; guardarJSON(LS_CAPAS_LOC, capasLoc);
   var usados = {};
-  Object.keys(inst).forEach(function (id) { inst[id].archivos.forEach(function (a) { usados[a.nombre] = 1; }); });
+  Object.keys(inst).forEach(function (id) { inst[id].archivos.forEach(function (a) { usados[a.nombre] = 1; }); (inst[id].capas || []).forEach(function (c) { usados[c.archivo] = 1; }); });
+  capasLoc.forEach(function (c) { usados[c.archivo] = 1; });
   try {
     var todos = await Alm.listar();
-    for (var k = 0; k < todos.length; k++) if (/\.pmtiles$/.test(todos[k]) && !usados[todos[k]]) await Alm.borrar(todos[k]);
+    for (var k = 0; k < todos.length; k++) if (/\.(pmtiles|geojson|gpx|zip)$/.test(todos[k]) && !usados[todos[k]]) await Alm.borrar(todos[k]);
   } catch (e) { anotarError("limpieza", e); }
   guardarJSON(LS_IDX, inst);
   if (actualId && !inst[actualId]) { actualId = null; localStorage.removeItem(LS_ACTUAL); }
@@ -252,40 +503,68 @@ async function leerAlmacenamiento() {
   } catch (e) { anotarError("almacenamiento", e); }
 }
 
-async function descargarMapa(entrada) {
+async function descargarMapa(entrada, soloCapas) {
   if (desc) return;
-  var lista = archivosDe(entrada);
-  if (lista.length === 0) { LC.toast("El catálogo no trae archivos para este mapa"); return; }
-  desc = { id: entrada.id, ctrl: new AbortController(), total: totalBytes(entrada), hecho: 0, t0: performance.now() };
-  var nuevos = [], previo = inst[entrada.id], ultimo = 0;
+  var previo = inst[entrada.id];
+  if (soloCapas && !previo) soloCapas = false;
+  var lista = soloCapas ? [] : archivosDe(entrada);
+  var listaCapas = soloCapas ? capasPendientes(entrada) : capasDe(entrada);
+  if (!soloCapas && lista.length === 0) { LC.toast("El catálogo no trae archivos para este mapa"); return; }
+  if (soloCapas && !listaCapas.length) return;
+  var total = lista.concat(listaCapas).reduce(function (s, a) { return s + (a.bytes || 0); }, 0);
+  desc = { id: entrada.id, ctrl: new AbortController(), total: total, hecho: 0, t0: performance.now() };
+  var nuevos = [], nuevasCapas = [], fallos = [], ultimo = 0;
+  function progreso(n) { desc.hecho += n; var t = performance.now(); if (t - ultimo > 200) { ultimo = t; refrescarUI(); } }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   refrescarUI();
   try {
     for (var i = 0; i < lista.length; i++) {
       var nombre = nombreDeUrl(lista[i].url);
       nuevos.push({ tipo: lista[i].tipo, nombre: nombre, bytes: lista[i].bytes || 0 });
-      await Alm.descargar(lista[i].url, nombre, lista[i].bytes || 0, function (n) {
-        desc.hecho += n;
-        var t = performance.now();
-        if (t - ultimo > 200) { ultimo = t; refrescarUI(); }
-      }, desc.ctrl.signal);
+      await Alm.descargar(lista[i].url, nombre, lista[i].bytes || 0, progreso, desc.ctrl.signal);
+    }
+    for (var k = 0; k < listaCapas.length; k++) {
+      var c = listaCapas[k], final = "capa-" + entrada.id + "-" + c.id + ".geojson", crudo = "crudo-" + entrada.id + "-" + c.id + "-" + nombreDeUrl(c.url);
+      try {
+        await Alm.descargar(c.url, crudo, c.bytes || 0, progreso, desc.ctrl.signal, "ninguna");
+        var rf = await Alm.leer(crudo);
+        var rp = await parsearCapa(rf, tipoCapa(c.tipo));
+        var blob = new Blob([JSON.stringify(rp.fc)], { type: "application/geo+json" });
+        await Alm.guardar(final, blob);
+        await Alm.borrar(crudo);
+        delete capasCache[final];
+        nuevasCapas.push({ id: c.id, tipo: tipoCapa(c.tipo), nombre: c.nombre || c.id, url: c.url, archivo: final, bytes: blob.size, elementos: rp.cuenta });
+      } catch (e) {
+        if (e && e.name === "AbortError") throw e;
+        try { await Alm.borrar(crudo); } catch (_) {}
+        fallos.push((c.nombre || c.id) + ": " + (e.message || e)); anotarError("capa " + c.id, e);
+      }
     }
     var seg = (performance.now() - desc.t0) / 1000, bytes = desc.hecho;
-    metricas.descargas.push({ mapa: entrada.nombre, bytes: bytes, seg: seg });
-    inst[entrada.id] = { id: entrada.id, nombre: entrada.nombre, region: entrada.region, version: entrada.version, area: entrada.area, archivos: nuevos, fecha: fechaHM() };
+    metricas.descargas.push({ mapa: entrada.nombre + (soloCapas ? " (capas)" : ""), bytes: bytes, seg: seg });
+    if (soloCapas) {
+      previo.capas = (previo.capas || []).filter(function (x) { return !nuevasCapas.some(function (n) { return n.id === x.id; }); }).concat(nuevasCapas);
+    } else {
+      inst[entrada.id] = { id: entrada.id, nombre: entrada.nombre, region: entrada.region, version: entrada.version, area: entrada.area, archivos: nuevos, capas: nuevasCapas, fecha: fechaHM() };
+      if (previo) {
+        previo.archivos.forEach(function (a) { if (!nuevos.some(function (n) { return n.nombre === a.nombre; })) Alm.borrar(a.nombre); });
+        (previo.capas || []).forEach(function (a) { if (!nuevasCapas.some(function (n) { return n.archivo === a.archivo; })) { Alm.borrar(a.archivo); delete capasCache[a.archivo]; } });
+      }
+    }
     guardarJSON(LS_IDX, inst);
-    if (previo) previo.archivos.forEach(function (a) {
-      if (!nuevos.some(function (n) { return n.nombre === a.nombre; })) Alm.borrar(a.nombre);
-    });
     desc = null;
     if (actualId === entrada.id) estiloId = undefined;   /* fuerza redibujar con los archivos nuevos */
     await leerAlmacenamiento();
-    LC.toast("Mapa instalado: " + mb(bytes) + " en " + seg.toFixed(1) + " s");
+    LC.toast((soloCapas ? "Capas descargadas: " + nuevasCapas.length : "Mapa instalado: " + mb(bytes) + " en " + seg.toFixed(1) + " s") + (fallos.length ? ". No se pudieron leer: " + fallos.join("; ") : ""), fallos.length ? 8000 : 3500);
     LC.actualizarPestanaMapa();
   } catch (e) {
     for (var j = 0; j < nuevos.length; j++) {
       var enUso = previo && previo.archivos.some(function (a) { return a.nombre === nuevos[j].nombre; });
       if (!enUso) await Alm.borrar(nuevos[j].nombre);
+    }
+    for (var q = 0; q < nuevasCapas.length; q++) {
+      var usada = previo && (previo.capas || []).some(function (a) { return a.archivo === nuevasCapas[q].archivo; });
+      if (!usada) await Alm.borrar(nuevasCapas[q].archivo);
     }
     var cancelo = e && e.name === "AbortError";
     LC.toast(cancelo ? "Descarga cancelada" : "Falló la descarga: " + (e.message || e), 6000);
@@ -299,6 +578,9 @@ async function descargarMapa(entrada) {
 async function eliminarMapa(id) {
   var m = inst[id]; if (!m) return;
   for (var i = 0; i < m.archivos.length; i++) await Alm.borrar(m.archivos[i].nombre);
+  var propias = (m.capas || []).concat(capasLoc.filter(function (c) { return c.mapaId === id; }));
+  for (var ic = 0; ic < propias.length; ic++) { await Alm.borrar(propias[ic].archivo); delete capasCache[propias[ic].archivo]; }
+  capasLoc = capasLoc.filter(function (c) { return c.mapaId !== id; }); guardarJSON(LS_CAPAS_LOC, capasLoc);
   delete inst[id]; guardarJSON(LS_IDX, inst);
   if (actualId === id) { actualId = null; localStorage.removeItem(LS_ACTUAL); estiloId = undefined; }
   await leerAlmacenamiento();
@@ -402,6 +684,18 @@ function construirEstilo(m) {
   var idx = capas.length;
   for (var i = 0; i < capas.length; i++) { if (capas[i].type === "line" && !/^water/.test(capas[i].id)) { idx = i; break; } }
   capas = capas.slice(0, idx).concat(extra, capas.slice(idx), etiquetas);
+  estilo.sources.capas = { type: "geojson", data: geoCapas() };
+  var COL = ["match", ["get", "_origen"], "local", COL_LOC, COL_CAT];
+  capas.push({ id: "capas-pol-relleno", type: "fill", source: "capas", filter: filtroCapas("capas-pol-relleno"), paint: { "fill-color": COL, "fill-opacity": 0.07 } });
+  capas.push({ id: "capas-pol-borde", type: "line", source: "capas", filter: filtroCapas("capas-pol-borde"), paint: { "line-color": COL, "line-width": 2, "line-dasharray": [3, 2] } });
+  capas.push({ id: "capas-lineas", type: "line", source: "capas", filter: filtroCapas("capas-lineas"), layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": COL, "line-width": 2.5 } });
+  capas.push({ id: "capas-lineas-texto", type: "symbol", source: "capas", filter: filtroCapas("capas-lineas-texto"),
+    layout: { "symbol-placement": "line", "text-field": ["get", "nombre"], "text-font": ["NotoSans-Italic"], "text-size": 11 },
+    paint: { "text-color": COL, "text-halo-color": "#ffffff", "text-halo-width": 1.5 } });
+  capas.push({ id: "capas-estaciones", type: "symbol", source: "capas", filter: filtroCapas("capas-estaciones"),
+    layout: { "icon-image": ["match", ["get", "_origen"], "local", "rombo-local", "rombo-cat"], "icon-size": 0.55, "icon-allow-overlap": true,
+      "text-field": ["coalesce", ["get", "nombre"], ["get", "estacion"], ""], "text-font": ["NotoSans-Medium"], "text-size": 11, "text-offset": [0, 1.3], "text-anchor": "top", "text-optional": true },
+    paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 1.8 } });
   estilo.sources.puntos = { type: "geojson", data: geoPuntos() };
   estilo.sources.gps = { type: "geojson", data: geoGps() };
   capas.push({ id: "puntos-circ", type: "circle", source: "puntos", filter: filtroPuntos(),
@@ -429,12 +723,21 @@ function crearMapa() {
     if (/fuera del área|sin relieve/.test(msg)) return;
     anotarError("mapa", ev.error || ev);
   });
+  map.on("styleimagemissing", function (e) {
+    if (e.id === "rombo-cat" || e.id === "rombo-local") map.addImage(e.id, crearRombo(e.id === "rombo-local" ? COL_LOC : COL_CAT));
+  });
   map.on("click", function (ev) {
-    if (!map.getLayer("puntos-circ")) return;
-    var p = ev.point;
-    var fs = map.queryRenderedFeatures([[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]], { layers: ["puntos-circ"] });
-    if (!fs.length) return;
-    LC.verRegistroExistente(fs[0].properties.id, "mapa");
+    var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
+    if (map.getLayer("puntos-circ")) {
+      var fs = map.queryRenderedFeatures(caja, { layers: ["puntos-circ"] });
+      if (fs.length) { cerrarTarjeta(); LC.verRegistroExistente(fs[0].properties.id, "mapa"); return; }
+    }
+    var ls = ["capas-estaciones", "capas-lineas"].filter(function (l) { return map.getLayer(l); });
+    if (ls.length) {
+      var gs = map.queryRenderedFeatures(caja, { layers: ls });
+      if (gs.length) { mostrarTarjetaCapa(gs[0], ev.lngLat); return; }
+    }
+    cerrarTarjeta();
   });
   map.on("mouseenter", "puntos-circ", function () { map.getCanvas().style.cursor = "pointer"; });
   map.on("mouseleave", "puntos-circ", function () { map.getCanvas().style.cursor = ""; });
@@ -442,8 +745,9 @@ function crearMapa() {
   map.once("load", function () { mapaListo = true; alMostrar(); });
 }
 
-function aplicarMapa(id) {
+async function aplicarMapa(id) {
   var m = id ? inst[id] : null;
+  await cargarCapasMapa(id);
   return new Promise(function (res) {
     var t0 = performance.now();
     pmCache = {};
@@ -499,6 +803,7 @@ async function alMostrar() {
   if (gps.quiere && gps.watch == null) gpsEncender();
 }
 function alOcultar() {
+  cerrarTarjeta();
   document.body.classList.remove("vista-mapa");
   if (gps.watch != null) gpsApagar(false);   /* ahorra batería; vuelve a encender al regresar */
 }
@@ -559,6 +864,8 @@ function tarjetaMapa(entrada, enCatalogo) {
   cuerpo.push(el("p", { class: "mp-suave", texto: (entrada.region || "") + " · versión " + (entrada.version || "?") }));
   var lista = archivosDe(entrada);
   if (lista.length) cuerpo.push(el("p", { class: "mp-suave", texto: "Tamaño: " + mb(totalBytes(entrada)) + " (" + lista.map(function (a) { return a.tipo + " " + mb(a.bytes || 0); }).join(", ") + ")" }));
+  var cdis = capasDe(entrada);
+  if (cdis.length) cuerpo.push(el("p", { class: "mp-suave", texto: "Capas (" + cdis.length + "): " + cdis.map(function (c) { return c.nombre || c.id; }).join(", ") }));
   var nUso = sesionesQueUsan(id);
   if (nUso) cuerpo.push(el("p", { class: "mp-suave", texto: "Asociado a " + nUso + " sesión(es)." }));
   if (desc && desc.id === id) {
@@ -569,10 +876,14 @@ function tarjetaMapa(entrada, enCatalogo) {
     var fila = [];
     if (i) {
       cuerpo.push(el("p", { class: "mp-suave", texto: "Instalado, versión " + i.version + ", guardado " + i.fecha + (actualId === id ? " · en uso" : "") }));
-      if (enCatalogo && entrada.version && entrada.version !== i.version) fila.push(el("button", { class: "primario", texto: "Actualizar a " + entrada.version, disabled: online ? null : "disabled", onclick: function () { descargarMapa(entrada); } }));
+      var nLoc = capasLoc.filter(function (c) { return c.mapaId === id; }).length;
+      cuerpo.push(el("p", { class: "mp-suave", texto: "Capas instaladas: " + (i.capas || []).length + (nLoc ? " · importadas: " + nLoc : "") }));
+      var hayVersion = enCatalogo && entrada.version && entrada.version !== i.version, pend = enCatalogo ? capasPendientes(entrada) : [];
+      if (hayVersion) fila.push(el("button", { class: "primario", texto: "Actualizar a " + entrada.version, disabled: online ? null : "disabled", onclick: function () { descargarMapa(entrada); } }));
+      else if (pend.length) fila.push(el("button", { class: "primario", texto: "Descargar capas (" + pend.length + ")", disabled: online ? null : "disabled", onclick: function () { descargarMapa(entrada, true); } }));
       if (actualId !== id) fila.push(el("button", { texto: "Usar en el mapa", onclick: function () { actualId = id; localStorage.setItem(LS_ACTUAL, id); cerrarGestor(); if (LC.state.currentView === "mapa") alMostrar(); else LC.irA("mapa"); } }));
       fila.push(el("button", { texto: "Eliminar", onclick: function () {
-        if (confirm("¿Eliminar el mapa guardado en el teléfono?\n" + entrada.nombre + (nUso ? "\n\nHay " + nUso + " sesión(es) asociadas; seguirán apuntando a él hasta que lo vuelvas a descargar." : ""))) eliminarMapa(id);
+        if (confirm("¿Eliminar el mapa guardado en el teléfono?\n" + entrada.nombre + (nUso ? "\n\nHay " + nUso + " sesión(es) asociadas; seguirán apuntando a él hasta que lo vuelvas a descargar." : "") + (nLoc ? "\n\nSe eliminarán también las " + nLoc + " capa(s) importadas asociadas a este mapa. Si las necesitas, vuelve a importarlas desde su archivo original." : ""))) eliminarMapa(id);
       } }));
     } else if (enCatalogo) {
       var b = el("button", { class: "primario", texto: "Descargar (" + mb(totalBytes(entrada)) + ")", onclick: function () { descargarMapa(entrada); } });
@@ -605,6 +916,7 @@ function infoDiag() {
   L.push("Fluidez: " + (metricas.fluidez || "sin medir"));
   L.push("GPS último: " + (metricas.gpsUltimo ? "±" + metricas.gpsUltimo.acc + " m a las " + metricas.gpsUltimo.hora : "sin lectura"));
   L.push("Batería: " + (bateria || "sin dato"));
+  L.push("Capas del mapa abierto: " + capasActuales.length + " (catálogo " + capasActuales.filter(function (c) { return c.origen === "catalogo"; }).length + ", importadas " + capasActuales.filter(function (c) { return c.origen === "local"; }).length + ")");
   L.push("Registros con coordenadas: " + geoPuntos().features.length + " de " + LC.state.registros.length);
   L.push("Errores recientes: " + (errores.length ? "\n  " + errores.join("\n  ") : "ninguno"));
   return L.join("\n");
@@ -687,6 +999,29 @@ function renderGestor() {
     cu.appendChild(chk("curvas", "Curvas de nivel (calculadas en el teléfono)", tieneRel));
     cu.appendChild(chk("anteriores", "Puntos de sesiones anteriores", true));
     if (!tieneRel) cu.appendChild(el("p", { class: "mp-suave", texto: "El mapa abierto no trae relieve." }));
+    cu.appendChild(el("h3", { texto: "Capas del mapa", style: "margin:16px 0 6px;font-size:1rem;" }));
+    if (!estiloId || !inst[estiloId]) cu.appendChild(el("p", { class: "mp-suave", texto: "Abre un mapa para ver o importar sus capas." }));
+    else {
+      if (!capasActuales.length) cu.appendChild(el("p", { class: "mp-suave", texto: "Este mapa no tiene capas todavía." }));
+      capasActuales.forEach(function (c) {
+        var inp = el("input", { type: "checkbox" }); inp.checked = visCapa(c.clave);
+        inp.onchange = function () {
+          if (!capasVis.capas) capasVis.capas = {};
+          capasVis.capas[c.clave] = inp.checked; guardarJSON(LS_CAPAS, capasVis); aplicarFiltrosCapas();
+        };
+        var sub = resumenCuenta(c.datos.cuenta) + (c.origen === "local" ? " · importada, solo en este teléfono" : " · del catálogo");
+        var texto = el("span", {}, [el("b", { texto: c.nombre }), el("br"), el("span", { class: "mp-suave", texto: sub })]);
+        var fila = [el("label", { class: "mp-chk", style: "flex:1;" }, [inp, texto])];
+        var caja = el("div", { style: "display:flex;align-items:center;gap:8px;" }, fila);
+        if (c.origen === "local") caja.appendChild(el("button", { texto: "Eliminar", style: "min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--borde);background:var(--card);color:var(--texto);font-weight:700;", onclick: function () { if (confirm("¿Eliminar la capa importada «" + c.nombre + "»?")) eliminarCapaLocal(c.id); } }));
+        cu.appendChild(caja);
+      });
+      var inpArch = el("input", { type: "file", accept: ".geojson,.json,.gpx,.zip,application/geo+json,application/json,application/gpx+xml,application/zip", style: "display:none;" });
+      inpArch.onchange = function () { var f = inpArch.files && inpArch.files[0]; inpArch.value = ""; if (f) importarCapaLocal(f); };
+      cu.appendChild(inpArch);
+      cu.appendChild(el("div", { class: "mp-fila" }, [el("button", { class: "primario", texto: "⬆️ Importar capa desde un archivo", onclick: function () { inpArch.click(); } })]));
+      cu.appendChild(el("p", { class: "mp-suave", texto: "GeoJSON, GPX o shapefile en .zip. La capa queda asociada a este mapa y solo se guarda en este teléfono: no se publica ni se incluye en la exportación. Útil para sitios sensibles." }));
+    }
   } else {
     cu.appendChild(el("pre", { class: "mp-pre", texto: infoDiag() }));
     cu.appendChild(el("div", { class: "mp-fila" }, [
@@ -770,6 +1105,7 @@ function construirPantalla() {
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
     '</div>' +
     '<div id="mp-aviso"></div>' +
+    '<div id="mp-tarjeta"></div>' +
     '<button type="button" class="mp-btn" id="mp-guardar">📍 Guardar punto aquí</button>';
   $("mp-mas").onclick = function () { if (map) map.zoomIn(); };
   $("mp-menos").onclick = function () { if (map) map.zoomOut(); };
@@ -825,6 +1161,6 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar,
   /* para pruebas */
-  _debug: function () { return { map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloId: estiloId, actualId: actualId, gps: gps }; }
+  _debug: function () { return { capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloId: estiloId, actualId: actualId, gps: gps }; }
 };
 })();
