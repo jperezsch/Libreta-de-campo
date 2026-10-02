@@ -602,6 +602,22 @@ function geoPuntos() {
   });
   return { type: "FeatureCollection", features: fs };
 }
+var pendienteVer = null, resaltado = null, resaltadoT = null;
+function geoResaltado() {
+  return { type: "FeatureCollection", features: resaltado ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [resaltado.lng, resaltado.lat] } }] : [] };
+}
+function ponerResaltado(p) {
+  resaltado = p; clearTimeout(resaltadoT);
+  if (map && mapaListo && map.getSource("resaltado")) map.getSource("resaltado").setData(geoResaltado());
+  if (p) resaltadoT = setTimeout(function () { ponerResaltado(null); }, 15000);
+}
+function verPunto(reg) {
+  if (!reg || !isFinite(reg.lat) || !isFinite(reg.lon)) { LC.toast("Este registro no tiene ubicación"); return; }
+  var ses = reg.sesionId ? LC.sesionPorId(reg.sesionId) : null;
+  if (ses && ses.mapaId && inst[ses.mapaId]) { actualId = ses.mapaId; localStorage.setItem(LS_ACTUAL, actualId); }
+  pendienteVer = { lng: reg.lon, lat: reg.lat };
+  LC.irA("mapa");
+}
 function refrescarPuntos() { if (map && mapaListo && map.getSource("puntos")) map.getSource("puntos").setData(geoPuntos()); }
 
 /* ---------- GPS en vivo ---------- */
@@ -610,7 +626,7 @@ function circuloMetros(lng, lat, r) {
   for (var i = 0; i <= 48; i++) { var a = i / 48 * 2 * Math.PI; pts.push([lng + dLng * Math.cos(a), lat + dLat * Math.sin(a)]); }
   return pts;
 }
-function colorPrecision(acc) { return acc <= 10 ? "#2e7d32" : acc <= 25 ? "#f9a825" : "#c62828"; }
+function colorPrecision(acc) { return acc <= 10 ? "#2d5f3f" : acc <= 25 ? "#c9962c" : "#b5473a"; }
 function geoGps() {
   var f = gps.fix, fc = { type: "FeatureCollection", features: [] };
   if (!f) return fc;
@@ -698,11 +714,14 @@ function construirEstilo(m) {
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 1.8 } });
   estilo.sources.puntos = { type: "geojson", data: geoPuntos() };
   estilo.sources.gps = { type: "geojson", data: geoGps() };
+  estilo.sources.resaltado = { type: "geojson", data: geoResaltado() };
   capas.push({ id: "puntos-circ", type: "circle", source: "puntos", filter: filtroPuntos(),
     paint: { "circle-radius": ["case", ["==", ["get", "activa"], 1], 10, 6], "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
   capas.push({ id: "puntos-texto", type: "symbol", source: "puntos", filter: filtroPuntos(),
     layout: { "text-field": ["get", "codigo"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": [0, 1.5], "text-anchor": "top", "text-allow-overlap": true },
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
+  capas.push({ id: "resaltado-anillo", type: "circle", source: "resaltado",
+    paint: { "circle-radius": 19, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#c9962c", "circle-stroke-width": 4 } });
   capas.push({ id: "gps-precision", type: "fill", source: "gps", filter: ["==", ["get", "tipo"], "precision"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.18 } });
   capas.push({ id: "gps-punto", type: "circle", source: "gps", filter: ["==", ["get", "tipo"], "punto"],
     paint: { "circle-radius": 8, "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 3 } });
@@ -727,6 +746,7 @@ function crearMapa() {
     if (e.id === "rombo-cat" || e.id === "rombo-local") map.addImage(e.id, crearRombo(e.id === "rombo-local" ? COL_LOC : COL_CAT));
   });
   map.on("click", function (ev) {
+    if (resaltado) ponerResaltado(null);
     var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
     if (map.getLayer("puntos-circ")) {
       var fs = map.queryRenderedFeatures(caja, { layers: ["puntos-circ"] });
@@ -777,8 +797,8 @@ function mapaObjetivo() {
   return null;
 }
 function chipMapa() {
-  var c = $("mp-chip-mapa"); if (!c) return;
-  c.textContent = estiloId && inst[estiloId] ? nombreCorto(inst[estiloId].nombre) : "Sin mapa";
+  var c = $("mp-sub"); if (!c) return;
+  c.textContent = estiloId && inst[estiloId] ? nombreCorto(inst[estiloId].nombre) : "Sin mapa instalado";
   var r = $("mp-chip-red"); r.textContent = "Sin conexión"; r.style.display = online ? "none" : "inline-block";
 }
 function actualizarAviso() {
@@ -801,6 +821,11 @@ async function alMostrar() {
   refrescarPuntos();
   actualizarAviso(); chipMapa(); chipGps();
   if (gps.quiere && gps.watch == null) gpsEncender();
+  if (pendienteVer) {
+    var pv = pendienteVer; pendienteVer = null;
+    map.easeTo({ center: [pv.lng, pv.lat], zoom: Math.max(map.getZoom(), 16.5), duration: 600 });
+    ponerResaltado(pv);
+  }
 }
 function alOcultar() {
   cerrarTarjeta();
@@ -1095,8 +1120,10 @@ function refrescarUI() {
 function construirPantalla() {
   var pant = $("s-mapa"); if (!pant) return;
   pant.innerHTML =
+    '<div class="topbar mp-topbar"><div class="brand"><span class="ic">🗺️</span><div><h2>Mapa</h2><p class="sub" id="mp-sub">Sin mapa instalado</p></div></div></div>' +
+    '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
-    '<div id="mp-barra"><span class="mp-chip" id="mp-chip-mapa">Sin mapa</span><span class="mp-chip" id="mp-chip-gps">GPS apagado</span><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span></div>' +
+    '<div id="mp-barra"><span class="mp-chip" id="mp-chip-gps">GPS apagado</span><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span></div>' +
     '<div id="mp-ctrl">' +
       '<button type="button" class="mp-btn" id="mp-mas" aria-label="Acercar">+</button>' +
       '<button type="button" class="mp-btn" id="mp-menos" aria-label="Alejar">−</button>' +
@@ -1106,7 +1133,8 @@ function construirPantalla() {
     '</div>' +
     '<div id="mp-aviso"></div>' +
     '<div id="mp-tarjeta"></div>' +
-    '<button type="button" class="mp-btn" id="mp-guardar">📍 Guardar punto aquí</button>';
+    '<button type="button" class="mp-btn" id="mp-guardar">📍 Guardar punto aquí</button>' +
+    '</div>';
   $("mp-mas").onclick = function () { if (map) map.zoomIn(); };
   $("mp-menos").onclick = function () { if (map) map.zoomOut(); };
   $("mp-gps").onclick = function () {
@@ -1159,7 +1187,7 @@ async function init(lc) {
 
 window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
-  abrirGestor: abrirGestor, alDesactivar: alDesactivar,
+  abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto,
   /* para pruebas */
   _debug: function () { return { capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloId: estiloId, actualId: actualId, gps: gps }; }
 };
