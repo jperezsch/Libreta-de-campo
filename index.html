@@ -116,6 +116,9 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
   width:100%; padding:13px; border-radius:10px; border:1.5px solid var(--borde); font-size:1.02rem;
 }
 .field textarea{min-height:66px; resize:vertical;}
+.campo-proximo{margin:2px 0 4px; font-size:.92rem; color:var(--texto);}
+.campo-proximo b{color:var(--verde-osc); letter-spacing:.02em;}
+html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .campo-ayuda{display:block; font-size:.72rem; color:var(--texto-sec); margin-top:5px; font-style:italic; opacity:.85;}
 .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 .row2 > *{min-width:0;}
@@ -504,12 +507,9 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <div class="bloque-titulo">Numeración automática</div>
     <div class="row2">
       <div class="field"><label>Acrónimo / prefijo</label><input type="text" id="ss-prefijo" list="dl-ss-prefijo"><datalist id="dl-ss-prefijo"></datalist><span class="campo-ayuda" id="ss-prefijo-hint"></span></div>
-      <div class="field"><label>N° inicial correlativo</label><input type="number" id="ss-inicio" min="0"></div>
+      <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Número del próximo registro. Cámbialo si tu libreta manuscrita va en otro número.</span></div>
     </div>
-    <div class="row2">
-      <div class="field"><label>Próximo código</label><input type="text" id="ss-proximo" disabled></div>
-      <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Cámbialo si tu libreta manuscrita va en otro número.</span></div>
-    </div>
+    <div class="campo-proximo">Próximo código: <b id="ss-proximo">—</b></div>
     </div>
 
     <div class="bloque" id="bloque-sesion-otros">
@@ -3508,10 +3508,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-03 · v2.43";
+var APP_BUILD = "2026-10-03 · v2.46";
 (function(){
 
-var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
+var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
 
 var TIPOS = {
   coleccion:{label:"Recolección", ic:"🧪"}, observacion:{label:"Observación", ic:"👁"},
@@ -3579,6 +3579,7 @@ var state = {
   consultaVolverA: null,  // "mapa" si el registro se abrió desde el mapa (el botón Volver regresa allí)
   volverConsultaId: null, // si se editó desde la vista de consulta, id al que volver tras guardar
   sesiones: [],           // todas las sesiones (activa + archivadas)
+  recorridos: [],         // v2.45: tracks de recorrido grabados desde el mapa: {id, sesionId, n, nombre, inicioTs, finTs, enCurso, interrumpido, distanciaM, puntos:[{lat,lon,horaTs,accuracy,corte}]}
   sesionActivaId: null,   // la sesión "en curso" — a ella se asignan los registros nuevos
   sesionBorrador: null,   // sesión nueva aún sin guardar: no cuenta como activa hasta pulsar "Guardar datos de la sesión"
   sesionEnPantallaId: null, // la sesión que se muestra/edita ahora mismo en la pestaña Sesión
@@ -3725,6 +3726,21 @@ function cargar(){
   try{ var act=localStorage.getItem(LSK.act); if(act==="-"){ sinActivaAdrede = true; state.sesionActivaId = null; } else if(act) state.sesionActivaId=act; }catch(e){}
   try{ var c=JSON.parse(localStorage.getItem(LSK.cfg)); if(c) state.config=c; }catch(e){}
   try{ var r=JSON.parse(localStorage.getItem(LSK.reg)); if(r) state.registros=r; }catch(e){}
+  try{ var rc=JSON.parse(localStorage.getItem(LSK.rec)); if(rc && rc.length) state.recorridos=rc; }catch(e){}
+  // v2.45: si la app se cerró mientras se grababa un recorrido, el track queda guardado hasta el último punto y se marca como interrumpido
+  var recInterrumpidos = 0;
+  state.recorridos.forEach(function(rc){
+    if(rc && rc.enCurso){
+      rc.enCurso = false; rc.interrumpido = true;
+      var ult = (rc.puntos||[])[ (rc.puntos||[]).length-1 ];
+      rc.finTs = ult ? ult.horaTs : rc.inicioTs;
+      recInterrumpidos++;
+    }
+  });
+  if(recInterrumpidos){
+    setLS(LSK.rec, JSON.stringify(state.recorridos));
+    setTimeout(function(){ toast("Se recuperó un recorrido que quedó grabándose cuando se cerró la app. Está guardado hasta el último punto.", 6500); }, 1800);
+  }
   try{ var h=JSON.parse(localStorage.getItem(LSK.hist)); if(h) state.historial=h; }catch(e){}
   try{ var d=JSON.parse(localStorage.getItem(LSK.draft)); if(d) state.draft=d; }catch(e){}
   try{ var bs=JSON.parse(localStorage.getItem(LSK.sesBorr)); if(bs && bs.id){ bs.borrador = true; state.sesionBorrador = bs; } }catch(e){}
@@ -3767,6 +3783,7 @@ function guardarListaSesiones(){ return setLS(LSK.sesiones, JSON.stringify(state
 function guardarSesion(){ guardarBorradorSesion(); return guardarListaSesiones(); }
 function guardarConfig(){ return setLS(LSK.cfg, JSON.stringify(state.config)); }
 function guardarRegistros(){ return setLS(LSK.reg, JSON.stringify(state.registros)); }
+function guardarRecorridos(){ return setLS(LSK.rec, JSON.stringify(state.recorridos)); }
 function guardarDraft(){ if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
 
 /* ---------------- Fotos: almacenamiento en IndexedDB (mucho más espacio que localStorage) ---------------- */
@@ -3916,7 +3933,7 @@ function proximoCodigo(sesion){
   return s.prefijo + "-" + pad(n, 3);
 }
 function actualizarCamposProximo(s){
-  document.getElementById("ss-proximo").value = proximoCodigo(s);
+  document.getElementById("ss-proximo").textContent = proximoCodigo(s);
   var inp = document.getElementById("ss-siguiente");
   if(document.activeElement !== inp) inp.value = s.contador;
 }
@@ -4192,7 +4209,6 @@ function renderSesion(){
   if(!s) return;
   state.sesionEnPantallaId = s.id;
   Object.keys(SS_MAP).forEach(function(id){ document.getElementById(id).value = s[SS_MAP[id]] || ""; });
-  document.getElementById("ss-inicio").value = s.inicio;
   actualizarCamposNombreSesion(s);
   poblarSugerenciasZona();
   setSelectOtro("ss-habitat","ss-habitat-otro", s.habitat);
@@ -4208,7 +4224,7 @@ function renderSesion(){
 // Modo consulta por defecto: los campos son de solo lectura hasta pulsar "Editar". Una sesión activa recién creada
 // (sin nombre ni registros) abre directo en edición, porque no hay nada que consultar todavía.
 function sesionEsNuevaVacia(s){ return !!s && !!s.borrador; }   // v2.42: la sesión nueva sin guardar abre directo en edición
-var IDS_CAMPOS_SESION = Object.keys(SS_MAP).filter(function(id){ return id!=="ss-proyecto"; }).concat(["ss-correlativo","ss-inicio","ss-siguiente"]);
+var IDS_CAMPOS_SESION = Object.keys(SS_MAP).filter(function(id){ return id!=="ss-proyecto"; }).concat(["ss-correlativo","ss-siguiente"]);
 function aplicarModoEdicionSesion(){
   var s = sesionEnPantalla(); if(!s) return;
   var editando = !!state.sesionEditando || sesionEsNuevaVacia(s);
@@ -4333,21 +4349,14 @@ document.getElementById("ss-correlativo").addEventListener("input", function(){
   guardarSesion();
 });
 document.getElementById("ss-correlativo").addEventListener("blur", function(){ actualizarCamposNombreSesion(sesionEnPantalla()); });
-document.getElementById("ss-inicio").addEventListener("input", function(){
-  var s = sesionEnPantalla();
-  var v = parseInt(this.value,10); if(isNaN(v)) v=0;
-  s.inicio = v;
-  var misRegistros = state.registros.filter(function(r){ return r.sesionId===s.id; });
-  if(misRegistros.length===0) s.contador = v;
-  actualizarCamposProximo(s);
-  guardarSesion();
-  if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
-});
+// v2.46: un solo campo numérico. "Siguiente número" es el número del próximo registro; el código resultante se muestra debajo.
+// La propiedad s.inicio se conserva en los datos (primer número de la sesión) por compatibilidad: sigue al contador mientras la sesión no tiene registros.
 document.getElementById("ss-siguiente").addEventListener("input", function(){
   var s = sesionEnPantalla();
   var v = parseInt(this.value,10); if(isNaN(v) || v<0) return;
   s.contador = v;
-  document.getElementById("ss-proximo").value = proximoCodigo(s);
+  if(!state.registros.some(function(r){ return r.sesionId===s.id; })) s.inicio = v;
+  document.getElementById("ss-proximo").textContent = proximoCodigo(s);
   actualizarHintPrefijo();
   guardarSesion();
   if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
@@ -5053,7 +5062,11 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
   registrosFiltrados.forEach(function(r){
     (r.fotos||[]).forEach(function(f){ todasLasFotos.push({foto:f, registro:r}); });
   });
-  if(todasLasFotos.length===0 && registrosFiltrados.length===0){ toast("No hay registros para empaquetar en la(s) sesión(es) elegida(s)"); return Promise.reject(); }
+  // v2.45: los recorridos grabados viajan con su sesión (no con registros sueltos de otra sesión)
+  var recorridosFiltrados = (state.recorridos||[]).filter(function(rc){
+    return rc && (rc.puntos||[]).length>=2 && (!haySel || (idsSesiones && idsSesiones.indexOf(rc.sesionId)>=0));
+  });
+  if(todasLasFotos.length===0 && registrosFiltrados.length===0 && recorridosFiltrados.length===0){ toast("No hay registros para empaquetar en la(s) sesión(es) elegida(s)"); return Promise.reject(); }
   var zip = new JSZip();
   var carpetaFotos = zip.folder("fotos");
   var carpetaTracks = zip.folder("tracks");
@@ -5077,11 +5090,21 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
     var gpx = generarGPX(r);
     if(gpx) carpetaTracks.file(nombreArchivoTrack(r), gpx);
   });
+  var nombresRec = {};
+  recorridosFiltrados.forEach(function(rc){
+    var gpx = generarGPXRecorrido(rc, sesionPorId(rc.sesionId));
+    if(!gpx) return;
+    var nom = nombreArchivoRecorrido(rc, sesionPorId(rc.sesionId)), k = 2;
+    while(nombresRec[nom]){ nom = nombreArchivoRecorrido(rc, sesionPorId(rc.sesionId)).replace(/\.gpx$/,"") + "_" + k + ".gpx"; k++; }
+    nombresRec[nom] = true;
+    carpetaTracks.file(nom, gpx);
+  });
   return Promise.all(promesas).then(function(){
     var sesionesFiltradas = !haySel ? state.sesiones : state.sesiones.filter(function(s){
       return (idsSesiones && idsSesiones.indexOf(s.id)>=0) || registrosFiltrados.some(function(r){ return r.sesionId===s.id; });
     });
     var data = {sesiones:sesionesFiltradas, sesionActivaId:state.sesionActivaId, registros:registrosFiltrados};
+    if(recorridosFiltrados.length) data.recorridos = recorridosFiltrados;
     zip.file("respaldo.json", JSON.stringify(data, null, 2));
     var filasEstandar = construirFilasEstandar(registrosFiltrados);
     zip.file("planilla_estandar.json", JSON.stringify(filasEstandar, null, 2));
@@ -5888,6 +5911,7 @@ function renderConsulta(id){
     Promise.all(ordenCompleto.map(function(f){
       return leerFotoDB(f.id).then(function(dataURL){ return {id:f.id, nombre:f.nombre, comentario:f.comentario, dataURL:dataURL}; });
     })).then(function(fotosConDatos){
+      prepararArchivosCompartir(r, fotosConDatos);
       fotosConDatos.forEach(function(f, idx){
         var img = document.getElementById("consulta-thumb-"+f.id);
         if(img && f.dataURL){
@@ -5900,7 +5924,7 @@ function renderConsulta(id){
   }
 }
 /* ---------------- Consultando: compartir o copiar el registro como texto ---------------- */
-function textoRegistroConsulta(r){
+function textoRegistroConsulta(r, conFotos){
   var d = document.createElement("div");
   d.innerHTML = htmlConsultaRegistro(r, false);
   function limpio(t){ return String(t||"").replace(/\s+/g," ").trim(); }
@@ -5918,7 +5942,7 @@ function textoRegistroConsulta(r){
   cuerpo.forEach(function(t){ L.push(t); });
   if(r.lat && r.lon) L.push("Mapa: https://www.google.com/maps?q=" + encodeURIComponent(r.lat) + "," + encodeURIComponent(r.lon));
   var nf = (r.fotos || []).length;
-  if(nf) L.push("📷 " + nf + (nf===1 ? " foto (no incluida en este texto)" : " fotos (no incluidas en este texto)"));
+  if(nf) L.push("📷 " + nf + (conFotos ? (nf===1 ? " foto adjunta" : " fotos adjuntas") : (nf===1 ? " foto (no incluida en este texto)" : " fotos (no incluidas en este texto)")));
   L.push("— Libreta de Campo · WikiTaxa");
   return L.join("\n");
 }
@@ -5933,20 +5957,72 @@ function copiarTextoPortapapeles(t){
     ok ? res() : rej(new Error("copiar"));
   });
 }
+// v2.44: Compartir adjunta las fotos del registro (la portada primero). Copiar sigue siendo solo texto.
+var archivosCompartir = { id: null, archivos: [], listo: false };
+function dataURLaArchivo(dataURL, nombre){
+  var m = /^data:([^;,]+);base64,(.*)$/.exec(dataURL || "");
+  if(!m) return null;
+  try{
+    var bin = atob(m[2]), u8 = new Uint8Array(bin.length);
+    for(var i=0; i<bin.length; i++) u8[i] = bin.charCodeAt(i);
+    var tipo = m[1] || "image/jpeg";
+    return new File([u8], nombre + (tipo==="image/png" ? ".png" : ".jpg"), {type:tipo});
+  }catch(e){ return null; }
+}
+function archivosDeFotos(r, fotosConDatos){
+  var base = sanitizarNombreArchivo(r.codigo || r.notaTitulo || "registro");
+  return fotosConDatos.map(function(f, i){
+    return f && f.dataURL ? dataURLaArchivo(f.dataURL, base + "_" + sanitizarNombreArchivo(f.nombre || ("foto"+(i+1)))) : null;
+  }).filter(Boolean);
+}
+// Se llama al abrir Consultando, con las fotos ya leídas para las miniaturas: así el botón Compartir no tiene que esperar
+function prepararArchivosCompartir(r, fotosConDatos){
+  if(state.consultaId !== r.id) return;
+  archivosCompartir = { id: r.id, archivos: archivosDeFotos(r, fotosConDatos), listo: true };
+}
+function obtenerArchivosCompartir(r){
+  if(archivosCompartir.listo && archivosCompartir.id === r.id) return Promise.resolve(archivosCompartir.archivos);
+  var op = ordenarFotosConPortada(r), lista = (op.portada ? [op.portada] : []).concat(op.resto);
+  return Promise.all(lista.map(function(f){
+    return leerFotoDB(f.id).then(function(d){ return {id:f.id, nombre:f.nombre, dataURL:d}; }, function(){ return null; });
+  })).then(function(fs){ return archivosDeFotos(r, fs); });
+}
 function compartirRegistroConsulta(){
   var r = state.registros.filter(function(x){ return x.id===state.consultaId; })[0];
   if(!r){ toast("Este registro ya no existe"); return; }
-  var texto = textoRegistroConsulta(r);
+  var titulo = r.codigo || r.notaTitulo || "Registro";
+  var nFotos = (r.fotos || []).length;
   var copiar = function(){
-    copiarTextoPortapapeles(texto).then(function(){ toast("Registro copiado: ya puedes pegarlo donde quieras"); },
-      function(){ toast("No se pudo copiar. Mantén presionado el texto de la tarjeta para seleccionarlo."); });
+    copiarTextoPortapapeles(textoRegistroConsulta(r, false)).then(function(){
+      toast(nFotos ? "Registro copiado como texto. Las fotos no se copian: usa Compartir para enviarlas" : "Registro copiado: ya puedes pegarlo donde quieras", nFotos ? 5000 : 2800);
+    }, function(){ toast("No se pudo copiar. Mantén presionado el texto de la tarjeta para seleccionarlo."); });
   };
-  if(navigator.share){
-    navigator.share({ title: r.codigo || r.notaTitulo || "Registro", text: texto }).catch(function(e){
-      if(e && e.name==="AbortError") return;   // el usuario cerró el menú de compartir
+  if(!navigator.share){ copiar(); return; }
+  var soloTexto = function(){
+    navigator.share({ title: titulo, text: textoRegistroConsulta(r, false) }).catch(function(e){
+      if(e && e.name==="AbortError") return;
       copiar();
     });
-  } else copiar();
+  };
+  var enviar = function(archivos){
+    if(archivos.length){
+      var datos = { title: titulo, text: textoRegistroConsulta(r, true), files: archivos };
+      if(navigator.canShare && navigator.canShare({ files: archivos })){
+        navigator.share(datos).catch(function(e){
+          if(e && e.name==="AbortError") return;   // el usuario cerró el menú de compartir
+          toast("No se pudieron adjuntar las fotos. Se envía solo el texto.", 4000);
+          soloTexto();
+        });
+        return;
+      }
+      toast("Este teléfono no permite enviar fotos desde aquí. Se envía solo el texto.", 4500);
+    }
+    soloTexto();
+  };
+  // con las fotos ya preparadas se comparte de inmediato; si no, se leen primero
+  if(!nFotos){ enviar([]); }
+  else if(archivosCompartir.listo && archivosCompartir.id === r.id){ enviar(archivosCompartir.archivos); }
+  else obtenerArchivosCompartir(r).then(enviar, function(){ enviar([]); });
 }
 document.getElementById("btn-consulta-compartir").addEventListener("click", compartirRegistroConsulta);
 
@@ -6835,6 +6911,33 @@ function generarGPX(registro){
     '  </trk>\n'+
     '</gpx>\n';
 }
+// v2.45: GPX de un recorrido grabado desde el mapa. Un hueco largo en la señal (pantalla bloqueada, sin GPS) abre un segmento nuevo, para no inventar el trayecto que faltó.
+function generarGPXRecorrido(rc, sesion){
+  var puntos = (rc && rc.puntos) || [];
+  if(puntos.length<2) return null;
+  var segs = [], act = [];
+  puntos.forEach(function(p, i){
+    if(i>0 && p.corte && act.length){ segs.push(act); act = []; }
+    act.push(p);
+  });
+  if(act.length) segs.push(act);
+  var nombre = (rc.nombre || "Recorrido") + (sesion ? " · " + nombreSesionMostrar(sesion) : "");
+  var cuerpo = segs.map(function(sg){
+    return '    <trkseg>\n' + sg.map(function(p){
+      return '      <trkpt lat="'+p.lat+'" lon="'+p.lon+'"><time>'+new Date(p.horaTs).toISOString()+'</time></trkpt>';
+    }).join("\n") + '\n    </trkseg>\n';
+  }).join("");
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'+
+    '<gpx version="1.1" creator="Libreta de Campo - WikiTaxa" xmlns="http://www.topografix.com/GPX/1/1">\n'+
+    '  <trk>\n'+
+    '    <name>'+escapeHtml(nombre)+'</name>\n'+
+    cuerpo+
+    '  </trk>\n'+
+    '</gpx>\n';
+}
+function nombreArchivoRecorrido(rc, sesion){
+  return sanitizarNombreArchivo(sesion ? nombreSesionMostrar(sesion) : "sesion")+"__recorrido_"+pad(rc.n||1,2)+".gpx";
+}
 function incrustarExif(dataURL, comentario, lat, lon, alt){
   if(typeof piexif === "undefined") return dataURL;
   try{
@@ -7209,9 +7312,10 @@ function eliminarSesionConRegistros(id){
   var draftDeSesion = !!(state.draft && !state.draft._viendo && state.draft.sesionId===id);
   if(draftDeSesion && !borradorVacio(state.draft)){ toast("No se puede borrar: hay un registro sin guardar en curso, con datos, asociado a esta sesión. Guárdalo o descártalo primero."); return; }
   var nFotos = regs.reduce(function(t, r){ return t + (r.fotos ? r.fotos.length : 0); }, 0);
+  var nRecs = (state.recorridos||[]).filter(function(rc){ return rc.sesionId===id; }).length;
   var nombre = nombreSesionMostrar(s);
   var eraActiva = (id === state.sesionActivaId);
-  var msg1 = '¿Borrar la sesión "'+nombre+'" junto con sus '+regs.length+(regs.length===1?' registro':' registros')+(nFotos?(' y '+nFotos+(nFotos===1?' foto':' fotos')):'')+'?\n\n'+
+  var msg1 = '¿Borrar la sesión "'+nombre+'" junto con sus '+regs.length+(regs.length===1?' registro':' registros')+(nFotos?(' y '+nFotos+(nFotos===1?' foto':' fotos')):'')+(nRecs?(' y '+nRecs+(nRecs===1?' recorrido grabado':' recorridos grabados')):'')+'?\n\n'+
     'Esta acción NO se puede deshacer. Si aún no lo hiciste, exporta antes el paquete .zip de esta sesión.'+
     (eraActiva ? '\n\nEs la sesión activa: te quedarás sin sesión activa hasta que guardes una nueva o reactives otra.' : '')+
     (draftDeSesion ? '\n\nEl registro en curso, que todavía está vacío, también se descartará.' : '');
@@ -7220,6 +7324,7 @@ function eliminarSesionConRegistros(id){
   regs.forEach(function(r){ (r.fotos || []).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); }); });
   state.registros = state.registros.filter(function(r){ return r.sesionId!==id; });
   guardarRegistros();
+  if(nRecs){ state.recorridos = state.recorridos.filter(function(rc){ return rc.sesionId!==id; }); guardarRecorridos(); }
   if(state.draft && state.draft.sesionId===id){ state.draft = null; guardarDraft(); }
   state.sesiones = state.sesiones.filter(function(x){ return x.id!==id; });
   if(eraActiva){ state.sesionActivaId = null; guardarSesionActivaLS(); }   // v2.42: no siempre hay una sesión activa
@@ -7947,6 +8052,7 @@ function procesarArchivoZip(file){
       var data = JSON.parse(texto);
       var sesiones = data.sesiones || [];
       var registros = data.registros || [];
+      var recorridos = data.recorridos || [];
       var promesasFotos = [];
       registros.forEach(function(r){
         (r.fotos||[]).forEach(function(f){
@@ -7960,7 +8066,7 @@ function procesarArchivoZip(file){
         });
       });
       return Promise.all(promesasFotos).then(function(){
-        return {nombre:file.name, sesiones:sesiones, registros:registros, seleccionado:true, valido:true, fotosImportadas:promesasFotos.length};
+        return {nombre:file.name, sesiones:sesiones, registros:registros, recorridos:recorridos, seleccionado:true, valido:true, fotosImportadas:promesasFotos.length};
       });
     });
   });
@@ -7990,7 +8096,7 @@ document.getElementById("input-import-json").addEventListener("change", function
           } else {
             sesiones = [];
           }
-          resolve({nombre:file.name, sesiones:sesiones, registros:registros, seleccionado:true, valido:true});
+          resolve({nombre:file.name, sesiones:sesiones, registros:registros, recorridos:data.recorridos||[], seleccionado:true, valido:true});
         }catch(err){
           resolve({nombre:file.name, valido:false});
         }
@@ -8017,7 +8123,7 @@ function renderImportados(){
   acciones.style.display = "block";
   box.innerHTML = archivosImportados.map(function(a, i){
     return '<div class="importado-item"><input type="checkbox" data-i="'+i+'"'+(a.seleccionado?" checked":"")+'>'+
-      '<div class="info"><div class="nombre">'+escapeHtml(a.nombre)+'</div><div class="detalle">'+a.sesiones.length+' sesión(es) · '+a.registros.length+' registro(s)'+(a.fotosImportadas?(' · 📷 '+a.fotosImportadas+' foto(s)'):'')+'</div></div></div>';
+      '<div class="info"><div class="nombre">'+escapeHtml(a.nombre)+'</div><div class="detalle">'+a.sesiones.length+' sesión(es) · '+a.registros.length+' registro(s)'+((a.recorridos||[]).length?(' · 〰 '+a.recorridos.length+' recorrido(s)'):'')+(a.fotosImportadas?(' · 📷 '+a.fotosImportadas+' foto(s)'):'')+'</div></div></div>';
   }).join("");
   box.querySelectorAll("input[type=checkbox]").forEach(function(chk){
     chk.addEventListener("change", function(){ archivosImportados[parseInt(chk.dataset.i,10)].seleccionado = chk.checked; });
@@ -8029,29 +8135,35 @@ function combinarConSeleccionados(){
   var registrosComb = state.registros.slice();
   var idsSes = {}; sesionesComb.forEach(function(s){ idsSes[s.id]=true; });
   var idsReg = {}; registrosComb.forEach(function(r){ idsReg[r.id]=true; });
+  var recorridosComb = (state.recorridos||[]).slice();
+  var idsRec = {}; recorridosComb.forEach(function(rc){ idsRec[rc.id]=true; });
   archivosImportados.filter(function(a){return a.seleccionado;}).forEach(function(a){
+    (a.recorridos||[]).forEach(function(rc){ if(rc && rc.id && !idsRec[rc.id]){ rc.enCurso = false; recorridosComb.push(rc); idsRec[rc.id]=true; } });
     a.sesiones.forEach(function(s){ if(!idsSes[s.id]){ sesionesComb.push(s); idsSes[s.id]=true; } });
     a.registros.forEach(function(r){ migrarLocalidadEspecifica(r); if(!idsReg[r.id]){ registrosComb.push(r); idsReg[r.id]=true; } });
   });
-  return {sesiones:sesionesComb, registros:registrosComb};
+  return {sesiones:sesionesComb, registros:registrosComb, recorridos:recorridosComb};
 }
 
 document.getElementById("btn-importar-seleccionados").addEventListener("click", function(){
   var combinado = combinarConSeleccionados();
   var agregadasSes = combinado.sesiones.length - state.sesiones.length;
   var agregadosReg = combinado.registros.length - state.registros.length;
+  var agregadosRec = combinado.recorridos.length - (state.recorridos||[]).length;
   state.sesiones = combinado.sesiones;
   state.registros = combinado.registros;
-  guardarListaSesiones(); guardarRegistros();
+  state.recorridos = combinado.recorridos;
+  guardarListaSesiones(); guardarRegistros(); guardarRecorridos();
   archivosImportados = [];
   renderImportados();
-  toast("Importado: "+agregadasSes+" sesión(es) y "+agregadosReg+" registro(s) nuevos");
+  toast("Importado: "+agregadasSes+" sesión(es) y "+agregadosReg+" registro(s) nuevos"+(agregadosRec>0 ? " y "+agregadosRec+" recorrido(s)" : ""));
   renderExportar();
 });
 
 document.getElementById("btn-descargar-unificado").addEventListener("click", function(){
   var combinado = combinarConSeleccionados();
   var data = {sesiones:combinado.sesiones, sesionActivaId:state.sesionActivaId, registros:combinado.registros};
+  if(combinado.recorridos.length) data.recorridos = combinado.recorridos;
   var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   var url = URL.createObjectURL(blob); var a = document.createElement("a");
   a.href=url; a.download="LibretaDeCampo_respaldo_unificado_"+fechaLocalISO()+".json";
@@ -8262,12 +8374,13 @@ document.getElementById("btn-buscar-actualizacion").addEventListener("click", fu
 document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   if(!confirm("Esto eliminará TODOS los registros y TODAS las sesiones guardadas (activa y archivadas), dejando la app como recién instalada. ¿Continuar?")) return;
   state.registros = [];
+  state.recorridos = [];
   state.draft = null;
   state.sesiones = [];
   state.sesionActivaId = null;
   state.sesionBorrador = nuevoBorradorSesion();
   state.sesionEnPantallaId = state.sesionBorrador.id;
-  guardarRegistros(); guardarListaSesiones(); guardarDraft(); guardarSesionActivaLS(); guardarBorradorSesion();
+  guardarRegistros(); guardarRecorridos(); guardarListaSesiones(); guardarDraft(); guardarSesionActivaLS(); guardarBorradorSesion();
   toast("Todo eliminado: la app quedó sin sesiones");
   renderConfig();
 });
@@ -8363,7 +8476,8 @@ window.LC = {
   verRegistroExistente: verRegistroExistente, abrirRegistro: abrirRegistro,
   obtenerPosicionMejorada: obtenerPosicionMejorada, gpsCapturaActiva: function(){ return gpsCapturaActiva; },
   aplicarPosicionAlBorrador: aplicarPosicionAlBorrador, exigirSesionActiva: exigirSesionActiva,
-  mapaCfg: mapaCfg, actualizarPestanaMapa: actualizarPestanaMapa
+  mapaCfg: mapaCfg, actualizarPestanaMapa: actualizarPestanaMapa,
+  guardarRecorridos: guardarRecorridos
 };
 
 init();
