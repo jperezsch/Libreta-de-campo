@@ -442,6 +442,19 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 .sueltos-fila input, .sueltos-grupo-cab input{width:auto; flex:0 0 auto;}
 .sueltos-lista-scroll{max-height:380px; overflow-y:auto;}
 .navbtn.oculto{display:none;}
+/* v2.42: bloques claramente definidos (tarjeta con borde y filete verde) */
+.bloque{background:var(--card); border:1.5px solid var(--borde); border-left:5px solid var(--verde); border-radius:var(--radio); padding:14px 14px 6px; margin:0 0 18px; box-shadow:var(--sombra);}
+.bloque .section-title{margin:6px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--borde); color:var(--verde-osc);}
+.bloque > .section-title:first-child{margin-top:0;}
+.bloque-titulo{font-size:.85rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--verde-osc); margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid var(--borde);}
+.bloque-subtitulo{font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--texto-sec); margin:2px 0 6px;}
+.sesion-acciones-fila{display:flex; gap:8px; margin:0 0 14px;}
+.sesion-acciones-fila .btnfull{flex:1; margin:0; min-width:0;}
+#ss-proyecto{background:var(--fondo); color:var(--texto-sec); border-style:dashed; cursor:not-allowed;}
+details.mas-opciones{margin:26px 0 110px;}
+details.mas-opciones > summary{font-size:.8rem; color:var(--texto-sec); cursor:pointer; padding:8px 4px; list-style:none; text-align:center; opacity:.8;}
+details.mas-opciones > summary::-webkit-details-marker{display:none;}
+details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
 .cons-compartir-fila{display:flex; justify-content:flex-end; margin:0 0 8px;}
 .btn-compartir{font-size:.85rem; padding:8px 14px; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-weight:700; cursor:pointer;}
 .cons-ubic-mapa{display:inline-block; margin-left:4px; padding:3px 10px; font-size:.82rem; font-weight:700; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); cursor:pointer; vertical-align:baseline;}
@@ -467,18 +480,23 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     </div>
   </div>
   <div class="pad">
-    <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
-    <div class="field"><select id="ss-selector-sesion"></select><span class="campo-ayuda">🟢 = sesión activa (donde se guardan los registros nuevos) · 📁 = sesión archivada</span></div>
-    <div id="sesion-modo-banner" class="sesion-modo-banner modo-activa" style="display:none;"></div>
-    <button type="button" class="btnfull btn-secondary" id="btn-editar-sesion" style="display:none; margin-bottom:12px;">✏️ Editar datos de la sesión</button>
+    <div class="bloque" id="bloque-sesion-principal">
+      <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
+      <div class="bloque-subtitulo">Sesión actual</div>
+      <div class="field"><select id="ss-selector-sesion"></select><span class="campo-ayuda">🟢 = sesión activa (donde se guardan los registros nuevos) · 📁 = sesión archivada · 🆕 = sesión nueva sin guardar</span></div>
+      <div class="sesion-acciones-fila" id="sesion-acciones-fila">
+        <button type="button" class="btnfull btn-secondary" id="btn-reactivar-sesion" style="display:none;">▶️ Reactivar sesión</button>
+        <button type="button" class="btnfull btn-secondary" id="btn-editar-sesion" style="display:none;">✏️ Editar sesión</button>
+      </div>
+      <div class="field"><label>Localidad general</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Incluir comuna, provincia y región</span></div>
+      <div class="row2">
+        <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint">Diferencia sesiones con nombre idéntico</span></div>
+        <div class="field"><label>Nombre de la sesión 🔒</label><input type="text" id="ss-proyecto" readonly tabindex="-1"><span class="campo-ayuda">Localidad general + N° de sesión</span></div>
+      </div>
+    </div>
 
-    <div class="section-title-row">
-    </div>
-    <div class="field"><label>Localidad general</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Identifica la salida y viaja con todos sus registros.</span></div>
-    <div class="row2">
-      <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint">Correlativo para diferenciar sesiones en una misma localidad general</span></div>
-      <div class="field"><label>Nombre de la sesión</label><input type="text" id="ss-proyecto" readonly tabindex="-1"><span class="campo-ayuda">Localidad general y número, se arma solo.</span></div>
-    </div>
+    <div class="bloque" id="bloque-sesion-otros">
+      <div class="bloque-titulo">Otros datos de la sesión</div>
     <div class="field"><label>Objetivo</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
     <div class="field"><label>Hábitat general</label>
@@ -508,8 +526,6 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <span class="campo-ayuda">Se asigna a cada registro nuevo de Recolección y Observación. Si cambia durante la salida, cámbialo aquí.</span>
     </div>
 
-    <div id="sesion-mapa-asoc"></div>
-
     <div class="section-title">Contexto adicional</div>
     <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" spellcheck="true" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
     <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima" spellcheck="true" list="dl-ss-clima"><datalist id="dl-ss-clima"></datalist></div>
@@ -524,7 +540,12 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <div class="field"><label>Próximo código</label><input type="text" id="ss-proximo" disabled></div>
       <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Cámbialo si tu libreta manuscrita va en otro número.</span></div>
     </div>
+    </div>
+
+    <div id="sesion-mapa-asoc"></div>
+
     <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos de la sesión</button>
+    <button type="button" class="btnfull btn-secondary" id="btn-descartar-sesion-nueva" style="display:none; margin-top:8px;">Descartar sesión nueva</button>
     <div style="height:90px;"></div>
   </div>
 </div>
@@ -643,7 +664,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       </div>
     </div>
 
-    <div id="seccion-fotos">
+    <div id="seccion-fotos" class="bloque">
     <div class="section-title"><span class="n">📷</span>Fotografías</div>
     <div class="foto-btns">
       <button type="button" class="btnfull btn-amber" style="margin:0;" id="btn-tomar-foto">📷 Tomar foto</button>
@@ -654,9 +675,9 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div id="fotos-lista"></div>
     </div>
 
-    <div id="identificacion-individual">
+    <div id="identificacion-individual" class="bloque">
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="nota">Nombre preliminar más inclusivo posible. Registra detalles o aclaraciones en el campo <b style="display:inline; font-size:inherit; text-transform:none; letter-spacing:0; margin:0;">Notas</b>.</div>
+    <div class="nota">Nombre preliminar más inclusivo posible. Registra detalles o aclaraciones en <b style="display:inline; font-size:inherit; text-transform:none; letter-spacing:0; margin:0;">Observaciones y notas</b>.</div>
     <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label>Condición / conservación</label>
@@ -678,23 +699,10 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
     </div>
 
+    <div class="bloque" id="bloque-ubicacion">
     <div class="section-title" id="titulo-ubicacion"><span class="n">📍</span>Ubicación</div>
-    <div id="bloque-localidad-estacion">
-      <div class="field"><label>Localidad específica</label>
-        <input type="text" id="f-localidad-especifica" spellcheck="true" list="dl-localidad-especifica" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
-        <datalist id="dl-localidad-especifica"></datalist>
-        <div class="chips-sug" id="chips-localidad-especifica"></div>
-        <span class="preview-loc" id="preview-localidad"></span>
-      </div>
-      <div class="field"><label>Estación <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
-        <input type="text" id="f-estacion" list="dl-estacion" autocomplete="off" placeholder="Código o nombre de la estación">
-        <datalist id="dl-estacion"></datalist>
-        <div class="chips-sug" id="chips-estacion"></div>
-      </div>
-    </div>
-
     <div id="seccion-ubicacion-general">
-    <button type="button" class="btnfull btn-amber" id="btn-gps" style="padding:18px; font-size:1.1rem; margin-top:16px;">📍 Capturar ubicación</button>
+    <button type="button" class="btnfull btn-amber" id="btn-gps" style="padding:18px; font-size:1.1rem; margin-top:2px;">📍 Capturar ubicación</button>
     <div class="gpsbox" id="gpsbox">
       <b id="gps-estado">📍 Sin capturar</b>
       <span id="gps-coords-txt">Toca "Capturar ubicación" para registrar coordenada, altitud, fecha y hora juntas.</span>
@@ -708,6 +716,20 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       </div>
       <div class="field" style="margin-top:10px;"><label>Altitud (m)</label><input type="text" id="f-altitud"></div>
     </div>
+    </div>
+
+    <div id="bloque-localidad-estacion">
+      <div class="field"><label>Localidad específica</label>
+        <input type="text" id="f-localidad-especifica" spellcheck="true" list="dl-localidad-especifica" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
+        <datalist id="dl-localidad-especifica"></datalist>
+        <div class="chips-sug" id="chips-localidad-especifica"></div>
+        <span class="preview-loc" id="preview-localidad"></span>
+      </div>
+      <div class="field"><label>Estación <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
+        <input type="text" id="f-estacion" list="dl-estacion" autocomplete="off" placeholder="Código o nombre de la estación">
+        <datalist id="dl-estacion"></datalist>
+        <div class="chips-sug" id="chips-estacion"></div>
+      </div>
     </div>
 
     <div id="obs-principal" style="display:none; margin-top:16px;">
@@ -745,23 +767,26 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       </div>
     </div>
 
+    <div class="row2" id="fecha-hora-row" style="margin-top:14px; display:none;">
+      <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
+    </div>
+    </div>
+
     <div id="obs-tracking-flotante" style="display:none;"></div>
 
-    <div id="medicion-principal" style="display:none; margin-top:16px;">
+    <div id="medicion-principal" class="bloque" style="display:none;">
       <button type="button" class="btnfull btn-amber" id="btn-med-add-individuo" style="padding:18px; font-size:1.1rem;">➕ Agregar individuo</button>
       <div id="med-individuos-lista"></div>
       <datalist id="dl-localidad-individuo"></datalist>
     </div>
 
-    <div id="habitat-microhabitat-principal">
+    <div id="seccion-fotos-notas" class="bloque">
+      <div class="section-title"><span class="n">📝</span>Observaciones y notas</div>
+      <div id="habitat-microhabitat-principal">
     <div class="field" style="margin-top:14px;"><label>Microhábitat</label><input type="text" id="f-referencia" spellcheck="true" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
     </div>
 
-    <div class="row2" id="fecha-hora-row" style="margin-top:14px; display:none;">
-      <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
-      <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
-    </div>
-    <div id="seccion-fotos-notas">
     <div id="metodo-principal" class="field" style="margin-top:14px;"><label>Método de recolección</label>
       <select id="f-metodo">
         <option value="">—</option>
@@ -773,7 +798,7 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
       <input type="text" id="f-metodo-otro" spellcheck="true" list="dl-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-otro"></datalist>
     </div>
 
-    <div class="section-title"><span class="n">📝</span>Notas</div>
+    
     <div class="field" id="campo-nota-titulo" style="display:none;">
       <label>Título de la nota</label>
       <input type="text" id="f-nota-titulo" spellcheck="true" placeholder="Un título breve para identificar esta nota">
@@ -869,9 +894,9 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
     <div class="section-title">Aplicación</div>
     <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
     <div class="version-info" id="version-info">Comprobando versión...</div>
-    <div id="config-mapa"></div>
-    <div class="section-title">Datos</div>
+       <div class="section-title">Datos</div>
     <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
+ <details class="mas-opciones" id="mas-opciones"><summary>Más opciones</summary><div id="config-mapa"></div></details>
   </div>
 </div>
 
@@ -3486,10 +3511,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-02 · v2.41";
+var APP_BUILD = "2026-10-02 · v2.42";
 (function(){
 
-var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
+var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
 
 var TIPOS = {
   coleccion:{label:"Recolección", ic:"🧪"}, observacion:{label:"Observación", ic:"👁"},
@@ -3558,6 +3583,7 @@ var state = {
   volverConsultaId: null, // si se editó desde la vista de consulta, id al que volver tras guardar
   sesiones: [],           // todas las sesiones (activa + archivadas)
   sesionActivaId: null,   // la sesión "en curso" — a ella se asignan los registros nuevos
+  sesionBorrador: null,   // sesión nueva aún sin guardar: no cuenta como activa hasta pulsar "Guardar datos de la sesión"
   sesionEnPantallaId: null, // la sesión que se muestra/edita ahora mismo en la pestaña Sesión
   config:{colector:""},
   registros: [],
@@ -3577,14 +3603,40 @@ var state = {
 function sesionActiva(){ return state.sesiones.find(function(s){ return s.id===state.sesionActivaId; }) || null; }
 function ultimaSesion(){ return state.sesiones.slice().sort(function(a,b){ return (b.creada||"").localeCompare(a.creada||""); })[0] || null; }
 // Sin sesión activa (tras Finalizar), la pestaña Sesión muestra la última sesión cerrada
-function sesionEnPantalla(){ return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva() || ultimaSesion(); }
+function sesionEnPantalla(){
+  if(state.sesionBorrador && state.sesionBorrador.id===state.sesionEnPantallaId) return state.sesionBorrador;
+  return state.sesiones.find(function(s){ return s.id===state.sesionEnPantallaId; }) || sesionActiva() || ultimaSesion() || state.sesionBorrador || null;
+}
 function guardarSesionActivaLS(){ setLS(LSK.act, state.sesionActivaId || "-"); } // "-" = sin sesión activa a propósito
 // Si no hay sesión activa (p. ej. tras Finalizar) y se necesita una, se crea una nueva continuando la numeración
-function asegurarSesionActiva(){
-  if(sesionActiva()) return sesionActiva();
-  crearNuevaSalida({auto:true});
-  return sesionActiva();
+// v2.42: una sesión solo es activa después de pulsar "Guardar datos de la sesión". "Nueva sesión" prepara un borrador de
+// sesión (state.sesionBorrador) que se muestra y edita en la pestaña Sesión pero no recibe registros hasta guardarse.
+function sesionEnBlanco(s){
+  return !!s && ["zona","proyecto","objetivo","participantes","habitat","institucion","clima","notas"].every(function(k){ return !String(s[k]||"").trim(); });
 }
+function nuevoBorradorSesion(){
+  var base = sesionActiva() || ultimaSesion();   // la numeración continúa desde la sesión activa o, si no hay, desde la última
+  var nueva = sesionVacia();
+  nueva.borrador = true;
+  if(base){ nueva.prefijo = base.prefijo; nueva.inicio = base.inicio; nueva.contador = base.contador; if(base.mapaId) nueva.mapaId = base.mapaId; }
+  return nueva;
+}
+function guardarBorradorSesion(){
+  if(state.sesionBorrador) return setLS(LSK.sesBorr, JSON.stringify(state.sesionBorrador));
+  try{ localStorage.removeItem(LSK.sesBorr); }catch(e){}
+  return true;
+}
+// Sin sesión activa no se puede registrar: avisa y lleva a la pestaña Sesión para crear y guardar una (o reactivar otra).
+function exigirSesionActiva(){
+  if(sesionActiva()) return true;
+  if(!state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); }
+  state.sesionEnPantallaId = state.sesionBorrador.id;
+  state.sesionEditando = true;
+  toast("Primero crea y guarda una sesión (o reactiva una anterior desde el selector) para poder registrar", 5200);
+  irA("sesion");
+  return false;
+}
+function asegurarSesionActiva(){ return sesionActiva(); }
 function sesionPorId(id){ return state.sesiones.find(function(s){ return s.id===id; }) || null; }
 // Orden compartido para listas de sesiones (Exportar y Registros): por fecha (más reciente
 // primero, como ya era el comportamiento por defecto) o alfabético por nombre de sesión.
@@ -3602,6 +3654,7 @@ function comparadorSesionesPorCriterio(criterio){
 }
 function nombreSesionMostrar(s){
   if(!s) return "—";
+  if(s.borrador){ var nb = (s.proyecto||"").trim(); return nb ? nb+" (sin guardar)" : "(sesión nueva sin guardar)"; }
   var nombre = (s.proyecto||"").trim();
   if(nombre) return nombre;
   if(s.id === state.sesionActivaId) return "(creando sesión)";
@@ -3677,6 +3730,7 @@ function cargar(){
   try{ var r=JSON.parse(localStorage.getItem(LSK.reg)); if(r) state.registros=r; }catch(e){}
   try{ var h=JSON.parse(localStorage.getItem(LSK.hist)); if(h) state.historial=h; }catch(e){}
   try{ var d=JSON.parse(localStorage.getItem(LSK.draft)); if(d) state.draft=d; }catch(e){}
+  try{ var bs=JSON.parse(localStorage.getItem(LSK.sesBorr)); if(bs && bs.id){ bs.borrador = true; state.sesionBorrador = bs; } }catch(e){}
   state.registros.forEach(migrarLocalidadEspecifica);
   if(state.draft) migrarLocalidadEspecifica(state.draft);
 
@@ -3684,27 +3738,36 @@ function cargar(){
   if(state.sesiones.length===0){
     var previa = null;
     try{ previa = JSON.parse(localStorage.getItem(LSK.sesOld)); }catch(e){}
-    var nueva = sesionVacia();
     if(previa){
+      var nueva = sesionVacia();
       nueva = Object.assign(nueva, previa, {id: nueva.id, archivada:false, formatoNombre:undefined, correlativo:undefined, corrManual:undefined});
+      state.sesiones = [nueva];
+      // Todos los registros existentes (de antes de este cambio) quedan asociados a esta sesión migrada
+      state.registros.forEach(function(r){ if(!r.sesionId) r.sesionId = nueva.id; });
+      guardarRegistros();
     }
-    state.sesiones = [nueva];
-    // Todos los registros existentes (de antes de este cambio) quedan asociados a esta sesión migrada
-    state.registros.forEach(function(r){ if(!r.sesionId) r.sesionId = nueva.id; });
-    guardarRegistros();
   }
   state.sesiones.forEach(function(s, idx){ if(!s.icono) s.icono = ICONOS_SESION[idx % ICONOS_SESION.length]; });
-  if(sinActivaAdrede){
+  if(sinActivaAdrede || !state.sesiones.length){
     state.sesionActivaId = null;
   } else if(!state.sesionActivaId || !sesionPorId(state.sesionActivaId)){
     state.sesionActivaId = state.sesiones[state.sesiones.length-1].id;
   }
-  state.sesionEnPantallaId = state.sesionActivaId || (ultimaSesion() && ultimaSesion().id);
+  // v2.42: una sesión activa en blanco (sin datos ni registros) nunca se guardó: pasa a ser una sesión nueva sin guardar
+  var a0 = sesionActiva();
+  if(a0 && sesionEnBlanco(a0) && !state.registros.some(function(r){ return r.sesionId===a0.id; })){
+    state.sesiones = state.sesiones.filter(function(x){ return x.id!==a0.id; });
+    state.sesionActivaId = null;
+    if(!state.sesionBorrador){ a0.borrador = true; state.sesionBorrador = a0; }
+  }
+  if(!state.sesiones.length && !state.sesionBorrador) state.sesionBorrador = nuevoBorradorSesion();
+  state.sesionEnPantallaId = state.sesionActivaId || (state.sesionBorrador && state.sesionBorrador.id) || (ultimaSesion() && ultimaSesion().id);
   guardarListaSesiones();
   guardarSesionActivaLS();
+  guardarBorradorSesion();
 }
 function guardarListaSesiones(){ return setLS(LSK.sesiones, JSON.stringify(state.sesiones)); }
-function guardarSesion(){ return guardarListaSesiones(); }
+function guardarSesion(){ guardarBorradorSesion(); return guardarListaSesiones(); }
 function guardarConfig(){ return setLS(LSK.cfg, JSON.stringify(state.config)); }
 function guardarRegistros(){ return setLS(LSK.reg, JSON.stringify(state.registros)); }
 function guardarDraft(){ if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
@@ -4147,10 +4210,7 @@ function renderSesion(){
 }
 // Modo consulta por defecto: los campos son de solo lectura hasta pulsar "Editar". Una sesión activa recién creada
 // (sin nombre ni registros) abre directo en edición, porque no hay nada que consultar todavía.
-function sesionEsNuevaVacia(s){
-  return !!s && s.id===state.sesionActivaId && !(s.proyecto||"").trim() &&
-    !state.registros.some(function(r){ return r.sesionId===s.id; });
-}
+function sesionEsNuevaVacia(s){ return !!s && !!s.borrador; }   // v2.42: la sesión nueva sin guardar abre directo en edición
 var IDS_CAMPOS_SESION = Object.keys(SS_MAP).filter(function(id){ return id!=="ss-proyecto"; }).concat(["ss-correlativo","ss-inicio","ss-siguiente"]);
 function aplicarModoEdicionSesion(){
   var s = sesionEnPantalla(); if(!s) return;
@@ -4159,47 +4219,50 @@ function aplicarModoEdicionSesion(){
   document.getElementById("ss-habitat").disabled = !editando;
   document.getElementById("ss-habitat-otro").readOnly = !editando;
   document.getElementById("s-sesion").classList.toggle("sesion-consulta", !editando);
-  document.getElementById("btn-editar-sesion").style.display = editando ? "none" : "block";
+  document.getElementById("btn-editar-sesion").style.display = editando ? "none" : "";
   document.getElementById("btn-guardar-sesion").style.display = editando ? "" : "none";
+  document.getElementById("btn-descartar-sesion-nueva").style.display = (s.borrador && editando) ? "" : "none";
+  var filaAcc = document.getElementById("sesion-acciones-fila");
+  filaAcc.style.display = (document.getElementById("btn-reactivar-sesion").style.display==="none" && editando) ? "none" : "";
 }
 function renderSesionModo(){
-  var s = sesionEnPantalla();
-  var esActiva = s.id === state.sesionActivaId;
-  var banner = document.getElementById("sesion-modo-banner");
-  if(esActiva){
-    banner.style.display = "none";
-  } else {
-    banner.style.display = "block";
-    banner.className = "sesion-modo-banner modo-archivada";
-    banner.innerHTML = '<div>'+(state.sesionActivaId ? '📁 Viendo una sesión archivada. Puedes editar sus datos generales con ✏️.' : '📁 No hay sesión activa. Estás viendo la última sesión cerrada. Pulsa "Nueva sesión" para empezar otra, o reactívala.')+'</div>'+
-      '<button type="button" id="btn-reactivar-sesion" class="btn-reactivar-destacado">▶️ Reactivar esta sesión</button>';
-    var btnReactivar = document.getElementById("btn-reactivar-sesion");
-    if(btnReactivar) btnReactivar.addEventListener("click", function(){
-      if(!confirm('¿Reactivar "'+ (s.proyecto||"esta sesión") +'"? Los registros nuevos volverán a numerarse dentro de ella, y la sesión activa actual quedará archivada.')) return;
-      var actualAntes = sesionActiva();
-      if(actualAntes) actualAntes.archivada = true;
-      if(state.draft && !state.draft._viendo && state.draft.sesionId === (actualAntes && actualAntes.id)){
-        state.draft = null; guardarDraft();
-        toast("Se descartó un registro sin guardar de la sesión anterior");
-      } else if(state.draft && state.draft._viendo){
-        state.draft = null; guardarDraft();
-      }
-      s.archivada = false;
-      state.sesionActivaId = s.id;
-      guardarListaSesiones();
-      guardarSesionActivaLS();
-      renderSesion();
-      toast("✅ Sesión reactivada");
-    });
-  }
+  var s = sesionEnPantalla(); if(!s) return;
+  var puedeReactivar = !s.borrador && s.id !== state.sesionActivaId;
+  document.getElementById("btn-reactivar-sesion").style.display = puedeReactivar ? "" : "none";
 }
+document.getElementById("btn-reactivar-sesion").addEventListener("click", function(){
+  var s = sesionEnPantalla();
+  if(!s || s.borrador || s.id===state.sesionActivaId) return;
+  if(!confirm('¿Reactivar "'+ (s.proyecto||"esta sesión") +'"? Los registros nuevos volverán a numerarse dentro de ella, y la sesión activa actual quedará archivada.')) return;
+  var actualAntes = sesionActiva();
+  if(actualAntes) actualAntes.archivada = true;
+  if(state.draft && !state.draft._viendo && state.draft.sesionId === (actualAntes && actualAntes.id)){
+    state.draft = null; guardarDraft();
+    toast("Se descartó un registro sin guardar de la sesión anterior");
+  } else if(state.draft && state.draft._viendo){
+    state.draft = null; guardarDraft();
+  }
+  s.archivada = false;
+  state.sesionActivaId = s.id;
+  guardarListaSesiones();
+  guardarSesionActivaLS();
+  renderSesion();
+  if(window.LC && LC.actualizarPestanaMapa) LC.actualizarPestanaMapa();
+  toast("✅ Sesión reactivada");
+});
 function renderSelectorSesiones(){
   var sel = document.getElementById("ss-selector-sesion");
   var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
-  sel.innerHTML = ordenadas.map(function(s){
+  var html = "";
+  if(state.sesionBorrador){
+    var b = state.sesionBorrador;
+    html += '<option value="'+b.id+'"'+(b.id===state.sesionEnPantallaId?" selected":"")+'>'+escapeHtml("🆕 "+nombreSesionMostrar(b))+'</option>';
+  }
+  html += ordenadas.map(function(s){
     var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + fechaSesion(s);
     return '<option value="'+s.id+'"'+(s.id===state.sesionEnPantallaId?" selected":"")+'>'+escapeHtml(etiqueta)+'</option>';
   }).join("");
+  sel.innerHTML = html;
 }
 document.getElementById("ss-selector-sesion").addEventListener("change", function(){
   state.sesionEnPantallaId = this.value;
@@ -4297,6 +4360,11 @@ document.getElementById("ss-siguiente").addEventListener("blur", function(){
 });
 document.getElementById("btn-guardar-sesion").addEventListener("click", function(){
   var s = sesionEnPantalla();
+  if(s.borrador && !(s.zona||"").trim()){
+    toast("Escribe la localidad general para poder guardar la sesión", 4000);
+    var z = document.getElementById("ss-zona"); if(z) z.focus();
+    return;
+  }
   var nombreActual = (s.proyecto||"").trim();
   if(nombreActual){
     var duplicada = state.sesiones.find(function(x){ return x.id!==s.id && (x.proyecto||"").trim().toLowerCase()===nombreActual.toLowerCase(); });
@@ -4305,9 +4373,9 @@ document.getElementById("btn-guardar-sesion").addEventListener("click", function
       if(!confirm('Ya existe otra sesión llamada "'+nombreActual+'" (del '+fechaDup+'). ¿Guardar igual con este mismo nombre?')) return;
     }
   }
-  guardarSesion();
+  if(s.borrador) activarSesionNueva(s); else guardarSesion();
   state.sesionEditando = false;
-  aplicarModoEdicionSesion();
+  renderSesion();
   document.getElementById("modal-confirm-sesion").classList.add("on");
 });
 document.getElementById("btn-editar-sesion").addEventListener("click", function(){
@@ -4360,27 +4428,44 @@ document.getElementById("ss-habitat-otro").addEventListener("input", function(){
 document.getElementById("ss-habitat-otro").addEventListener("change", function(){ alCambiarHabitatSesion(true); });
 
 /* ---------------- Nueva Salida: archiva la sesión activa y crea una nueva ---------------- */
-function crearNuevaSalida(opts){
-  var auto = !!(opts && opts.auto);
+function crearNuevaSalida(){
+  // "Nueva sesión" prepara una sesión nueva SIN activarla: la actual sigue activa hasta que se pulse "Guardar datos de la sesión".
+  if(!state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); }
+  state.sesionEnPantallaId = state.sesionBorrador.id;
+  state.sesionEditando = true;
+  renderSesion();
+  toast("Completa los datos y pulsa Guardar datos de la sesión para activarla", 3800);
+}
+// Al guardar una sesión nueva pasa a ser la activa; la que estaba activa queda archivada.
+function activarSesionNueva(s){
   var actual = sesionActiva();
-  var base = actual || ultimaSesion(); // la numeración continúa desde la sesión activa o, si no hay, desde la última cerrada
-  if(actual) actual.archivada = true;
-  if(actual && state.draft && state.draft.sesionId === actual.id){
-    var teniaCambiosSinGuardar = !state.draft._viendo;
-    state.draft = null; guardarDraft();
-    if(teniaCambiosSinGuardar) toast("Se descartó un registro sin guardar de la sesión anterior");
+  if(actual){
+    actual.archivada = true;
+    if(state.draft && state.draft.sesionId === actual.id){
+      var conDatos = !state.draft._viendo && !borradorVacio(state.draft);
+      state.draft = null; guardarDraft();
+      if(conDatos) toast("Se descartó un registro sin guardar de la sesión anterior", 4200);
+    }
   }
-  var nueva = sesionVacia();
-  // La numeración continúa sin cortes: mismo prefijo y correlativo donde iba la anterior
-  if(base){ nueva.prefijo = base.prefijo; nueva.inicio = base.inicio; nueva.contador = base.contador; if(base.mapaId) nueva.mapaId = base.mapaId; }
-  state.sesiones.push(nueva);
-  state.sesionActivaId = nueva.id;
-  state.sesionEnPantallaId = nueva.id;
-  state.sesionEditando = !auto;
+  delete s.borrador;
+  s.archivada = false;
+  s.creada = new Date().toISOString();
+  state.sesiones.push(s);
+  state.sesionBorrador = null; guardarBorradorSesion();
+  state.sesionActivaId = s.id;
+  state.sesionEnPantallaId = s.id;
   guardarListaSesiones();
   guardarSesionActivaLS();
+  if(window.LC && LC.actualizarPestanaMapa) LC.actualizarPestanaMapa();
+}
+function descartarSesionNueva(){
+  if(!state.sesionBorrador) return;
+  if(!confirm("¿Descartar la sesión nueva sin guardar? Se pierden los datos que escribiste en ella.")) return;
+  state.sesionBorrador = null; guardarBorradorSesion();
+  if(!state.sesiones.length){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); state.sesionEnPantallaId = state.sesionBorrador.id; state.sesionEditando = true; }
+  else state.sesionEnPantallaId = state.sesionActivaId || (ultimaSesion() && ultimaSesion().id);
   renderSesion();
-  toast(auto ? "Se creó una sesión nueva (continúa la numeración). Completa sus datos en la pestaña Sesión." : "✅ Nueva salida creada, la anterior quedó guardada en el historial", auto ? 4200 : 2400);
+  toast("Sesión nueva descartada");
 }
 // Finalizar: la sesión queda archivada y la app sin sesión activa hasta pulsar "Nueva sesión" (o "Nuevo", que crea una)
 function cerrarSesionActiva(){
@@ -4399,10 +4484,8 @@ function cerrarSesionActiva(){
   renderSesion();
   toast("🏁 Sesión finalizada" + (descartado ? " (se descartó un registro sin guardar)" : ""), 3200);
 }
-document.getElementById("btn-nueva-salida").addEventListener("click", function(){
-  if(sesionActiva() && !confirm("¿Iniciar una nueva salida a terreno?\n\nLos datos generales (proyecto, objetivo, participantes, etc.) se limpiarán para escribir los de la nueva salida. El acrónimo y el correlativo de numeración continúan sin cambios.\n\nLa sesión actual y todos sus registros quedan guardados y accesibles desde el selector de arriba.")) return;
-  crearNuevaSalida();
-});
+document.getElementById("btn-nueva-salida").addEventListener("click", function(){ crearNuevaSalida(); });
+document.getElementById("btn-descartar-sesion-nueva").addEventListener("click", descartarSesionNueva);
 
 /* ---------------- LISTA DE REGISTROS ---------------- */
 function renderChips(){
@@ -5068,7 +5151,7 @@ document.getElementById("btn-modo-reordenar").addEventListener("click", function
 
 function iniciarNuevoRegistro(){
   detenerSeguimientoEnVivo();
-  asegurarSesionActiva();
+  if(!exigirSesionActiva()) return;
   state.volverConsultaId = null;
   var ahora = new Date();
   var sid = state.sesionActivaId;
@@ -5581,6 +5664,8 @@ document.getElementById("f-lat").addEventListener("input", function(){ document.
 document.getElementById("f-lon").addEventListener("input", function(){ document.getElementById("gps-manual-wrap").classList.remove("resaltado"); actualizarGpsBox(); });
 
 function abrirRegistro(){
+  // Sin sesión activa un borrador de registro queda sin sesión a la que pertenecer: se descarta (editar uno ya guardado sí se permite)
+  if(!sesionActiva() && state.draft && !state.draft._viendo && !state.draft._editando){ state.draft = null; guardarDraft(); }
   if(!state.draft){ iniciarNuevoRegistro(); return; }
   if(state.draft._viendo){
     // Solo se estaba consultando un registro ya guardado, sin cambios pendientes que proteger.
@@ -7053,7 +7138,8 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   if(!sesionPorId(state.draft.sesionId)){
     // Ultima linea de defensa: la sesion de este borrador ya no existe (por la razon que sea) —
     // se reasigna a la sesion activa en vez de guardar silenciosamente un registro huerfano.
-    state.draft.sesionId = (state.sesionActivaId || asegurarSesionActiva().id);
+    if(!sesionActiva()){ toast("⚠️ La sesión de este registro ya no existe y no hay una sesión activa. Crea o reactiva una sesión para guardarlo.", 5500); return; }
+    state.draft.sesionId = state.sesionActivaId;
     toast("⚠️ La sesión de este registro ya no existía — se asignó a la sesión activa actual", 5000);
   }
   var codigoActual = (state.draft.codigo||"").trim();
@@ -7123,13 +7209,12 @@ function eliminarSesionConRegistros(id){
   var regs = state.registros.filter(function(r){ return r.sesionId===id; });
   var draftDeSesion = !!(state.draft && !state.draft._viendo && state.draft.sesionId===id);
   if(draftDeSesion && !borradorVacio(state.draft)){ toast("No se puede borrar: hay un registro sin guardar en curso, con datos, asociado a esta sesión. Guárdalo o descártalo primero."); return; }
-  if(state.sesiones.length<=1){ toast("Debe quedar al menos una sesión. Para borrarlo todo usa Config, Borrar todos los registros y sesiones."); return; }
   var nFotos = regs.reduce(function(t, r){ return t + (r.fotos ? r.fotos.length : 0); }, 0);
   var nombre = nombreSesionMostrar(s);
   var eraActiva = (id === state.sesionActivaId);
   var msg1 = '¿Borrar la sesión "'+nombre+'" junto con sus '+regs.length+(regs.length===1?' registro':' registros')+(nFotos?(' y '+nFotos+(nFotos===1?' foto':' fotos')):'')+'?\n\n'+
     'Esta acción NO se puede deshacer. Si aún no lo hiciste, exporta antes el paquete .zip de esta sesión.'+
-    (eraActiva ? '\n\nEs la sesión activa: se activará otra en su lugar.' : '')+
+    (eraActiva ? '\n\nEs la sesión activa: te quedarás sin sesión activa hasta que guardes una nueva o reactives otra.' : '')+
     (draftDeSesion ? '\n\nEl registro en curso, que todavía está vacío, también se descartará.' : '');
   if(!confirm(msg1)) return;
   if(!confirm('Última confirmación: se borrarán para siempre la sesión "'+nombre+'" y sus '+regs.length+(regs.length===1?' registro':' registros')+'. ¿Continuar?')) return;
@@ -7138,17 +7223,12 @@ function eliminarSesionConRegistros(id){
   guardarRegistros();
   if(state.draft && state.draft.sesionId===id){ state.draft = null; guardarDraft(); }
   state.sesiones = state.sesiones.filter(function(x){ return x.id!==id; });
-  if(eraActiva){
-    var candidatas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
-    var nueva = candidatas[0];
-    nueva.archivada = false;
-    state.sesionActivaId = nueva.id;
-    guardarSesionActivaLS();
-  }
-  if(state.sesionEnPantallaId === id) state.sesionEnPantallaId = state.sesionActivaId;
+  if(eraActiva){ state.sesionActivaId = null; guardarSesionActivaLS(); }   // v2.42: no siempre hay una sesión activa
+  if(state.sesionEnPantallaId === id) state.sesionEnPantallaId = state.sesionActivaId || (ultimaSesion() && ultimaSesion().id) || (state.sesionBorrador && state.sesionBorrador.id);
   if(state.sesionGestionId === id) state.sesionGestionId = null;
   guardarListaSesiones();
-  toast('Sesión "'+nombre+'" borrada con sus '+regs.length+(regs.length===1?' registro':' registros'));
+  if(!state.sesiones.length && !state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); state.sesionEnPantallaId = state.sesionBorrador.id; }
+  toast('Sesión "'+nombre+'" borrada con sus '+regs.length+(regs.length===1?' registro':' registros')+(eraActiva ? '. Ya no hay sesión activa: guarda una nueva o reactiva otra' : ''), eraActiva ? 5200 : 3500);
   renderExportar();
 }
 function eliminarSesionVacia(id){
@@ -7157,9 +7237,8 @@ function eliminarSesionVacia(id){
   var numRegistros = state.registros.filter(function(r){return r.sesionId===id;}).length;
   if(numRegistros>0){ toast("No se puede eliminar: tiene "+numRegistros+" registro(s) asociado(s)."); return; }
   if(state.draft && !state.draft._viendo && state.draft.sesionId===id){ toast("No se puede eliminar: hay un registro sin guardar en curso asociado a esta sesión. Guárdalo o descártalo primero."); return; }
-  if(state.sesiones.length<=1){ toast("Debe quedar al menos una sesión."); return; }
   var eraActiva = (id === state.sesionActivaId);
-  var mensajeExtra = eraActiva ? " Como era la sesión activa, se activará otra en su lugar." : "";
+  var mensajeExtra = eraActiva ? " Como era la sesión activa, te quedarás sin sesión activa hasta que guardes una nueva o reactives otra." : "";
   if(!confirm('¿Eliminar la sesión "'+nombreSesionMostrar(s)+'"? No tiene registros asociados. Esta acción no se puede deshacer.'+mensajeExtra)) return;
 
   if(eraActiva && state.draft && state.draft.sesionId===id){
@@ -7168,16 +7247,13 @@ function eliminarSesionVacia(id){
   state.sesiones = state.sesiones.filter(function(x){ return x.id!==id; });
 
   if(eraActiva){
-    var candidatas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
-    var nueva = candidatas[0];
-    nueva.archivada = false;
-    state.sesionActivaId = nueva.id;
-    guardarSesionActivaLS();
-    toast('Sesión eliminada. Ahora la activa es "'+nombreSesionMostrar(nueva)+'"');
+    state.sesionActivaId = null; guardarSesionActivaLS();
+    toast("Sesión eliminada. Ya no hay sesión activa: guarda una nueva o reactiva otra", 5200);
   } else {
     toast("Sesión eliminada");
   }
-  if(state.sesionEnPantallaId === id) state.sesionEnPantallaId = state.sesionActivaId;
+  if(state.sesionEnPantallaId === id) state.sesionEnPantallaId = state.sesionActivaId || (ultimaSesion() && ultimaSesion().id) || (state.sesionBorrador && state.sesionBorrador.id);
+  if(!state.sesiones.length && !state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); state.sesionEnPantallaId = state.sesionBorrador.id; }
   if(state.sesionGestionId === id) state.sesionGestionId = null;
   guardarListaSesiones();
   renderExportar();
@@ -7390,10 +7466,7 @@ function renderPanelGestionSesion(sesionId){
     '</div>';
   }).join("");
   if(registros.length===0){
-    var puedeBorrarSesion = state.sesiones.length>1;
-    var borrarSesionBtn = puedeBorrarSesion ?
-      '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'">🗑 Borrar esta sesión</button>' :
-      '<div class="gestion-vacio">Debe quedar al menos una sesión — no se puede borrar la única existente.</div>';
+    var borrarSesionBtn = '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'">🗑 Borrar esta sesión</button>';
     return '<div class="gestion-panel">'+editarBtn+
       '<div class="gestion-vacio">Esta sesión no tiene registros.</div>'+
       borrarSesionBtn+
@@ -8160,7 +8233,7 @@ function mapaPedirDireccion(){
 }
 function renderConfigMapa(){
   var cont = document.getElementById("config-mapa"); if(!cont) return;
-  var c = mapaCfg(), h = '<div class="section-title">Mapa sin conexión (opcional)</div><div class="mapa-cfg-card">';
+  var c = mapaCfg(), h = '<div class="mapa-cfg-card">';
   if(!c.activo){
     var idx = mapaInstalados(), nInst = Object.keys(idx).length, bytes = 0;
     Object.keys(idx).forEach(function(k){ (idx[k].archivos||[]).forEach(function(a){ bytes += a.bytes||0; }); });
@@ -8239,12 +8312,12 @@ document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   if(!confirm("Esto eliminará TODOS los registros y TODAS las sesiones guardadas (activa y archivadas), dejando la app como recién instalada. ¿Continuar?")) return;
   state.registros = [];
   state.draft = null;
-  var nueva = sesionVacia();
-  state.sesiones = [nueva];
-  state.sesionActivaId = nueva.id;
-  state.sesionEnPantallaId = nueva.id;
-  guardarRegistros(); guardarListaSesiones(); guardarDraft(); guardarSesionActivaLS();
-  toast("Todo eliminado — sesión reiniciada");
+  state.sesiones = [];
+  state.sesionActivaId = null;
+  state.sesionBorrador = nuevoBorradorSesion();
+  state.sesionEnPantallaId = state.sesionBorrador.id;
+  guardarRegistros(); guardarListaSesiones(); guardarDraft(); guardarSesionActivaLS(); guardarBorradorSesion();
+  toast("Todo eliminado: la app quedó sin sesiones");
   renderConfig();
 });
 
@@ -8335,10 +8408,10 @@ window.LC = {
   state: state, appBuild: APP_BUILD,
   irA: irA, toast: toast, escapeHtml: escapeHtml,
   colorSesion: colorSesion, sesionActiva: sesionActiva, sesionEnPantalla: sesionEnPantalla, sesionPorId: sesionPorId,
-  nombreSesionMostrar: nombreSesionMostrar, guardarListaSesiones: guardarListaSesiones,
+  nombreSesionMostrar: nombreSesionMostrar, guardarListaSesiones: guardarListaSesiones, guardarSesion: guardarSesion,
   verRegistroExistente: verRegistroExistente, abrirRegistro: abrirRegistro,
   obtenerPosicionMejorada: obtenerPosicionMejorada, gpsCapturaActiva: function(){ return gpsCapturaActiva; },
-  aplicarPosicionAlBorrador: aplicarPosicionAlBorrador,
+  aplicarPosicionAlBorrador: aplicarPosicionAlBorrador, exigirSesionActiva: exigirSesionActiva,
   mapaCfg: mapaCfg, actualizarPestanaMapa: actualizarPestanaMapa
 };
 
