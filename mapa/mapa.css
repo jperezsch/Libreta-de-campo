@@ -82,3 +82,7 @@
 .mp-nav-datos{min-width:0;}
 .mp-nav-grande{font-size:1.15rem; font-weight:800; line-height:1.1;}
 .mp-nav-med{font-size:1.02rem; font-weight:700; margin-top:2px;}
+
+/* ---- v2.43: Mapa asociado dentro del desplegable "Más opciones" de la pestaña Sesión ---- */
+.mp-asoc-caja{padding:0 2px 6px;}
+#mp-volver-reg{box-shadow:var(--sombra);}

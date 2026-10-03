@@ -436,11 +436,15 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 .cons-flecha.sin-destino{opacity:.25; pointer-events:none;}
 .cons-flecha-izq{left:5px;}
 .cons-flecha-der{right:5px;}
-.sueltos-grupo{border:1.5px solid var(--borde); border-radius:10px; margin:8px 0; background:var(--card);}
-.sueltos-grupo-cab{display:flex; align-items:center; gap:8px; padding:9px 10px; font-weight:700; font-size:.85rem; border-bottom:1px solid var(--borde);}
-.sueltos-fila{display:flex; align-items:center; gap:8px; padding:7px 10px; font-size:.82rem; border-top:1px solid var(--borde);}
-.sueltos-fila input, .sueltos-grupo-cab input{width:auto; flex:0 0 auto;}
-.sueltos-lista-scroll{max-height:380px; overflow-y:auto;}
+.dwc-par{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:9px;}
+.dwc-par .btnfull{margin:0; padding:14px 4px; font-size:.84rem; min-width:0;}
+#s-sesion .bloque{margin-bottom:10px;}
+.row-sesion-nombre{grid-template-columns:104px 1fr;}
+.row-sesion-nombre label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:.74rem;}
+details.mas-opciones.en-sesion{margin:2px 0 12px;}
+.exp-sueltos-resumen{align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0 6px; padding:8px 10px; border:1.5px solid var(--verde); border-radius:10px; background:var(--card); font-size:.82rem; font-weight:700; color:var(--verde-osc);}
+.exp-sueltos-resumen button{margin-left:auto; background:none; border:none; color:var(--texto-sec); text-decoration:underline; font-size:.78rem; cursor:pointer; padding:4px;}
+.gestion-ayuda{font-size:.72rem; color:var(--texto-sec); margin:0 0 6px;}
 .navbtn.oculto{display:none;}
 /* v2.42: bloques claramente definidos (tarjeta con borde y filete verde) */
 .bloque{background:var(--card); border:1.5px solid var(--borde); border-left:5px solid var(--verde); border-radius:var(--radio); padding:14px 14px 6px; margin:0 0 18px; box-shadow:var(--sombra);}
@@ -489,16 +493,28 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
         <button type="button" class="btnfull btn-secondary" id="btn-editar-sesion" style="display:none;">✏️ Editar sesión</button>
       </div>
       <div class="field"><label>Localidad general</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Incluir comuna, provincia y región</span></div>
-      <div class="row2">
+      <div class="row2 row-sesion-nombre">
         <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint">Diferencia sesiones con nombre idéntico</span></div>
         <div class="field"><label>Nombre de la sesión 🔒</label><input type="text" id="ss-proyecto" readonly tabindex="-1"><span class="campo-ayuda">Localidad general + N° de sesión</span></div>
       </div>
+      <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
+    </div>
+
+    <div class="bloque" id="bloque-sesion-numeracion">
+      <div class="bloque-titulo">Numeración automática</div>
+    <div class="row2">
+      <div class="field"><label>Acrónimo / prefijo</label><input type="text" id="ss-prefijo" list="dl-ss-prefijo"><datalist id="dl-ss-prefijo"></datalist><span class="campo-ayuda" id="ss-prefijo-hint"></span></div>
+      <div class="field"><label>N° inicial correlativo</label><input type="number" id="ss-inicio" min="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Próximo código</label><input type="text" id="ss-proximo" disabled></div>
+      <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Cámbialo si tu libreta manuscrita va en otro número.</span></div>
+    </div>
     </div>
 
     <div class="bloque" id="bloque-sesion-otros">
       <div class="bloque-titulo">Otros datos de la sesión</div>
     <div class="field"><label>Objetivo</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
-    <div class="field"><label>Participantes</label><input type="text" id="ss-participantes" spellcheck="true" list="dl-ss-participantes"><datalist id="dl-ss-participantes"></datalist><span class="campo-ayuda">Separa cada nombre con una coma (ej: Jorge Pérez, Camila Silva)</span></div>
     <div class="field"><label>Hábitat general</label>
       <select id="ss-habitat">
         <option value="">—</option>
@@ -530,19 +546,9 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" spellcheck="true" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
     <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima" spellcheck="true" list="dl-ss-clima"><datalist id="dl-ss-clima"></datalist></div>
     <div class="field"><label>Notas generales</label><textarea id="ss-notas" spellcheck="true"></textarea></div>
-
-    <div class="section-title">Numeración automática</div>
-    <div class="row2">
-      <div class="field"><label>Acrónimo / prefijo</label><input type="text" id="ss-prefijo" list="dl-ss-prefijo"><datalist id="dl-ss-prefijo"></datalist><span class="campo-ayuda" id="ss-prefijo-hint"></span></div>
-      <div class="field"><label>N° inicial correlativo</label><input type="number" id="ss-inicio" min="0"></div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>Próximo código</label><input type="text" id="ss-proximo" disabled></div>
-      <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Cámbialo si tu libreta manuscrita va en otro número.</span></div>
-    </div>
     </div>
 
-    <div id="sesion-mapa-asoc"></div>
+    <details class="mas-opciones en-sesion" id="sesion-mas-opciones" style="display:none;"><summary>Más opciones</summary><div id="sesion-mapa-asoc"></div></details>
 
     <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos de la sesión</button>
     <button type="button" class="btnfull btn-secondary" id="btn-descartar-sesion-nueva" style="display:none; margin-top:8px;">Descartar sesión nueva</button>
@@ -675,30 +681,6 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div id="fotos-lista"></div>
     </div>
 
-    <div id="identificacion-individual" class="bloque">
-    <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="nota">Nombre preliminar más inclusivo posible. Registra detalles o aclaraciones en <b style="display:inline; font-size:inherit; text-transform:none; letter-spacing:0; margin:0;">Observaciones y notas</b>.</div>
-    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
-    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
-    <div class="field"><label>Condición / conservación</label>
-      <select id="f-condicion">
-        <option value="">—</option>
-        <option value="seco">Seco</option>
-        <option value="etanol70">Etanol 70%</option>
-        <option value="etanol96">Etanol 96%</option>
-        <option value="etanol_absoluto">Etanol absoluto</option>
-        <option value="formaldehido">Formaldehído</option>
-        <option value="congelado">Congelado</option>
-        <option value="glicerina">Glicerina</option>
-        <option value="vivo_liberado">Vivo / liberado</option>
-        <option value="fotografiado_sin_coleccion">Fotografiado (sin colecta)</option>
-        <option value="muerto_hallado_sin_coleccion">Muerto / hallado (sin colecta)</option>
-        <option value="otro">Otro</option>
-      </select>
-    </div>
-    <div class="switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
-    </div>
-
     <div class="bloque" id="bloque-ubicacion">
     <div class="section-title" id="titulo-ubicacion"><span class="n">📍</span>Ubicación</div>
     <div id="seccion-ubicacion-general">
@@ -708,7 +690,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <span id="gps-coords-txt">Toca "Capturar ubicación" para registrar coordenada, altitud, fecha y hora juntas.</span>
     </div>
 
-    <button type="button" class="manual-toggle" id="btn-toggle-manual"><span>Ingreso manual</span><span class="manual-chev" id="manual-chev">▸</span></button>
+    <button type="button" class="manual-toggle" id="btn-toggle-manual"><span>Ubicación manual</span><span class="manual-chev" id="manual-chev">▸</span></button>
     <div class="manual-body" id="gps-manual-wrap">
       <div class="row2">
         <input type="text" class="manual" id="f-lat" placeholder="Latitud">
@@ -720,7 +702,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
 
     <div id="bloque-localidad-estacion">
       <div class="field"><label>Localidad específica</label>
-        <input type="text" id="f-localidad-especifica" spellcheck="true" list="dl-localidad-especifica" autocomplete="off" placeholder="Elige una ya usada o escribe una nueva">
+        <input type="text" id="f-localidad-especifica" spellcheck="true" list="dl-localidad-especifica" autocomplete="off" placeholder="Punto exacto, incluyendo referencias">
         <datalist id="dl-localidad-especifica"></datalist>
         <div class="chips-sug" id="chips-localidad-especifica"></div>
         <span class="preview-loc" id="preview-localidad"></span>
@@ -771,6 +753,30 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
       <div class="field"><label>Hora</label><input type="text" id="f-hora"></div>
     </div>
+    </div>
+
+    <div id="identificacion-individual" class="bloque">
+    <div class="section-title"><span class="n">🔎</span>Identificación</div>
+    <div class="nota">Nombre preliminar más inclusivo posible. Registra detalles o aclaraciones en <b style="display:inline; font-size:inherit; text-transform:none; letter-spacing:0; margin:0;">Observaciones y notas</b>.</div>
+    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
+    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
+    <div class="field"><label>Condición / conservación</label>
+      <select id="f-condicion">
+        <option value="">—</option>
+        <option value="seco">Seco</option>
+        <option value="etanol70">Etanol 70%</option>
+        <option value="etanol96">Etanol 96%</option>
+        <option value="etanol_absoluto">Etanol absoluto</option>
+        <option value="formaldehido">Formaldehído</option>
+        <option value="congelado">Congelado</option>
+        <option value="glicerina">Glicerina</option>
+        <option value="vivo_liberado">Vivo / liberado</option>
+        <option value="fotografiado_sin_coleccion">Fotografiado (sin colecta)</option>
+        <option value="muerto_hallado_sin_coleccion">Muerto / hallado (sin colecta)</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
     </div>
 
     <div id="obs-tracking-flotante" style="display:none;"></div>
@@ -835,6 +841,8 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
         <button type="button" class="btn-orden-especies" id="btn-orden-exportar-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
       </div>
       <div id="exp-selector-sesion"></div>
+      <div class="exp-sueltos-resumen" id="exp-sueltos-resumen" style="display:none;"></div>
+      <span class="campo-ayuda">Marca sesiones completas, o abre «Gestionar» y marca registros sueltos sin marcar su sesión.</span>
     </div>
     <div id="panel-huerfanos" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;">
       <div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">⚠️ Registros sin sesión válida</div>
@@ -854,26 +862,15 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
         <button type="button" class="btnfull btn-secondary" style="margin:0; font-size:.85rem; padding:11px;" id="btn-revisadas-fechas">Dejar todos como están</button>
       </div>
     </div>
-    <div class="section-title">Exportar sesiones seleccionadas</div>
+    <div class="section-title">Exportar lo seleccionado</div>
     <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Registros (.zip)</button>
-    <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc-xlsx">🧬 Darwin Core (.xlsx) · para Excel</button>
-    <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv) · para GBIF y otros</button>
+    <div class="dwc-par">
+      <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc-xlsx">🧬 Darwin Core (.xlsx)</button>
+      <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv)</button>
+    </div>
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos. Excel a veces muestra mal las tildes de un .csv (aparecen como «Ã³», «Ã­»…); para abrirlo en Excel usa el .xlsx.</p>
     <div class="section-title">Registros de medición</div>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
-    <div class="section-title">Registros sueltos</div>
-    <p class="campo-ayuda" style="margin:-4px 0 10px;">Elige registros individuales, de cualquier sesión, sin marcar su sesión arriba.</p>
-    <button type="button" class="btnfull btn-secondary" id="btn-sueltos-abrir">🎯 Elegir registros sueltos</button>
-    <div id="panel-sueltos" style="display:none; margin-top:10px;">
-      <input type="search" class="search" id="sueltos-buscador" placeholder="Filtrar por código, taxón, localidad...">
-      <div class="sueltos-lista-scroll" id="sueltos-lista"></div>
-      <div class="gestion-contador" id="sueltos-contador" style="margin:8px 0;">0 registros elegidos</div>
-      <button type="button" class="btnfull btn-primary" id="btn-sueltos-zip">📦 Registros elegidos (.zip)</button>
-      <button type="button" class="btnfull btn-primary" id="btn-sueltos-dwc-xlsx">🧬 Darwin Core (.xlsx) · elegidos</button>
-      <button type="button" class="btnfull btn-primary" id="btn-sueltos-dwc-csv">🧬 Darwin Core (.csv) · elegidos</button>
-      <button type="button" class="btnfull btn-primary" id="btn-sueltos-med">📐 Mediciones elegidas (.xlsx)</button>
-      <button type="button" class="btnfull btn-secondary" id="btn-sueltos-limpiar">Limpiar selección</button>
-    </div>
     <div class="section-title">Respaldo e importación</div>
     <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.zip)</label>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
@@ -3511,7 +3508,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-02 · v2.42";
+var APP_BUILD = "2026-10-03 · v2.43";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1"};
@@ -5047,8 +5044,11 @@ function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s
 
 function generarPaqueteZip(idsSesiones, idsRegistros){
   if(typeof JSZip === "undefined"){ toast("No se pudo cargar el componente de compresión"); return Promise.reject(); }
-  var registrosFiltrados = idsRegistros ? state.registros.filter(function(r){ return idsRegistros.indexOf(r.id)>=0; })
-    : (idsSesiones ? state.registros.filter(function(r){ return idsSesiones.indexOf(r.sesionId)>=0; }) : state.registros);
+  // v2.43: admite sesiones completas y registros sueltos a la vez (se suman); sin ninguno de los dos, todo.
+  var haySel = !!(idsSesiones || idsRegistros);
+  var registrosFiltrados = !haySel ? state.registros : state.registros.filter(function(r){
+    return (idsSesiones && idsSesiones.indexOf(r.sesionId)>=0) || (idsRegistros && idsRegistros.indexOf(r.id)>=0);
+  });
   var todasLasFotos = [];
   registrosFiltrados.forEach(function(r){
     (r.fotos||[]).forEach(function(f){ todasLasFotos.push({foto:f, registro:r}); });
@@ -5078,8 +5078,9 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
     if(gpx) carpetaTracks.file(nombreArchivoTrack(r), gpx);
   });
   return Promise.all(promesas).then(function(){
-    var sesionesFiltradas = idsRegistros ? state.sesiones.filter(function(s){ return registrosFiltrados.some(function(r){ return r.sesionId===s.id; }); })
-      : (idsSesiones ? state.sesiones.filter(function(s){ return idsSesiones.indexOf(s.id)>=0; }) : state.sesiones);
+    var sesionesFiltradas = !haySel ? state.sesiones : state.sesiones.filter(function(s){
+      return (idsSesiones && idsSesiones.indexOf(s.id)>=0) || registrosFiltrados.some(function(r){ return r.sesionId===s.id; });
+    });
     var data = {sesiones:sesionesFiltradas, sesionActivaId:state.sesionActivaId, registros:registrosFiltrados};
     zip.file("respaldo.json", JSON.stringify(data, null, 2));
     var filasEstandar = construirFilasEstandar(registrosFiltrados);
@@ -5098,22 +5099,20 @@ document.getElementById("btn-orden-exportar-alfabetico").addEventListener("click
   renderExportar();
 });
 document.getElementById("btn-descargar-zip").addEventListener("click", function(){
-  var ids = sesionesSeleccionadasExportar();
-  if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return; }
+  var sel = seleccionExportar();
+  if(sel.vacia){ toast("Marca al menos una sesión o un registro para descargar"); return; }
   var btn = this;
   btn.disabled = true; btn.textContent = "📦 Preparando paquete...";
-  generarPaqueteZip(ids).then(function(blob){
+  generarPaqueteZip(sel.idsSesiones, sel.idsSueltos).then(function(blob){
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
-    var sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
-    a.href = url; a.download = "LibretaDeCampo_"+sufijo+"_"+fechaLocalISO()+".zip";
+    a.href = url; a.download = "LibretaDeCampo_"+sel.sufijo+"_"+fechaLocalISO()+".zip";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    btn.disabled = false; btn.textContent = "📦 Descargar registros y fotos (.zip)";
+    btn.disabled = false; btn.textContent = "📦 Registros (.zip)";
     toast("✅ Paquete .zip listo — puedes compartirlo por WhatsApp como documento");
   }).catch(function(err){
-    btn.disabled = false; btn.textContent = "📦 Descargar registros y fotos (.zip)";
+    btn.disabled = false; btn.textContent = "📦 Registros (.zip)";
     toast("No se pudo generar el paquete");
   });
 });
@@ -5880,7 +5879,7 @@ function renderConsulta(id){
   cont.innerHTML = htmlConsultaRegistro(r, true) + fotosHtml;
   var btnMapa = cont.querySelector(".cons-ubic-mapa");
   if(btnMapa) btnMapa.addEventListener("click", function(){
-    if(window.MapaPro && MapaPro.verPunto) MapaPro.verPunto({id:r.id, lat:parseFloat(r.lat), lon:parseFloat(r.lon), sesionId:r.sesionId});
+    if(window.MapaPro && MapaPro.verPunto) MapaPro.verPunto({id:r.id, lat:parseFloat(r.lat), lon:parseFloat(r.lon), sesionId:r.sesionId, volverA:state.consultaVolverA});
     else toast("El mapa todavía se está cargando. Intenta de nuevo en unos segundos.");
   });
   cont.style.borderLeftColor = colorSesion(r.sesionId);
@@ -7094,7 +7093,7 @@ function actualizarPreviewLocalidad(){
   var p = (document.getElementById("f-localidad-especifica").value || "").trim();
   var z = (s.zona || "").trim();
   var txt = (p && z) ? (p + ", " + z) : (p || z);
-  el.textContent = txt ? ("Localidad completa en la exportación: «" + txt + "»") : "Define la localidad general en la pestaña Sesión.";
+  el.textContent = txt ? "Localidad general aporta las unidades territoriales superiores" : "Define la localidad general en la pestaña Sesión.";
 }
 function canonizarCampoLocEst(c){
   var el = document.getElementById(c.input);
@@ -7367,7 +7366,8 @@ function renderExportar(){
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
   var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
-  var seleccion = seleccionPrevia.length ? seleccionPrevia : [state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : "")];
+  // v2.43: si la persona dejó todas las sesiones sin marcar (para exportar solo registros sueltos), se respeta.
+  var seleccion = seleccionPrevia.length ? seleccionPrevia : (state.expVacioManual ? [] : [state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : "")]);
   box.innerHTML = ordenadas.map(function(s){
     var esActiva = s.id===state.sesionActivaId;
     var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + fechaSesion(s);
@@ -7383,7 +7383,10 @@ function renderExportar(){
     '</div>';
   }).join("");
   box.querySelectorAll(".sesion-check-export").forEach(function(c){
-    c.addEventListener("change", actualizarStatsExportar);
+    c.addEventListener("change", function(){
+      state.expVacioManual = sesionesSeleccionadasExportar().length===0;
+      actualizarStatsExportar();
+    });
   });
   box.querySelectorAll(".btn-gestionar").forEach(function(b){
     b.addEventListener("click", function(){ toggleGestionSesion(b.dataset.sesion); });
@@ -7396,8 +7399,6 @@ function renderExportar(){
   });
   ligarEventosPanelGestion(box);
   actualizarStatsExportar();
-  var panelSueltos = document.getElementById("panel-sueltos");
-  if(panelSueltos && panelSueltos.style.display !== "none") renderSueltos();
 }
 function verEnSesion(id){
   var s = sesionPorId(id);
@@ -7434,12 +7435,48 @@ function ligarPulsacionLarga(el, callback, ms){
 function sesionesSeleccionadasExportar(){
   return Array.prototype.map.call(document.querySelectorAll("#exp-selector-sesion .sesion-check-export:checked"), function(c){return c.dataset.id;});
 }
+/* v2.43: registros marcados uno a uno (casillas de cada registro dentro de «Gestionar»), de cualquier sesión.
+   Se descargan junto con las sesiones marcadas, sin necesidad de marcar su sesión. */
+state.sueltosSel = {};
+state.expVacioManual = false;
+function idsSueltosElegidos(){
+  return Object.keys(state.sueltosSel).filter(function(id){
+    return state.sueltosSel[id] && state.registros.some(function(r){ return r.id===id; });
+  });
+}
+function seleccionExportar(){
+  var idsSes = sesionesSeleccionadasExportar();
+  var sueltos = idsSueltosElegidos();
+  var registros = state.registros.filter(function(r){ return idsSes.indexOf(r.sesionId)>=0 || sueltos.indexOf(r.id)>=0; });
+  var extra = sueltos.filter(function(id){
+    var r = state.registros.filter(function(x){ return x.id===id; })[0];
+    return r && idsSes.indexOf(r.sesionId)<0;
+  });
+  var sufijo;
+  if(!extra.length){
+    var elegidas = idsSes.map(sesionPorId).filter(Boolean);
+    sufijo = elegidas.length===1 ? sanitizarNombreArchivo(elegidas[0].prefijo||elegidas[0].proyecto||"sesion") : elegidas.length+"_sesiones";
+  } else if(!idsSes.length){
+    sufijo = "registros_sueltos_"+extra.length;
+  } else {
+    sufijo = idsSes.length+(idsSes.length===1?"_sesion":"_sesiones")+"_y_"+extra.length+(extra.length===1?"_suelto":"_sueltos");
+  }
+  return {idsSesiones:idsSes, idsSueltos:extra, registros:registros, sufijo:sufijo, vacia:(!idsSes.length && !extra.length)};
+}
+function actualizarResumenSueltos(){
+  var box = document.getElementById("exp-sueltos-resumen"); if(!box) return;
+  var n = idsSueltosElegidos().length;
+  if(!n){ box.style.display = "none"; box.innerHTML = ""; return; }
+  box.style.display = "flex";
+  box.innerHTML = '<span>🎯 '+n+(n===1?' registro marcado individualmente':' registros marcados individualmente')+'</span><button type="button" id="btn-sueltos-limpiar">Quitar marcas</button>';
+  document.getElementById("btn-sueltos-limpiar").addEventListener("click", function(){ state.sueltosSel = {}; renderExportar(); });
+}
 function actualizarStatsExportar(){
-  var ids = sesionesSeleccionadasExportar();
-  var seleccionados = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0; });
-  document.getElementById("stat-total").textContent = seleccionados.length;
+  var sel = seleccionExportar();
+  document.getElementById("stat-total").textContent = sel.registros.length;
   var hoy = fechaLocalISO();
-  document.getElementById("stat-hoy").textContent = seleccionados.filter(function(r){return r.fecha===hoy;}).length;
+  document.getElementById("stat-hoy").textContent = sel.registros.filter(function(r){return r.fecha===hoy;}).length;
+  actualizarResumenSueltos();
 }
 
 /* ---------------- Panel de gestión de sesión (mover / borrar registros), en Exportar ---------------- */
@@ -7459,7 +7496,7 @@ function renderPanelGestionSesion(sesionId){
     var ti = TIPOS[r.tipo]||TIPOS.nota;
     var nombre = r.taxonLibre||r.referencia||"";
     return '<div class="gestion-fila">'+
-      '<input type="checkbox" class="gestion-check" data-id="'+r.id+'">'+
+      '<input type="checkbox" class="gestion-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id] ? ' checked' : '')+'>'+
       '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span>'+
       '<span class="gestion-editar" data-id="'+r.id+'" title="Editar">✏️</span>'+
       '<span class="gestion-borrar" data-id="'+r.id+'" title="Borrar">🗑</span>'+
@@ -7472,13 +7509,15 @@ function renderPanelGestionSesion(sesionId){
       borrarSesionBtn+
     '</div>';
   }
+  var nMarcados = registros.filter(function(r){ return state.sueltosSel[r.id]; }).length;
   var borrarCompletaBtn = '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'" style="margin-top:12px;">🗑 Borrar esta sesión y sus '+registros.length+(registros.length===1?' registro':' registros')+'</button>';
   var opcionesDestino = otrasSesiones.map(function(s){
     return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+'</option>';
   }).join("");
   return '<div class="gestion-panel">'+editarBtn+
+    '<div class="gestion-ayuda">Marca registros para descargarlos sueltos (botones de arriba, sin marcar la sesión) o para moverlos.</div>'+
     '<div class="gestion-lista">'+filasHtml+'</div>'+
-    '<div class="gestion-contador" id="gestion-contador">0 registros seleccionados</div>'+
+    '<div class="gestion-contador" id="gestion-contador">'+nMarcados+(nMarcados===1 ? " registro seleccionado" : " registros seleccionados")+'</div>'+
     '<div class="gestion-mover-row" style="flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:8px;">'+
       '<button type="button" id="btn-toggle-renumerar" style="background:none; border:none; padding:0; color:var(--texto-sec); font-size:.74rem; text-decoration:underline; cursor:pointer;">⚙️ Opción avanzada: renumerar código al mover</button>'+
       '<div id="renumerar-avanzado" style="display:none; width:100%;">'+
@@ -7514,6 +7553,8 @@ function ligarEventosPanelGestion(container){
   container.querySelectorAll(".gestion-check").forEach(function(chk){
 
     chk.addEventListener("change", function(){
+      state.sueltosSel[chk.dataset.id] = chk.checked;
+      actualizarStatsExportar();
       var panel = chk.closest(".gestion-panel");
       var contador = panel && panel.querySelector("#gestion-contador");
       if(contador){
@@ -7585,6 +7626,7 @@ function moverRegistrosSeleccionados(sesionOrigenId){
       }
     }
   });
+  ids.forEach(function(id){ delete state.sueltosSel[id]; });
   guardarRegistros();
   if(sesionDestino) guardarListaSesiones();
   if(state.draft && ids.indexOf(state.draft.id)>=0){
@@ -7770,22 +7812,13 @@ function filasACsv(cols, filas){
   filas.forEach(function(f){ lineas.push(cols.map(function(c){ return celdaCsv(f[c]); }).join(",")); });
   return lineas.join("\r\n");
 }
-// Selección, filas y nombre comunes a las descargas .csv y .xlsx
-function prepararDescargaDwc(idsRegistros){
-  var registrosFiltrados, sufijo;
-  if(idsRegistros){
-    registrosFiltrados = state.registros.filter(function(r){ return idsRegistros.indexOf(r.id)>=0; });
-    sufijo = "registros_sueltos_" + registrosFiltrados.length;
-  } else {
-    var ids = sesionesSeleccionadasExportar();
-    if(ids.length===0){ toast("Selecciona al menos una sesión para descargar"); return null; }
-    registrosFiltrados = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0; });
-    var sesionesElegidas = ids.map(sesionPorId).filter(Boolean);
-    sufijo = sesionesElegidas.length===1 ? sanitizarNombreArchivo(sesionesElegidas[0].prefijo||sesionesElegidas[0].proyecto||"sesion") : sesionesElegidas.length+"_sesiones";
-  }
-  var filas = construirFilasDarwinCore(registrosFiltrados);
-  if(filas.length===0){ toast(idsRegistros ? "Los registros elegidos no son de Recolección ni Observación" : "Las sesiones elegidas no tienen registros de Recolección u Observación"); return null; }
-  return {filas:filas, sufijo:sufijo};
+// Selección, filas y nombre comunes a las descargas .csv y .xlsx (sesiones marcadas + registros sueltos)
+function prepararDescargaDwc(){
+  var sel = seleccionExportar();
+  if(sel.vacia){ toast("Marca al menos una sesión o un registro para descargar"); return null; }
+  var filas = construirFilasDarwinCore(sel.registros);
+  if(filas.length===0){ toast("Lo seleccionado no tiene registros de Recolección ni de Observación"); return null; }
+  return {filas:filas, sufijo:sel.sufijo};
 }
 function descargarDwcCsv(d){
   // BOM UTF-8 al inicio: es lo que permite a Excel de Windows reconocer las tildes. Otras versiones de Excel
@@ -7890,103 +7923,14 @@ function exportarMedicionXlsx(registrosMed){
   toast("✅ Planilla de Medición generada — "+filas.length+" individuo(s)");
 }
 document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
-  var ids = sesionesSeleccionadasExportar();
-  if(ids.length===0){ toast("Selecciona al menos una sesión"); return; }
-  var registrosMed = state.registros.filter(function(r){ return ids.indexOf(r.sesionId)>=0 && r.tipo==="medicion"; });
-  if(registrosMed.length===0){ toast("Las sesiones elegidas no tienen registros de Medición"); return; }
+  var sel = seleccionExportar();
+  if(sel.vacia){ toast("Marca al menos una sesión o un registro"); return; }
+  var registrosMed = sel.registros.filter(function(r){ return r.tipo==="medicion"; });
+  if(registrosMed.length===0){ toast("Lo seleccionado no tiene registros de Medición"); return; }
   exportarMedicionXlsx(registrosMed);
 });
 
-/* ---------------- Registros sueltos (v2.35) ----------------
-   Permite exportar registros elegidos uno a uno, de cualquier sesión, sin marcar su sesión arriba. */
-state.sueltosSel = {};
-function idsSueltosElegidos(){
-  return Object.keys(state.sueltosSel).filter(function(id){
-    return state.sueltosSel[id] && state.registros.some(function(r){ return r.id===id; });
-  });
-}
-function actualizarContadorSueltos(){
-  var n = idsSueltosElegidos().length;
-  document.getElementById("sueltos-contador").textContent = n + (n===1 ? " registro elegido" : " registros elegidos");
-}
-function renderSueltos(){
-  var cont = document.getElementById("sueltos-lista");
-  var q = normalizarTextoComparar(document.getElementById("sueltos-buscador").value);
-  var ordenSes = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
-  var html = "";
-  ordenSes.forEach(function(s){
-    var regs = registrosDeSesionOrdenados(s.id).filter(function(r){
-      if(!q) return true;
-      var t = normalizarTextoComparar([r.codigo, r.notaTitulo, r.taxonLibre, r.localidadEspecifica, r.estacion, r.referencia,
-        (r.especies||[]).map(function(e){ return e.nombre; }).join(" ")].join(" "));
-      return t.indexOf(q) >= 0;
-    });
-    if(!regs.length) return;
-    var marcados = regs.filter(function(r){ return state.sueltosSel[r.id]; }).length;
-    html += '<div class="sueltos-grupo"><div class="sueltos-grupo-cab"><input type="checkbox" class="sueltos-todos" data-ids="'+regs.map(function(r){ return r.id; }).join(",")+'"'+(marcados===regs.length ? " checked" : "")+'>'+
-      '<span>'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+' · '+marcados+'/'+regs.length+'</span></div>';
-    regs.forEach(function(r){
-      var ti = TIPOS[r.tipo] || TIPOS.nota;
-      var detalle = r.taxonLibre || r.localidadEspecifica || r.referencia || "";
-      html += '<label class="sueltos-fila"><input type="checkbox" class="sueltos-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id] ? " checked" : "")+'>'+
-        '<span>'+(r.codigo ? '<b>'+escapeHtml(r.codigo)+'</b> · ' : (r.notaTitulo ? '<b>'+escapeHtml(r.notaTitulo)+'</b> · ' : ''))+ti.label+(detalle ? ' · '+escapeHtml(detalle) : '')+'</span></label>';
-    });
-    html += '</div>';
-  });
-  cont.innerHTML = html || '<div class="empty">No hay registros para mostrar.</div>';
-  cont.querySelectorAll(".sueltos-check").forEach(function(c){
-    c.addEventListener("change", function(){ state.sueltosSel[c.dataset.id] = c.checked; renderSueltos(); });
-  });
-  cont.querySelectorAll(".sueltos-todos").forEach(function(c){
-    c.addEventListener("change", function(){
-      c.dataset.ids.split(",").forEach(function(id){ state.sueltosSel[id] = c.checked; });
-      renderSueltos();
-    });
-  });
-  actualizarContadorSueltos();
-}
-document.getElementById("btn-sueltos-abrir").addEventListener("click", function(){
-  var panel = document.getElementById("panel-sueltos");
-  var abrir = panel.style.display === "none";
-  panel.style.display = abrir ? "block" : "none";
-  this.textContent = abrir ? "▾ Cerrar registros sueltos" : "🎯 Elegir registros sueltos";
-  if(abrir) renderSueltos();
-});
-document.getElementById("sueltos-buscador").addEventListener("input", renderSueltos);
-document.getElementById("btn-sueltos-limpiar").addEventListener("click", function(){ state.sueltosSel = {}; renderSueltos(); });
-document.getElementById("btn-sueltos-zip").addEventListener("click", function(){
-  var ids = idsSueltosElegidos();
-  if(ids.length===0){ toast("Elige al menos un registro"); return; }
-  var btn = this;
-  btn.disabled = true; btn.textContent = "📦 Preparando paquete...";
-  generarPaqueteZip(null, ids).then(function(blob){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url; a.download = "LibretaDeCampo_registros_sueltos_"+ids.length+"_"+fechaLocalISO()+".zip";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    btn.disabled = false; btn.textContent = "📦 Registros elegidos (.zip)";
-    toast("✅ Paquete .zip listo — "+ids.length+" registro(s)");
-  }).catch(function(){
-    btn.disabled = false; btn.textContent = "📦 Registros elegidos (.zip)";
-    toast("No se pudo generar el paquete");
-  });
-});
-document.getElementById("btn-sueltos-dwc-xlsx").addEventListener("click", function(){
-  var ids = idsSueltosElegidos();
-  if(ids.length===0){ toast("Elige al menos un registro"); return; }
-  var d = prepararDescargaDwc(ids); if(d) descargarDwcXlsx(d);
-});
-document.getElementById("btn-sueltos-dwc-csv").addEventListener("click", function(){
-  var ids = idsSueltosElegidos();
-  if(ids.length===0){ toast("Elige al menos un registro"); return; }
-  var d = prepararDescargaDwc(ids); if(d) descargarDwcCsv(d);
-});
-document.getElementById("btn-sueltos-med").addEventListener("click", function(){
-  var ids = idsSueltosElegidos();
-  if(ids.length===0){ toast("Elige al menos un registro"); return; }
-  exportarMedicionXlsx(state.registros.filter(function(r){ return ids.indexOf(r.id)>=0 && r.tipo==="medicion"; }));
-});
+/* Registros sueltos: desde la v2.43 se marcan en la lista de sesiones de Exportar (ver seleccionExportar). */
 var archivosImportados = []; // {nombre, sesiones:[], registros:[], seleccionado:true, valido:true}
 
 function procesarArchivoZip(file){
@@ -8149,6 +8093,13 @@ function actualizarPestanaMapa(){
   if(b) b.classList.toggle("oculto", !vis);
   if(!vis && state.currentView==="mapa") irA("sesion");
 }
+(function(){
+  var cont = document.getElementById("sesion-mapa-asoc"), det = document.getElementById("sesion-mas-opciones");
+  if(!cont || !det) return;
+  function sincronizar(){ det.style.display = cont.childNodes.length ? "" : "none"; }
+  if(window.MutationObserver) new MutationObserver(sincronizar).observe(cont, {childList:true});
+  sincronizar();
+})();
 function mapaRenderSesion(s){
   var cont = document.getElementById("sesion-mapa-asoc");
   if(window.MapaPro && mapaCfg().activo){ MapaPro.renderAsociado(s); }

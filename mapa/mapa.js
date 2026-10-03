@@ -378,6 +378,17 @@ function crearRombo(col) {
   var d = g.getImageData(0, 0, 32, 32);
   return { width: 32, height: 32, data: d.data };
 }
+/* v2.43: rombo con la letra N para las Notas generales. Las estaciones del catálogo (rombos lisos morado y naranja) no llevan letra. */
+function crearRomboNota(col) {
+  var c = document.createElement("canvas"); c.width = c.height = 44;
+  var g = c.getContext("2d");
+  g.beginPath(); g.moveTo(22, 2); g.lineTo(42, 22); g.lineTo(22, 42); g.lineTo(2, 22); g.closePath();
+  g.fillStyle = col; g.fill(); g.lineWidth = 3; g.strokeStyle = "#ffffff"; g.stroke();
+  g.fillStyle = "#ffffff"; g.font = "bold 22px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("N", 22, 24);
+  var d = g.getImageData(0, 0, 44, 44);
+  return { width: 44, height: 44, data: d.data };
+}
 function resumenCuenta(c) {
   var t = [];
   if (c && c.puntos) t.push(c.puntos + (c.puntos === 1 ? " punto" : " puntos"));
@@ -597,25 +608,35 @@ function geoPuntos() {
     var la = parseFloat(r.lat), lo = parseFloat(r.lon);
     if (!isFinite(la) || !isFinite(lo) || r.lat === "" || r.lon === "") return;
     fs.push({ type: "Feature",
-      properties: { id: r.id, codigo: r.codigo || r.notaTitulo || "", sesion: r.sesionId, activa: r.sesionId === LC.state.sesionActivaId ? 1 : 0, color: LC.colorSesion(r.sesionId) },
+      properties: { id: r.id, codigo: r.codigo || r.notaTitulo || "", sesion: r.sesionId, activa: r.sesionId === LC.state.sesionActivaId ? 1 : 0, color: LC.colorSesion(r.sesionId), nota: r.tipo === "nota" ? 1 : 0 },
       geometry: { type: "Point", coordinates: [lo, la] } });
   });
   return { type: "FeatureCollection", features: fs };
 }
 var pendienteVer = null, resaltado = null, resaltadoT = null;
+var retorno = null;   /* v2.43: registro desde el que se llegó con "Ver en el mapa": { id, volverA } */
 function geoResaltado() {
   return { type: "FeatureCollection", features: resaltado ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [resaltado.lng, resaltado.lat] } }] : [] };
 }
-function ponerResaltado(p) {
+function ponerResaltado(p, fijo) {
   resaltado = p; clearTimeout(resaltadoT);
   if (map && mapaListo && map.getSource("resaltado")) map.getSource("resaltado").setData(geoResaltado());
-  if (p) resaltadoT = setTimeout(function () { ponerResaltado(null); }, 15000);
+  if (p && !fijo) resaltadoT = setTimeout(function () { ponerResaltado(null); }, 15000);
+}
+function botonVolverRegistro() {
+  var b = $("mp-volver-reg"); if (!b) return;
+  b.style.display = retorno ? "" : "none";
+}
+function volverAlRegistro() {
+  if (!retorno) return;
+  LC.verRegistroExistente(retorno.id, retorno.volverA);   /* si hay una edición pendiente y se cancela, sigue en el mapa */
 }
 function verPunto(reg) {
   if (!reg || !isFinite(reg.lat) || !isFinite(reg.lon)) { LC.toast("Este registro no tiene ubicación"); return; }
   var ses = reg.sesionId ? LC.sesionPorId(reg.sesionId) : null;
   if (ses && ses.mapaId && inst[ses.mapaId]) { actualId = ses.mapaId; localStorage.setItem(LS_ACTUAL, actualId); }
   pendienteVer = { lng: reg.lon, lat: reg.lat };
+  retorno = reg.id ? { id: reg.id, volverA: reg.volverA || null } : null;
   LC.irA("mapa");
 }
 function refrescarPuntos() { if (map && mapaListo && map.getSource("puntos")) { map.getSource("puntos").setData(geoPuntos()); aplicarFiltroPuntos(); } }
@@ -683,9 +704,13 @@ function filtroPuntos() {
   var ids = LC.state.sesiones.filter(function (x) { return visSesion(x.id); }).map(function (x) { return x.id; });
   return ["in", ["get", "sesion"], ["literal", ids]];
 }
+function filtroPuntosCirc() { return ["all", filtroPuntos(), ["==", ["get", "nota"], 0]]; }
+function filtroPuntosNota() { return ["all", filtroPuntos(), ["==", ["get", "nota"], 1]]; }
 function aplicarFiltroPuntos() {
   if (!map || !mapaListo) return;
-  ["puntos-circ", "puntos-texto"].forEach(function (id) { if (map.getLayer(id)) map.setFilter(id, filtroPuntos()); });
+  if (map.getLayer("puntos-circ")) map.setFilter("puntos-circ", filtroPuntosCirc());
+  if (map.getLayer("puntos-nota")) map.setFilter("puntos-nota", filtroPuntosNota());
+  if (map.getLayer("puntos-texto")) map.setFilter("puntos-texto", filtroPuntos());
 }
 
 function construirEstilo(m) {
@@ -729,10 +754,13 @@ function construirEstilo(m) {
   estilo.sources.gps = { type: "geojson", data: geoGps() };
   estilo.sources.resaltado = { type: "geojson", data: geoResaltado() };
   estilo.sources.nav = { type: "geojson", data: geoNav() };
-  capas.push({ id: "puntos-circ", type: "circle", source: "puntos", filter: filtroPuntos(),
+  capas.push({ id: "puntos-circ", type: "circle", source: "puntos", filter: filtroPuntosCirc(),
     paint: { "circle-radius": ["case", ["==", ["get", "activa"], 1], 10, 6], "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
+  /* v2.43: las Notas generales (puntos de referencia o eventos) se dibujan como un rombo con la letra N, en el color de su sesión */
+  capas.push({ id: "puntos-nota", type: "symbol", source: "puntos", filter: filtroPuntosNota(),
+    layout: { "icon-image": ["concat", "nota-", ["get", "color"]], "icon-size": ["case", ["==", ["get", "activa"], 1], 0.95, 0.75], "icon-allow-overlap": true, "icon-ignore-placement": true } });
   capas.push({ id: "puntos-texto", type: "symbol", source: "puntos", filter: filtroPuntos(),
-    layout: { "text-field": ["get", "codigo"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": [0, 1.5], "text-anchor": "top", "text-allow-overlap": true },
+    layout: { "text-field": ["get", "codigo"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": ["case", ["==", ["get", "nota"], 1], ["literal", [0, 2.2]], ["literal", [0, 1.5]]], "text-anchor": "top", "text-allow-overlap": true },
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
   capas.push({ id: "nav-linea", type: "line", source: "nav", filter: ["==", ["get", "tipo"], "linea"], layout: { "line-cap": "round" },
     paint: { "line-color": "#c9962c", "line-width": 3, "line-dasharray": [2, 2] } });
@@ -762,6 +790,7 @@ function crearMapa() {
   });
   map.on("styleimagemissing", function (e) {
     if (e.id === "rombo-cat" || e.id === "rombo-local") map.addImage(e.id, crearRombo(e.id === "rombo-local" ? COL_LOC : COL_CAT));
+    else if (/^nota-/.test(e.id)) map.addImage(e.id, crearRomboNota(e.id.slice(5)));
   });
   instalarPulsacionLarga();
   map.on("click", function (ev) {
@@ -769,8 +798,9 @@ function crearMapa() {
     cerrarPanelPuntos();
     if (resaltado) ponerResaltado(null);
     var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
-    if (map.getLayer("puntos-circ")) {
-      var fs = map.queryRenderedFeatures(caja, { layers: ["puntos-circ"] });
+    var lp = ["puntos-circ", "puntos-nota"].filter(function (l) { return map.getLayer(l); });
+    if (lp.length) {
+      var fs = map.queryRenderedFeatures(caja, { layers: lp });
       if (fs.length) { cerrarTarjeta(); LC.verRegistroExistente(fs[0].properties.id, "mapa"); return; }
     }
     var ls = ["capas-estaciones", "capas-lineas"].filter(function (l) { return map.getLayer(l); });
@@ -780,8 +810,10 @@ function crearMapa() {
     }
     cerrarTarjeta();
   });
-  map.on("mouseenter", "puntos-circ", function () { map.getCanvas().style.cursor = "pointer"; });
-  map.on("mouseleave", "puntos-circ", function () { map.getCanvas().style.cursor = ""; });
+  ["puntos-circ", "puntos-nota"].forEach(function (cp) {
+    map.on("mouseenter", cp, function () { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", cp, function () { map.getCanvas().style.cursor = ""; });
+  });
   estiloId = null;
   map.once("load", function () { mapaListo = true; alMostrar(); });
 }
@@ -850,11 +882,14 @@ async function alMostrar() {
   if (gps.quiere && gps.watch == null) gpsEncender();
   if (pendienteVer) {
     var pv = pendienteVer; pendienteVer = null;
+    gps.primera = false;   /* v2.43: el primer dato del GPS no debe llevar la vista a la posición actual: se queda en el punto consultado */
     map.easeTo({ center: [pv.lng, pv.lat], zoom: Math.max(map.getZoom(), 16.5), duration: 600 });
-    ponerResaltado(pv);
+    ponerResaltado(pv, !!retorno);   /* con retorno, el anillo se mantiene hasta que se toque el mapa */
   }
+  botonVolverRegistro();
 }
 function alOcultar() {
+  retorno = null; botonVolverRegistro();
   cerrarTarjeta(); cerrarPanelPuntos();
   document.body.classList.remove("vista-mapa");
   if (gps.watch != null) gpsApagar(false);   /* ahorra batería; vuelve a encender al regresar */
@@ -945,7 +980,7 @@ function iniciarNavegacion(dest) {
 function terminarNavegacion() { nav = null; actualizarNavegacion(); refrescarNavMapa(); }
 function destinoEn(pt) {
   var caja = [[pt[0] - 14, pt[1] - 14], [pt[0] + 14, pt[1] + 14]];
-  var capas = ["puntos-circ", "capas-estaciones"].filter(function (l) { return map.getLayer(l); });
+  var capas = ["puntos-circ", "puntos-nota", "capas-estaciones"].filter(function (l) { return map.getLayer(l); });
   if (!capas.length) return null;
   var fs = map.queryRenderedFeatures(caja, { layers: capas });
   if (!fs.length) return null;
@@ -1266,8 +1301,8 @@ function renderAsociado(s) {
   var cont = $("sesion-mapa-asoc"); if (!cont || !s) return;
   cont.textContent = "";
   if (!LISTO) { cont.appendChild(el("p", { class: "campo-ayuda", texto: "🗺️ El mapa no está disponible: faltan archivos de la carpeta de apoyo." })); return; }
-  var campo = el("div", { class: "bloque" });
-  campo.appendChild(el("div", { class: "bloque-titulo", texto: "🗺️ Mapa asociado" }));
+  var campo = el("div", { class: "mp-asoc-caja" });
+  campo.appendChild(el("div", { class: "bloque-subtitulo", texto: "🗺️ Mapa asociado" }));
   var sel = el("select", { id: "mp-asoc-sel" });
   sel.appendChild(el("option", { value: "", texto: "Sin mapa" }));
   var ids = [], vistos = {};
@@ -1315,7 +1350,7 @@ function construirPantalla() {
     '<div class="topbar mp-topbar"><div class="brand"><span class="ic">🗺️</span><div><h2>Mapa</h2><p class="sub" id="mp-sub">Sin mapa instalado</p></div></div></div>' +
     '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
-    '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span></div>' +
+    '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
     '<div id="mp-ctrl">' +
       '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
@@ -1334,6 +1369,7 @@ function construirPantalla() {
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
   $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-guardar").onclick = guardarPuntoAqui;
+  $("mp-volver-reg").onclick = volverAlRegistro;
 }
 
 async function precargarArchivos() {
