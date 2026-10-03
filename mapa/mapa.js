@@ -210,6 +210,10 @@ var capasVis = leerJSON(LS_CAPAS, { sombra: true, curvas: true, anteriores: true
 var online = navigator.onLine !== false;
 var map = null, mapaListo = false, ESTILO_BASE = [], estiloPromesa = null;
 var gps = { watch: null, fix: null, primera: true, quiere: false };
+var rumbo = { activo: false, h: null, ultimo: 0, libre: 0, sensor: false, recibido: false };   /* v2.44: modo "rumbo arriba" (el mapa gira según hacia dónde apuntas) */
+var panelAbiertos = {};   /* v2.44: sesiones desplegadas en "Mis puntos" */
+var grab = { rc: null, watch: null, timer: null, wake: null, sucio: false, ultimoGuardado: 0, ultimoLat: null };   /* v2.45: recorrido que se está grabando */
+var GRAB_ACC_MAX = 50, GRAB_DIST_MIN = 4, GRAB_T_MAX = 30000, GRAB_CORTE_T = 60000, GRAB_CORTE_D = 50;
 var almEst = { usado: null, cuota: null, protegido: null };
 var bateria = "";
 
@@ -378,17 +382,24 @@ function crearRombo(col) {
   var d = g.getImageData(0, 0, 32, 32);
   return { width: 32, height: 32, data: d.data };
 }
-/* v2.43: rombo con la letra N para las Notas generales. Las estaciones del catálogo (rombos lisos morado y naranja) no llevan letra. */
-function crearRomboNota(col) {
-  var c = document.createElement("canvas"); c.width = c.height = 44;
+/* v2.44: iconos con letra, en el color de la sesión: círculo con R (Recolección) o con O (Observación), rombo con N (Nota general) y círculo liso para el resto.
+   Se dibujan a 64 px y se reducen con icon-size, así que quedan nítidos. Las estaciones del catálogo (rombos lisos morado y naranja) no llevan letra. */
+function iconoLetra(col, letra, rombo) {
+  var S = 64, c = document.createElement("canvas"); c.width = c.height = S;
   var g = c.getContext("2d");
-  g.beginPath(); g.moveTo(22, 2); g.lineTo(42, 22); g.lineTo(22, 42); g.lineTo(2, 22); g.closePath();
-  g.fillStyle = col; g.fill(); g.lineWidth = 3; g.strokeStyle = "#ffffff"; g.stroke();
-  g.fillStyle = "#ffffff"; g.font = "bold 22px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillText("N", 22, 24);
-  var d = g.getImageData(0, 0, 44, 44);
-  return { width: 44, height: 44, data: d.data };
+  g.beginPath();
+  if (rombo) { g.moveTo(32, 3); g.lineTo(61, 32); g.lineTo(32, 61); g.lineTo(3, 32); g.closePath(); }
+  else g.arc(32, 32, 28, 0, Math.PI * 2);
+  g.fillStyle = col; g.fill(); g.lineWidth = 5; g.strokeStyle = "#ffffff"; g.stroke();
+  if (letra) {
+    g.fillStyle = "#ffffff"; g.font = "bold " + (rombo ? 30 : 36) + "px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(letra, 32, rombo ? 34 : 35);
+  }
+  var d = g.getImageData(0, 0, S, S);
+  return { width: S, height: S, data: d.data };
 }
+/* tamaños en pantalla (px) = 56 u 58 px del icono por icon-size: círculos de 17 y 22 px (normal y sesión activa), rombo de 16 y 21 px */
+var TAM_CIRC = [0.30, 0.40], TAM_ROMBO = [0.28, 0.36];
 function resumenCuenta(c) {
   var t = [];
   if (c && c.puntos) t.push(c.puntos + (c.puntos === 1 ? " punto" : " puntos"));
@@ -602,17 +613,203 @@ async function eliminarMapa(id) {
 }
 
 /* ---------- puntos de la libreta (registros con coordenadas) ---------- */
+var ROT_TIPO = { coleccion: "Recolección", observacion: "Observación", nota: "Nota general", medicion: "Medición" };
+function numOk(x) { if (x === "" || x === null || x === undefined) return null; var n = parseFloat(x); return isFinite(n) ? n : null; }
+function claseMarca(r) { return r.tipo === "nota" ? "nota" : r.tipo === "coleccion" ? "rec" : r.tipo === "observacion" ? "obs" : "otro"; }
+/* v2.44: la Observación dibuja su punto de inicio y, si hay otro, su punto de término (fin: 1). Ambos llevan el mismo registro y se abren igual. */
 function geoPuntos() {
   var fs = [];
   LC.state.registros.forEach(function (r) {
-    var la = parseFloat(r.lat), lo = parseFloat(r.lon);
-    if (!isFinite(la) || !isFinite(lo) || r.lat === "" || r.lon === "") return;
-    fs.push({ type: "Feature",
-      properties: { id: r.id, codigo: r.codigo || r.notaTitulo || "", sesion: r.sesionId, activa: r.sesionId === LC.state.sesionActivaId ? 1 : 0, color: LC.colorSesion(r.sesionId), nota: r.tipo === "nota" ? 1 : 0 },
-      geometry: { type: "Point", coordinates: [lo, la] } });
+    var la = numOk(r.lat), lo = numOk(r.lon);
+    if (la === null || lo === null) return;
+    var cod = r.codigo || r.notaTitulo || "";
+    var pr = { id: r.id, codigo: cod, etq: cod, sesion: r.sesionId, activa: r.sesionId === LC.state.sesionActivaId ? 1 : 0, color: LC.colorSesion(r.sesionId), nota: r.tipo === "nota" ? 1 : 0, clase: claseMarca(r), fin: 0 };
+    fs.push({ type: "Feature", properties: pr, geometry: { type: "Point", coordinates: [lo, la] } });
+    var fin = r.tipo === "observacion" && r.obsTermino ? { la: numOk(r.obsTermino.lat), lo: numOk(r.obsTermino.lon) } : null;
+    if (fin && fin.la !== null && fin.lo !== null && (Math.abs(fin.la - la) > 1e-6 || Math.abs(fin.lo - lo) > 1e-6)) {
+      var p2 = {}; Object.keys(pr).forEach(function (k) { p2[k] = pr[k]; }); p2.fin = 1; p2.etq = "";
+      fs.push({ type: "Feature", properties: p2, geometry: { type: "Point", coordinates: [fin.lo, fin.la] } });
+    }
   });
   return { type: "FeatureCollection", features: fs };
 }
+function coordsTrack(pts) {
+  var out = [];
+  (pts || []).forEach(function (p) { var la = numOk(p && p.lat), lo = numOk(p && p.lon); if (la !== null && lo !== null) out.push([lo, la]); });
+  return out;
+}
+/* v2.44: tracks de las Observaciones guardadas. Con track real, línea continua. Sin track pero con inicio y término distintos, una línea recta punteada que solo une los dos puntos. */
+function geoTracks() {
+  var fs = [];
+  LC.state.registros.forEach(function (r) {
+    if (r.tipo !== "observacion") return;
+    var pr = { id: r.id, sesion: r.sesionId, activa: r.sesionId === LC.state.sesionActivaId ? 1 : 0, color: LC.colorSesion(r.sesionId), recto: 0 };
+    var cs = coordsTrack(r.trackPuntos);
+    if (cs.length >= 2) { fs.push({ type: "Feature", properties: pr, geometry: { type: "LineString", coordinates: cs } }); return; }
+    var la = numOk(r.lat), lo = numOk(r.lon), fin = r.obsTermino ? { la: numOk(r.obsTermino.lat), lo: numOk(r.obsTermino.lon) } : null;
+    if (la !== null && lo !== null && fin && fin.la !== null && fin.lo !== null && (Math.abs(fin.la - la) > 1e-6 || Math.abs(fin.lo - lo) > 1e-6)) {
+      pr.recto = 1;
+      fs.push({ type: "Feature", properties: pr, geometry: { type: "LineString", coordinates: [[lo, la], [fin.lo, fin.la]] } });
+    }
+  });
+  return { type: "FeatureCollection", features: fs };
+}
+/* v2.44: Observación que se está grabando ahora (borrador con seguimiento activo). Se dibuja su recorrido y su punto de inicio mientras se mira el mapa. */
+function borradorEnVivo() {
+  var d = LC && LC.state && LC.state.draft;
+  if (!d || d._viendo || d.tipo !== "observacion" || !d.obsTrackingActivo || !d.obsInicio) return null;
+  return d;
+}
+function geoVivo() {
+  var fc = { type: "FeatureCollection", features: [] }, d = borradorEnVivo();
+  if (!d) return fc;
+  var col = LC.colorSesion(d.sesionId || LC.state.sesionActivaId), cs = coordsTrack(d.trackPuntos);
+  if (cs.length >= 2) fc.features.push({ type: "Feature", properties: { tipo: "linea", color: col }, geometry: { type: "LineString", coordinates: cs } });
+  var la = numOk(d.obsInicio.lat), lo = numOk(d.obsInicio.lon);
+  if (la !== null && lo !== null) fc.features.push({ type: "Feature", properties: { tipo: "inicio", color: col }, geometry: { type: "Point", coordinates: [lo, la] } });
+  return fc;
+}
+var vivoClave = "", vivoTimer = null;
+function chipRec() {
+  var c = $("mp-chip-rec"); if (!c) return;
+  var d = borradorEnVivo();
+  if (!d) { c.style.display = "none"; return; }
+  var n = (d.trackPuntos || []).length;
+  c.style.display = "";
+  c.className = "mp-chip mp-chip-btn " + (d.obsPausado ? "ambar" : "rojo");
+  c.textContent = (d.obsPausado ? "⏸ Track en pausa · " : "● Grabando track · ") + n + (n === 1 ? " punto" : " puntos");
+}
+function refrescarVivo(forzar) {
+  chipRec();
+  if (!map || !mapaListo || !map.getSource("vivo")) return;
+  var d = borradorEnVivo(), clave = d ? (d.id || "") + ":" + (d.trackPuntos || []).length + ":" + d.obsInicio.horaTs : "";
+  if (!forzar && clave === vivoClave) return;
+  vivoClave = clave; map.getSource("vivo").setData(geoVivo());
+}
+/* ---------- v2.45: recorridos grabados desde el mapa ---------- */
+function listaRecorridos() { return (LC && LC.state && LC.state.recorridos) || []; }
+function segmentosRec(rc) {
+  var segs = [], act = [];
+  (rc.puntos || []).forEach(function (p, i) {
+    var la = numOk(p && p.lat), lo = numOk(p && p.lon); if (la === null || lo === null) return;
+    if (i > 0 && p.corte && act.length) { segs.push(act); act = []; }
+    act.push([lo, la]);
+  });
+  if (act.length) segs.push(act);
+  return segs.filter(function (sg) { return sg.length >= 2; });
+}
+function geoRecorridos() {
+  var fs = [];
+  listaRecorridos().forEach(function (rc) {
+    var sg = segmentosRec(rc); if (!sg.length) return;
+    var pr = { id: rc.id, sesion: rc.sesionId, color: LC.colorSesion(rc.sesionId), grabando: rc.enCurso ? 1 : 0 };
+    fs.push({ type: "Feature", properties: pr, geometry: sg.length === 1 ? { type: "LineString", coordinates: sg[0] } : { type: "MultiLineString", coordinates: sg } });
+  });
+  return { type: "FeatureCollection", features: fs };
+}
+var recClave = "";
+function refrescarRecorridos(forzar) {
+  if (!map || !mapaListo || !map.getSource("recorridos")) return;
+  var clave = listaRecorridos().map(function (rc) { return rc.id + ":" + (rc.puntos || []).length + ":" + (rc.enCurso ? 1 : 0); }).join("|");
+  if (!forzar && clave === recClave) return;
+  recClave = clave; map.getSource("recorridos").setData(geoRecorridos());
+}
+function distRec(a, b) { return distanciaM({ lat: a.lat, lng: a.lon }, { lat: b.lat, lng: b.lon }); }
+function textoDuracion(ms) {
+  var m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60);
+  return h ? h + " h " + (m % 60 < 10 ? "0" : "") + (m % 60) + " min" : m + " min";
+}
+function textoRecorrido(rc) {
+  var fin = rc.finTs || Date.now();
+  return textoDistancia(rc.distanciaM || 0) + " · " + textoDuracion(fin - rc.inicioTs) + (rc.interrumpido ? " · interrumpido" : "");
+}
+function chipGrab() {
+  var c = $("mp-chip-grab"), b = $("mp-grabar");
+  var rc = grab.rc;
+  if (b) { b.textContent = rc ? "⏹ Detener" : "⏺ Grabar"; b.classList.toggle("on", !!rc); b.classList.toggle("grabando", !!rc); }
+  if (!c) return;
+  if (!rc) { c.style.display = "none"; return; }
+  c.style.display = ""; c.className = "mp-chip mp-chip-btn rojo";
+  c.textContent = "● Grabando recorrido · " + textoDistancia(rc.distanciaM || 0) + " · " + textoDuracion(Date.now() - rc.inicioTs);
+}
+function guardarGrab(forzar) {
+  if (!grab.rc) return;
+  if (!forzar && !grab.sucio) return;
+  grab.sucio = false; grab.ultimoGuardado = Date.now();
+  LC.guardarRecorridos();
+}
+async function pedirPantalla() {
+  try {
+    if (!grab.rc || !navigator.wakeLock || grab.wake) return;
+    grab.wake = await navigator.wakeLock.request("screen");
+    grab.wake.addEventListener("release", function () { grab.wake = null; });
+  } catch (e) { grab.wake = null; }
+}
+function soltarPantalla() { try { if (grab.wake) grab.wake.release(); } catch (e) {} grab.wake = null; }
+function grabPunto(p) {
+  var rc = grab.rc; if (!rc) return;
+  var c = p.coords, acc = (typeof c.accuracy === "number" && c.accuracy > 0) ? c.accuracy : 999;
+  if (acc > GRAB_ACC_MAX) return;   /* lecturas muy imprecisas ensucian el track */
+  var ahora = Date.now(), pts = rc.puntos, ult = pts.length ? pts[pts.length - 1] : null;
+  var nuevo = { lat: +c.latitude.toFixed(6), lon: +c.longitude.toFixed(6), horaTs: ahora, accuracy: Math.round(acc) };
+  if (ult) {
+    var d = distRec(ult, nuevo), dt = ahora - ult.horaTs;
+    if (d < GRAB_DIST_MIN && dt < GRAB_T_MAX) return;   /* parado: no se llena de puntos repetidos */
+    if (dt > GRAB_CORTE_T && d > GRAB_CORTE_D) nuevo.corte = true;   /* hubo un hueco (pantalla bloqueada, sin señal): no se une con una recta inventada */
+    else rc.distanciaM = (rc.distanciaM || 0) + d;
+  }
+  pts.push(nuevo); grab.sucio = true;
+  if (ahora - grab.ultimoGuardado > 10000) guardarGrab(true);
+  chipGrab();
+}
+function iniciarGrabacion() {
+  if (grab.rc) return;
+  if (!navigator.geolocation) { LC.toast("Este navegador no tiene GPS disponible"); return; }
+  if (!LC.exigirSesionActiva()) return;
+  var ses = LC.sesionActiva(); if (!ses) return;
+  if (!LC.state.recorridos) LC.state.recorridos = [];
+  var n = 1; LC.state.recorridos.forEach(function (x) { if (x.sesionId === ses.id && (x.n || 0) >= n) n = x.n + 1; });
+  var rc = { id: "rc_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), sesionId: ses.id, n: n, nombre: "Recorrido " + n, inicioTs: Date.now(), finTs: null, enCurso: true, interrumpido: false, distanciaM: 0, puntos: [] };
+  LC.state.recorridos.push(rc); grab.rc = rc; grab.sucio = true; guardarGrab(true);
+  grab.watch = navigator.geolocation.watchPosition(grabPunto, function (e) { anotarError("grabacion", e); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+  grab.timer = setInterval(function () { guardarGrab(false); chipGrab(); refrescarRecorridos(false); }, 5000);
+  if (gps.watch == null) gpsEncender();
+  pedirPantalla();
+  chipGrab(); refrescarRecorridos(true);
+  LC.toast("Grabando recorrido. Mantén la pantalla encendida: si el teléfono se bloquea, la grabación se interrumpe.", 6000);
+}
+function detenerGrabacion(sinPreguntar) {
+  var rc = grab.rc; if (!rc) return;
+  if (!sinPreguntar && !confirm("¿Detener y guardar el " + rc.nombre.toLowerCase() + "? (" + textoRecorrido(rc) + ")")) return;
+  if (grab.watch != null) { try { navigator.geolocation.clearWatch(grab.watch); } catch (e) {} }
+  clearInterval(grab.timer); soltarPantalla();
+  grab.watch = null; grab.timer = null; grab.rc = null;
+  rc.enCurso = false; rc.finTs = Date.now();
+  if ((rc.puntos || []).length < 2) {
+    LC.state.recorridos = LC.state.recorridos.filter(function (x) { return x.id !== rc.id; });
+    LC.guardarRecorridos(); chipGrab(); refrescarRecorridos(true);
+    LC.toast("El recorrido era demasiado corto y no se guardó");
+    return;
+  }
+  LC.guardarRecorridos(); chipGrab(); refrescarRecorridos(true);
+  LC.toast("Recorrido guardado: " + textoRecorrido(rc), 4000);
+}
+function borrarRecorrido(rc) {
+  if (grab.rc && grab.rc.id === rc.id) { LC.toast("Detén la grabación antes de borrar este recorrido"); return false; }
+  if (!confirm("¿Borrar el " + rc.nombre.toLowerCase() + " (" + textoRecorrido(rc) + ")? No se puede deshacer.")) return false;
+  LC.state.recorridos = LC.state.recorridos.filter(function (x) { return x.id !== rc.id; });
+  if (capasVis.regs) delete capasVis.regs[rc.id];
+  LC.guardarRecorridos(); guardarJSON(LS_CAPAS, capasVis); refrescarRecorridos(true);
+  return true;
+}
+document.addEventListener("visibilitychange", function () {
+  if (!grab.rc) return;
+  if (document.visibilityState === "hidden") guardarGrab(true);
+  else { pedirPantalla(); chipGrab(); }
+});
+window.addEventListener("pagehide", function () { guardarGrab(true); });
+
+function refrescarTracks() { if (map && mapaListo && map.getSource("tracks")) { map.getSource("tracks").setData(geoTracks()); aplicarFiltroPuntos(); } }
 var pendienteVer = null, resaltado = null, resaltadoT = null;
 var retorno = null;   /* v2.43: registro desde el que se llegó con "Ver en el mapa": { id, volverA } */
 function geoResaltado() {
@@ -639,7 +836,7 @@ function verPunto(reg) {
   retorno = reg.id ? { id: reg.id, volverA: reg.volverA || null } : null;
   LC.irA("mapa");
 }
-function refrescarPuntos() { if (map && mapaListo && map.getSource("puntos")) { map.getSource("puntos").setData(geoPuntos()); aplicarFiltroPuntos(); } }
+function refrescarPuntos() { if (map && mapaListo && map.getSource("puntos")) { map.getSource("puntos").setData(geoPuntos()); refrescarTracks(); refrescarRecorridos(true); refrescarVivo(true); aplicarFiltroPuntos(); } }
 
 /* ---------- GPS en vivo ---------- */
 function circuloMetros(lng, lat, r) {
@@ -675,6 +872,10 @@ function gpsOk(p) {
   if (map && mapaListo && map.getSource("gps")) map.getSource("gps").setData(geoGps());
   chipGps();
   if (nav) actualizarNavegacion();
+  if (rumbo.activo && map) {
+    if (usarRumboGps()) empujarRumbo(gps.fix.rumbo, 0.7);
+    if (Date.now() - rumbo.libre > 8000) map.jumpTo({ center: [gps.fix.lng, gps.fix.lat] });   /* sigue tu posición, salvo que muevas el mapa a mano (se retoma a los 8 s) */
+  }
   if (gps.primera && !nav) { gps.primera = false; map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 15), duration: 600 }); }
 }
 function gpsError(e) {
@@ -700,17 +901,23 @@ function gpsApagar(olvidar) {
 function rutaBase() { return location.origin + location.pathname.replace(/[^\/]*$/, ""); }
 function vis(c) { return capasVis[c] ? "visible" : "none"; }
 function visSesion(id) { return !(capasVis.sesiones && capasVis.sesiones[id] === false); }
+function visReg(id) { return !(capasVis.regs && capasVis.regs[id] === false); }
+function idsOcultos() { return Object.keys(capasVis.regs || {}).filter(function (k) { return capasVis.regs[k] === false; }); }
 function filtroPuntos() {
   var ids = LC.state.sesiones.filter(function (x) { return visSesion(x.id); }).map(function (x) { return x.id; });
-  return ["in", ["get", "sesion"], ["literal", ids]];
+  var f = ["in", ["get", "sesion"], ["literal", ids]], oc = idsOcultos();
+  return oc.length ? ["all", f, ["!", ["in", ["get", "id"], ["literal", oc]]]] : f;   /* v2.44: registros que se ocultaron uno a uno desde "Mis puntos" */
 }
 function filtroPuntosCirc() { return ["all", filtroPuntos(), ["==", ["get", "nota"], 0]]; }
+function filtroTrack(recto) { return ["all", filtroPuntos(), ["==", ["get", "recto"], recto]]; }
 function filtroPuntosNota() { return ["all", filtroPuntos(), ["==", ["get", "nota"], 1]]; }
 function aplicarFiltroPuntos() {
   if (!map || !mapaListo) return;
+  if (map.getLayer("recorridos-linea")) { map.setFilter("recorridos-casing", filtroPuntos()); map.setFilter("recorridos-linea", filtroPuntos()); }
+  if (map.getLayer("tracks-casing")) { map.setFilter("tracks-casing", filtroTrack(0)); map.setFilter("tracks-linea", filtroTrack(0)); map.setFilter("tracks-recto", filtroTrack(1)); }
   if (map.getLayer("puntos-circ")) map.setFilter("puntos-circ", filtroPuntosCirc());
   if (map.getLayer("puntos-nota")) map.setFilter("puntos-nota", filtroPuntosNota());
-  if (map.getLayer("puntos-texto")) map.setFilter("puntos-texto", filtroPuntos());
+  if (map.getLayer("puntos-texto")) map.setFilter("puntos-texto", ["all", filtroPuntos(), ["!=", ["get", "etq"], ""]]);
 }
 
 function construirEstilo(m) {
@@ -754,13 +961,29 @@ function construirEstilo(m) {
   estilo.sources.gps = { type: "geojson", data: geoGps() };
   estilo.sources.resaltado = { type: "geojson", data: geoResaltado() };
   estilo.sources.nav = { type: "geojson", data: geoNav() };
-  capas.push({ id: "puntos-circ", type: "circle", source: "puntos", filter: filtroPuntosCirc(),
-    paint: { "circle-radius": ["case", ["==", ["get", "activa"], 1], 10, 6], "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
-  /* v2.43: las Notas generales (puntos de referencia o eventos) se dibujan como un rombo con la letra N, en el color de su sesión */
+  estilo.sources.tracks = { type: "geojson", data: geoTracks() };
+  estilo.sources.vivo = { type: "geojson", data: geoVivo() };
+  estilo.sources.recorridos = { type: "geojson", data: geoRecorridos() };
+  /* v2.45: recorridos grabados desde el mapa: línea larga discontinua en el color de su sesión (roja mientras se graba), debajo de los tracks de Observación */
+  capas.push({ id: "recorridos-casing", type: "line", source: "recorridos", filter: filtroPuntos(), layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#ffffff", "line-width": 5.5, "line-opacity": 0.75 } });
+  capas.push({ id: "recorridos-linea", type: "line", source: "recorridos", filter: filtroPuntos(), layout: { "line-cap": "butt", "line-join": "round" }, paint: { "line-color": ["case", ["==", ["get", "grabando"], 1], "#b5473a", ["get", "color"]], "line-width": 3, "line-dasharray": [5, 1.5] } });
+  /* v2.44: tracks de Observación (debajo de los puntos). Con borde blanco para que se lean sobre el relieve. */
+  capas.push({ id: "tracks-casing", type: "line", source: "tracks", filter: filtroTrack(0), layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#ffffff", "line-width": 6, "line-opacity": 0.8 } });
+  capas.push({ id: "tracks-linea", type: "line", source: "tracks", filter: filtroTrack(0), layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3 } });
+  capas.push({ id: "tracks-recto", type: "line", source: "tracks", filter: filtroTrack(1), layout: { "line-cap": "butt" }, paint: { "line-color": ["get", "color"], "line-width": 2.5, "line-dasharray": [2, 2] } });
+  capas.push({ id: "vivo-casing", type: "line", source: "vivo", filter: ["==", ["get", "tipo"], "linea"], layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#ffffff", "line-width": 7, "line-opacity": 0.85 } });
+  capas.push({ id: "vivo-linea", type: "line", source: "vivo", filter: ["==", ["get", "tipo"], "linea"], layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 4 } });
+  capas.push({ id: "vivo-inicio", type: "symbol", source: "vivo", filter: ["==", ["get", "tipo"], "inicio"],
+    layout: { "icon-image": ["concat", "obs-", ["get", "color"]], "icon-size": TAM_CIRC[1], "icon-allow-overlap": true, "icon-ignore-placement": true } });
+  /* v2.44: Recolección = círculo con R, Observación = círculo con O (inicio y término), otros = círculo liso. Se mantiene el id "puntos-circ". */
+  capas.push({ id: "puntos-circ", type: "symbol", source: "puntos", filter: filtroPuntosCirc(),
+    layout: { "icon-image": ["concat", ["match", ["get", "clase"], "rec", "rec-", "obs", "obs-", "pt-"], ["get", "color"]],
+      "icon-size": ["case", ["==", ["get", "activa"], 1], TAM_CIRC[1], TAM_CIRC[0]], "icon-allow-overlap": true, "icon-ignore-placement": true } });
+  /* v2.43/v2.44: las Notas generales (puntos de referencia o eventos) se dibujan como un rombo con la letra N, en el color de su sesión, de tamaño parecido al de los círculos */
   capas.push({ id: "puntos-nota", type: "symbol", source: "puntos", filter: filtroPuntosNota(),
-    layout: { "icon-image": ["concat", "nota-", ["get", "color"]], "icon-size": ["case", ["==", ["get", "activa"], 1], 0.95, 0.75], "icon-allow-overlap": true, "icon-ignore-placement": true } });
-  capas.push({ id: "puntos-texto", type: "symbol", source: "puntos", filter: filtroPuntos(),
-    layout: { "text-field": ["get", "codigo"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": ["case", ["==", ["get", "nota"], 1], ["literal", [0, 2.2]], ["literal", [0, 1.5]]], "text-anchor": "top", "text-allow-overlap": true },
+    layout: { "icon-image": ["concat", "nota-", ["get", "color"]], "icon-size": ["case", ["==", ["get", "activa"], 1], TAM_ROMBO[1], TAM_ROMBO[0]], "icon-allow-overlap": true, "icon-ignore-placement": true } });
+  capas.push({ id: "puntos-texto", type: "symbol", source: "puntos", filter: ["all", filtroPuntos(), ["!=", ["get", "etq"], ""]],
+    layout: { "text-field": ["get", "etq"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": ["case", ["==", ["get", "nota"], 1], ["literal", [0, 1.4]], ["literal", [0, 1.35]]], "text-anchor": "top", "text-allow-overlap": true },
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
   capas.push({ id: "nav-linea", type: "line", source: "nav", filter: ["==", ["get", "tipo"], "linea"], layout: { "line-cap": "round" },
     paint: { "line-color": "#c9962c", "line-width": 3, "line-dasharray": [2, 2] } });
@@ -780,7 +1003,10 @@ function crearMapa() {
     container: "mp-mapa", style: construirEstilo(null), center: [-72.59, -38.66], zoom: 5, maxZoom: 19,
     attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false, fadeDuration: 0
   });
-  map.touchZoomRotate.disableRotation();
+  map.touchZoomRotate.enableRotation();   /* v2.44: giro libre con dos dedos (sin inclinación) */
+  map.on("rotate", actualizarNorte);
+  map.on("rotatestart", function (e) { if (e && e.originalEvent && rumbo.activo) { apagarRumbo(false); LC.toast("Giro manual: rumbo arriba apagado"); } });
+  map.on("dragstart", function (e) { if (e && e.originalEvent) rumbo.libre = Date.now(); });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
   map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 100 }), "bottom-right");
   map.on("error", function (ev) {
@@ -790,7 +1016,10 @@ function crearMapa() {
   });
   map.on("styleimagemissing", function (e) {
     if (e.id === "rombo-cat" || e.id === "rombo-local") map.addImage(e.id, crearRombo(e.id === "rombo-local" ? COL_LOC : COL_CAT));
-    else if (/^nota-/.test(e.id)) map.addImage(e.id, crearRomboNota(e.id.slice(5)));
+    else if (/^nota-/.test(e.id)) map.addImage(e.id, iconoLetra(e.id.slice(5), "N", true));
+    else if (/^rec-/.test(e.id)) map.addImage(e.id, iconoLetra(e.id.slice(4), "R", false));
+    else if (/^obs-/.test(e.id)) map.addImage(e.id, iconoLetra(e.id.slice(4), "O", false));
+    else if (/^pt-/.test(e.id)) map.addImage(e.id, iconoLetra(e.id.slice(3), "", false));
   });
   instalarPulsacionLarga();
   map.on("click", function (ev) {
@@ -802,6 +1031,18 @@ function crearMapa() {
     if (lp.length) {
       var fs = map.queryRenderedFeatures(caja, { layers: lp });
       if (fs.length) { cerrarTarjeta(); LC.verRegistroExistente(fs[0].properties.id, "mapa"); return; }
+    }
+    var lr = ["recorridos-linea"].filter(function (l) { return map.getLayer(l); });
+    if (lr.length) {
+      var rs = map.queryRenderedFeatures(caja, { layers: lr });
+      var rcSel = rs.length ? listaRecorridos().filter(function (x) { return x.id === rs[0].properties.id; })[0] : null;
+      if (rcSel) {
+        var t = $("mp-tarjeta"), ses = LC.sesionPorId(rcSel.sesionId);
+        t.textContent = ""; t.appendChild(el("b", { texto: rcSel.nombre || "Recorrido" }));
+        t.appendChild(el("div", { class: "mp-suave", texto: textoRecorrido(rcSel) + " · " + (rcSel.puntos || []).length + " puntos" }));
+        if (ses) t.appendChild(el("div", { class: "mp-suave", texto: "Sesión: " + LC.nombreSesionMostrar(ses) }));
+        t.style.display = "block"; return;
+      }
     }
     var ls = ["capas-estaciones", "capas-lineas"].filter(function (l) { return map.getLayer(l); });
     if (ls.length) {
@@ -877,6 +1118,8 @@ async function alMostrar() {
     delete capasVis.anteriores; guardarJSON(LS_CAPAS, capasVis);
   }
   refrescarPuntos();
+  clearInterval(vivoTimer); vivoTimer = setInterval(function () { refrescarVivo(false); refrescarRecorridos(false); chipGrab(); }, 2000);
+  chipGrab(); actualizarNorte();
   actualizarAviso(); chipMapa(); chipGps();
   if (nav) actualizarNavegacion();
   if (gps.quiere && gps.watch == null) gpsEncender();
@@ -889,10 +1132,78 @@ async function alMostrar() {
   botonVolverRegistro();
 }
 function alOcultar() {
+  clearInterval(vivoTimer); vivoTimer = null; apagarRumbo(false);
   retorno = null; botonVolverRegistro();
   cerrarTarjeta(); cerrarPanelPuntos();
   document.body.classList.remove("vista-mapa");
   if (gps.watch != null) gpsApagar(false);   /* ahorra batería; vuelve a encender al regresar */
+}
+
+/* ---------- v2.44: giro del mapa y modo "rumbo arriba" ---------- */
+/* Rumbo (0 a 360, desde el norte) del teléfono a partir de alpha, beta y gamma. Usa el eje que apunta más cerca de la horizontal:
+   la parte superior del teléfono si está casi plano, o la parte trasera si está en vertical. */
+function rumboDispositivo(alpha, beta, gamma) {
+  var r = Math.PI / 180, a = alpha * r, b = (beta || 0) * r, g = (gamma || 0) * r;
+  var ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), cg = Math.cos(g), sg = Math.sin(g);
+  var arriba = [-sa * cb, ca * cb];                                              /* este, norte del eje superior */
+  var atras = [-(ca * sg + sa * sb * cg), -(sa * sg - ca * sb * cg)];           /* este, norte del eje trasero (-z) */
+  var v = Math.hypot(arriba[0], arriba[1]) >= Math.hypot(atras[0], atras[1]) ? arriba : atras;
+  return (Math.atan2(v[0], v[1]) / r + 360) % 360;
+}
+function usarRumboGps() {
+  var f = gps.fix;
+  return !!(f && f.rumbo != null && f.vel != null && f.vel >= 1.2 && Date.now() - f.t < 4000);   /* caminando, el rumbo del GPS es más estable que la brújula */
+}
+function empujarRumbo(h, k) {
+  var g = k || 0.3;
+  rumbo.h = rumbo.h === null ? h : (rumbo.h + (((h - rumbo.h + 540) % 360) - 180) * g + 360) % 360;
+  var ahora = Date.now(); if (ahora - rumbo.ultimo < 120 || !map || !mapaListo) return;
+  var dif = ((rumbo.h - map.getBearing() + 540) % 360) - 180;
+  if (Math.abs(dif) < 1.5) return;
+  rumbo.ultimo = ahora; map.jumpTo({ bearing: rumbo.h });
+}
+function alOrientacion(ev) {
+  if (!rumbo.activo) return;
+  var h = null;
+  if (typeof ev.webkitCompassHeading === "number" && isFinite(ev.webkitCompassHeading)) h = ev.webkitCompassHeading;           /* iPhone */
+  else if ((ev.type === "deviceorientationabsolute" || ev.absolute === true) && ev.alpha != null) h = rumboDispositivo(ev.alpha, ev.beta, ev.gamma);   /* Android */
+  if (h === null || !isFinite(h)) return;
+  rumbo.recibido = true;
+  if (usarRumboGps()) return;
+  empujarRumbo(h);
+}
+async function encenderRumbo() {
+  if (rumbo.activo) return;
+  var DO = window.DeviceOrientationEvent;
+  if (DO && typeof DO.requestPermission === "function") {   /* iPhone: el permiso se pide al tocar el botón */
+    try { rumbo.sensor = (await DO.requestPermission()) === "granted"; } catch (e) { rumbo.sensor = false; anotarError("brujula", e); }
+    if (!rumbo.sensor) LC.toast("Sin permiso para la brújula. Se usará el rumbo del GPS al caminar.", 5000);
+  } else rumbo.sensor = true;
+  rumbo.activo = true; rumbo.h = null; rumbo.libre = 0; rumbo.recibido = false;
+  if (rumbo.sensor) {
+    window.addEventListener("deviceorientationabsolute", alOrientacion, true);   /* Android (Chrome); en otros navegadores el evento simplemente no llega */
+    window.addEventListener("deviceorientation", alOrientacion, true);          /* iPhone (webkitCompassHeading) y navegadores con orientación absoluta */
+  }
+  var b = $("mp-rumbo"); if (b) b.classList.add("on");
+  if (gps.watch == null) gpsEncender();
+  LC.toast("Rumbo arriba: el mapa sigue hacia donde apuntas y a tu posición", 3500);
+  setTimeout(function () {
+    if (rumbo.activo && !rumbo.recibido && !usarRumboGps()) LC.toast("El teléfono no entrega la brújula. El mapa girará con el rumbo del GPS cuando camines.", 5000);
+  }, 3000);
+}
+function apagarRumbo(alNorte) {
+  var estaba = rumbo.activo;
+  window.removeEventListener("deviceorientationabsolute", alOrientacion, true);
+  window.removeEventListener("deviceorientation", alOrientacion, true);
+  rumbo.activo = false; rumbo.h = null; rumbo.sensor = false; rumbo.recibido = false;
+  var b = $("mp-rumbo"); if (b) b.classList.remove("on");
+  if (estaba && alNorte && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });
+}
+function actualizarNorte() {
+  var b = $("mp-norte"); if (!b || !map) return;
+  var g = map.getBearing();
+  b.style.display = Math.abs(g) >= 1 ? "" : "none";
+  var flecha = $("mp-norte-g"); if (flecha) flecha.setAttribute("transform", "rotate(" + (-g).toFixed(1) + ")");
 }
 
 /* ---------- navegar hasta un punto (pulsación larga): brújula, distancia y tiempo estimado ---------- */
@@ -934,6 +1245,8 @@ function dibujarRosa() {
 }
 function actualizarNavegacion() {
   var cuadro = $("mp-nav"); if (!cuadro) return;
+  var br = $("mp-rumbo"); if (br) br.style.display = nav ? "" : "none";
+  if (!nav && rumbo.activo) apagarRumbo(true);   /* al terminar la navegación el mapa vuelve al norte */
   if (!nav) { cuadro.style.display = "none"; return; }
   cuadro.style.display = "block";
   $("mp-nav-nombre").textContent = "Hacia " + nav.destino.nombre;
@@ -1011,13 +1324,26 @@ function instalarPulsacionLarga() {
 /* ---------- lista flotante "Mis puntos": todos los conjuntos de puntos disponibles ---------- */
 function conjuntosPuntos() {
   var porSesion = {}, out = [];
-  geoPuntos().features.forEach(function (f) { var k = f.properties.sesion; (porSesion[k] = porSesion[k] || []).push(f.geometry.coordinates); });
+  LC.state.registros.forEach(function (r) {
+    var la = numOk(r.lat), lo = numOk(r.lon); if (la === null || lo === null) return;
+    var g = porSesion[r.sesionId] = porSesion[r.sesionId] || { coords: [], regs: [] };
+    g.coords.push([lo, la]);
+    if (r.tipo === "observacion" && r.obsTermino) { var l2 = numOk(r.obsTermino.lat), o2 = numOk(r.obsTermino.lon); if (l2 !== null && o2 !== null) g.coords.push([o2, l2]); }
+    g.regs.push({ id: r.id, codigo: r.codigo || r.notaTitulo || "(sin código)", clase: claseMarca(r), tipo: ROT_TIPO[r.tipo] || "Registro", fecha: (r.fecha || "") + (r.hora ? " " + r.hora : ""), lng: lo, lat: la });
+  });
+  listaRecorridos().forEach(function (rc) {   /* v2.45: los recorridos grabados se listan dentro de su sesión */
+    var sg = segmentosRec(rc); if (!sg.length) return;
+    var g = porSesion[rc.sesionId] = porSesion[rc.sesionId] || { coords: [], regs: [] };
+    sg.forEach(function (c) { c.forEach(function (x) { g.coords.push(x); }); });
+    g.regs.push({ id: rc.id, rec: rc, codigo: rc.nombre || "Recorrido", clase: "trk", tipo: "Recorrido", fecha: textoRecorrido(rc), pts: sg });
+  });
   LC.state.sesiones.slice().sort(function (a, b) {
     if (a.id === LC.state.sesionActivaId) return -1; if (b.id === LC.state.sesionActivaId) return 1;
     return (b.creada || "").localeCompare(a.creada || "");
   }).forEach(function (x) {
     if (!porSesion[x.id]) return;
-    out.push({ tipo: "sesion", clave: x.id, nombre: LC.nombreSesionMostrar(x), activa: x.id === LC.state.sesionActivaId, color: LC.colorSesion(x.id), n: porSesion[x.id].length, coords: porSesion[x.id] });
+    var rg = porSesion[x.id].regs, nRec = rg.filter(function (r) { return r.clase === "trk"; }).length;
+    out.push({ tipo: "sesion", clave: x.id, nombre: LC.nombreSesionMostrar(x), activa: x.id === LC.state.sesionActivaId, color: LC.colorSesion(x.id), n: rg.length - nRec, nRec: nRec, coords: porSesion[x.id].coords, regs: rg });
   });
   capasActuales.forEach(function (c) {
     out.push({ tipo: "capa", clave: c.clave, nombre: c.nombre, origen: c.origen, resumen: resumenCuenta(c.datos.cuenta), bbox: c.datos.bbox });
@@ -1031,8 +1357,47 @@ function encuadrarConjunto(c) {
   map.fitBounds(b, { padding: 70, maxZoom: 17, duration: 500 });
 }
 function cerrarPanelPuntos() { var pn = $("mp-panel-puntos"); if (pn) pn.style.display = "none"; var b = $("mp-puntos"); if (b) b.classList.remove("on"); }
+function textoSubSesion(c) {
+  var ocultos = c.regs.filter(function (r) { return !visReg(r.id); }).length;
+  return (c.n || !c.nRec ? c.n + (c.n === 1 ? " punto" : " puntos") : "") + (c.nRec ? (c.n ? " · " : "") + c.nRec + (c.nRec === 1 ? " recorrido" : " recorridos") : "") + (c.activa ? " · activa" : "") + (ocultos ? " · " + ocultos + (ocultos === 1 ? " oculto" : " ocultos") : "");
+}
+function verRegistroEnMapa(r) {
+  if (!map || !mapaListo) return;
+  if (r.clase === "trk") {
+    var b = new maplibregl.LngLatBounds();
+    r.pts.forEach(function (sg) { sg.forEach(function (x) { b.extend(x); }); });
+    map.fitBounds(b, { padding: 70, maxZoom: 17, duration: 500 }); cerrarPanelPuntos(); return;
+  }
+  map.easeTo({ center: [r.lng, r.lat], zoom: Math.max(map.getZoom(), 16.5), duration: 500 });
+  ponerResaltado({ lng: r.lng, lat: r.lat }, false);
+  cerrarPanelPuntos();
+}
+function filaRegistro(c, r) {
+  var cb = el("input", { type: "checkbox" }); cb.checked = visReg(r.id);
+  var fila = el("div", { class: "mp-panel-reg" + (cb.checked ? "" : " off") });
+  cb.onchange = function () {
+    if (!capasVis.regs) capasVis.regs = {};
+    if (cb.checked) delete capasVis.regs[r.id]; else capasVis.regs[r.id] = false;
+    fila.classList.toggle("off", !cb.checked);
+    guardarJSON(LS_CAPAS, capasVis); aplicarFiltroPuntos();
+    var sub = document.querySelector('[data-sub-sesion="' + c.clave + '"]'); if (sub) sub.textContent = textoSubSesion(c);
+  };
+  var letra = el("span", { class: "mp-letra" + (r.clase === "nota" ? " rombo" : r.clase === "trk" ? " linea" : ""), style: "background:" + c.color, texto: r.clase === "rec" ? "R" : r.clase === "obs" ? "O" : r.clase === "nota" ? "N" : r.clase === "trk" ? "━" : "" });
+  var ver = el("button", { type: "button", class: "mp-panel-ver", onclick: function () { verRegistroEnMapa(r); } }, [el("b", { texto: r.codigo }), el("span", { class: "mp-suave", texto: r.tipo + (r.fecha ? " · " + r.fecha : "") })]);
+  fila.appendChild(cb); fila.appendChild(letra); fila.appendChild(ver);
+  if (r.clase === "trk") {   /* v2.45: un recorrido grabado se puede borrar desde aquí */
+    fila.appendChild(el("button", { type: "button", class: "mp-exp", "aria-label": "Borrar el recorrido", texto: "🗑", onclick: function () { if (borrarRecorrido(r.rec)) renderPanelPuntos(); } }));
+  }
+  return fila;
+}
 function renderPanelPuntos() {
   var pn = $("mp-panel-puntos"); if (!pn) return;
+  var vivos = {}; LC.state.registros.forEach(function (r) { vivos[r.id] = 1; });
+  if (capasVis.regs) {   /* limpia las marcas de registros que ya no existen */
+    var cambio = false;
+    Object.keys(capasVis.regs).forEach(function (k) { if (!vivos[k]) { delete capasVis.regs[k]; cambio = true; } });
+    if (cambio) { guardarJSON(LS_CAPAS, capasVis); aplicarFiltroPuntos(); }
+  }
   pn.textContent = "";
   var cab = el("div", { class: "mp-panel-cab" }, [el("b", { texto: "Puntos y capas" }), el("button", { type: "button", class: "mp-panel-x", texto: "✕", "aria-label": "Cerrar", onclick: cerrarPanelPuntos })]);
   pn.appendChild(cab);
@@ -1046,18 +1411,35 @@ function renderPanelPuntos() {
     items.forEach(function (c) {
       var inp = el("input", { type: "checkbox" });
       inp.checked = c.tipo === "sesion" ? visSesion(c.clave) : visCapa(c.clave);
+      var regs = null;
       inp.onchange = function () {
-        if (c.tipo === "sesion") { if (!capasVis.sesiones) capasVis.sesiones = {}; capasVis.sesiones[c.clave] = inp.checked; aplicarFiltroPuntos(); }
-        else { if (!capasVis.capas) capasVis.capas = {}; capasVis.capas[c.clave] = inp.checked; aplicarFiltrosCapas(); }
+        if (c.tipo === "sesion") {
+          if (!capasVis.sesiones) capasVis.sesiones = {}; capasVis.sesiones[c.clave] = inp.checked; aplicarFiltroPuntos();
+          if (regs) regs.classList.toggle("sesion-oculta", !inp.checked);
+        } else { if (!capasVis.capas) capasVis.capas = {}; capasVis.capas[c.clave] = inp.checked; aplicarFiltrosCapas(); }
         guardarJSON(LS_CAPAS, capasVis);
       };
       var punto = c.tipo === "sesion" ? el("span", { class: "mp-punto", style: "background:" + c.color }) : el("span", { class: "mp-punto mp-punto-capa", style: "background:" + (c.origen === "local" ? COL_LOC : COL_CAT) });
-      var sub = c.tipo === "sesion" ? c.n + (c.n === 1 ? " punto" : " puntos") + (c.activa ? " · activa" : "") : c.resumen + (c.origen === "local" ? " · importada" : " · catálogo");
-      var ver = el("button", { type: "button", class: "mp-panel-ver", onclick: function () { encuadrarConjunto(c); cerrarPanelPuntos(); } }, [el("b", { texto: c.nombre }), el("span", { class: "mp-suave", texto: sub })]);
-      pn.appendChild(el("div", { class: "mp-panel-fila" }, [inp, punto, ver]));
+      var subEl = el("span", { class: "mp-suave", texto: c.tipo === "sesion" ? textoSubSesion(c) : c.resumen + (c.origen === "local" ? " · importada" : " · catálogo") });
+      if (c.tipo === "sesion") subEl.setAttribute("data-sub-sesion", c.clave);
+      var ver = el("button", { type: "button", class: "mp-panel-ver", onclick: function () { encuadrarConjunto(c); cerrarPanelPuntos(); } }, [el("b", { texto: c.nombre }), subEl]);
+      var fila = el("div", { class: "mp-panel-fila" }, [inp, punto, ver]);
+      if (c.tipo === "sesion") {
+        var abierta = !!panelAbiertos[c.clave];
+        var exp = el("button", { type: "button", class: "mp-exp", "aria-label": "Ver los registros de la sesión", texto: abierta ? "▾" : "▸" });
+        regs = el("div", { class: "mp-panel-regs" + (inp.checked ? "" : " sesion-oculta") });
+        regs.style.display = abierta ? "" : "none";
+        c.regs.forEach(function (r) { regs.appendChild(filaRegistro(c, r)); });
+        exp.onclick = function () {
+          panelAbiertos[c.clave] = !panelAbiertos[c.clave];
+          regs.style.display = panelAbiertos[c.clave] ? "" : "none"; exp.textContent = panelAbiertos[c.clave] ? "▾" : "▸";
+        };
+        fila.appendChild(exp);
+        pn.appendChild(fila); pn.appendChild(regs);
+      } else pn.appendChild(fila);
     });
   });
-  if (lista.length) pn.appendChild(el("p", { class: "mp-suave", style: "margin:8px 0 0;", texto: "La casilla muestra u oculta el conjunto. Toca el nombre para acercar el mapa a él." }));
+  if (lista.length) pn.appendChild(el("p", { class: "mp-suave", style: "margin:8px 0 0;", texto: "La casilla muestra u oculta el conjunto. Toca ▸ para ver sus registros y ocultar alguno. Toca el nombre para acercar el mapa." }));
 }
 function alternarPanelPuntos() {
   var pn = $("mp-panel-puntos"); if (!pn) return;
@@ -1350,11 +1732,14 @@ function construirPantalla() {
     '<div class="topbar mp-topbar"><div class="brand"><span class="ic">🗺️</span><div><h2>Mapa</h2><p class="sub" id="mp-sub">Sin mapa instalado</p></div></div></div>' +
     '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
-    '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
+    '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
     '<div id="mp-ctrl">' +
       '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
+      '<button type="button" class="mp-btn chico" id="mp-grabar">⏺ Grabar</button>' +
       '<button type="button" class="mp-btn mp-centrar" id="mp-centrar" aria-label="Centrar en mi ubicación" style="display:none">◎</button>' +
+      '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
+      '<button type="button" class="mp-btn chico" id="mp-rumbo" style="display:none">Rumbo arriba</button>' +
     '</div>' +
     '<div id="mp-aviso"></div>' +
     '<div id="mp-panel-puntos"></div>' +
@@ -1370,6 +1755,11 @@ function construirPantalla() {
   $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-guardar").onclick = guardarPuntoAqui;
   $("mp-volver-reg").onclick = volverAlRegistro;
+  $("mp-grabar").onclick = function () { if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
+  $("mp-chip-grab").onclick = function () { detenerGrabacion(false); };
+  $("mp-chip-rec").onclick = function () { LC.abrirRegistro(); };   /* vuelve a la Observación que se está grabando */
+  $("mp-norte").onclick = function () { if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
+  $("mp-rumbo").onclick = function () { if (rumbo.activo) apagarRumbo(true); else encenderRumbo(); };
 }
 
 async function precargarArchivos() {
@@ -1382,6 +1772,8 @@ async function precargarArchivos() {
   } catch (e) { anotarError("precarga", e); }
 }
 function alDesactivar() {
+  if (grab.rc) detenerGrabacion(true);   /* al apagar el mapa se guarda lo grabado */
+  clearInterval(vivoTimer); vivoTimer = null; apagarRumbo(false);
   nav = null; gpsApagar(true); cerrarGestor(); cerrarPanelPuntos();
   document.body.classList.remove("vista-mapa");
 }
@@ -1407,6 +1799,6 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto,
   /* para pruebas */
-  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloId: estiloId, actualId: actualId, gps: gps }; }
+  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloId: estiloId, actualId: actualId, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab }; }
 };
 })();

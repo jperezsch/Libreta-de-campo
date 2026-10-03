@@ -86,3 +86,19 @@
 /* ---- v2.43: Mapa asociado dentro del desplegable "Más opciones" de la pestaña Sesión ---- */
 .mp-asoc-caja{padding:0 2px 6px;}
 #mp-volver-reg{box-shadow:var(--sombra);}
+
+/* ---- v2.44: registros dentro de "Mis puntos", botón de norte y de rumbo arriba, indicador de grabación ---- */
+.mp-exp{background:none; border:0; color:var(--texto-sec); font-size:1.05rem; min-width:40px; min-height:44px; cursor:pointer; font-family:inherit; flex:0 0 auto;}
+.mp-panel-regs{margin:0 0 4px 14px; padding-left:8px; border-left:2px solid var(--borde);}
+.mp-panel-regs.sesion-oculta{opacity:.5;}
+.mp-panel-reg{display:flex; align-items:center; gap:8px; min-height:44px; border-top:1px solid var(--borde);}
+.mp-panel-reg:first-child{border-top:0;}
+.mp-panel-reg input{width:20px; height:20px; flex:0 0 auto; accent-color:var(--verde);}
+.mp-panel-reg.off .mp-panel-ver{opacity:.55;}
+.mp-letra{width:19px; height:19px; border-radius:50%; flex:0 0 auto; color:#fff; font-size:.62rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 0 0 1.5px #fff, 0 0 0 2.5px var(--borde);}
+.mp-letra.rombo{border-radius:0; box-shadow:none; clip-path:polygon(50% 0, 100% 50%, 50% 100%, 0 50%); width:21px; height:21px;}
+#mp-chip-rec{pointer-events:auto;}
+
+/* ---- v2.45: grabación de recorridos ---- */
+.mp-btn.grabando{background:var(--rojo); border-color:var(--rojo); color:#fff;}
+.mp-letra.linea{border-radius:4px; box-shadow:0 0 0 1.5px #fff, 0 0 0 2.5px var(--borde); font-size:.7rem;}
