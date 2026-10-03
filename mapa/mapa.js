@@ -618,7 +618,7 @@ function verPunto(reg) {
   pendienteVer = { lng: reg.lon, lat: reg.lat };
   LC.irA("mapa");
 }
-function refrescarPuntos() { if (map && mapaListo && map.getSource("puntos")) map.getSource("puntos").setData(geoPuntos()); }
+function refrescarPuntos() { if (map && mapaListo && map.getSource("puntos")) { map.getSource("puntos").setData(geoPuntos()); aplicarFiltroPuntos(); } }
 
 /* ---------- GPS en vivo ---------- */
 function circuloMetros(lng, lat, r) {
@@ -637,22 +637,27 @@ function geoGps() {
 }
 function chipGps() {
   var c = $("mp-chip-gps"); if (!c) return;
-  c.className = "mp-chip";
-  if (gps.watch == null) { c.textContent = "GPS apagado"; return; }
-  if (!gps.fix) { c.textContent = "GPS buscando…"; return; }
-  var a = Math.round(gps.fix.acc);
-  c.textContent = "GPS ±" + a + " m";
-  c.className = "mp-chip " + (a <= 10 ? "ok" : a <= 25 ? "ambar" : "rojo");
+  c.className = "mp-chip mp-chip-btn";
+  if (gps.watch == null) c.textContent = "GPS activar";
+  else if (!gps.fix) c.textContent = "GPS buscando…";
+  else {
+    var a = Math.round(gps.fix.acc);
+    c.textContent = "GPS ±" + a + " m";
+    c.className = "mp-chip mp-chip-btn " + (a <= 10 ? "ok" : a <= 25 ? "ambar" : "rojo");
+  }
+  var cen = $("mp-centrar"); if (cen) cen.style.display = (gps.watch != null && gps.fix) ? "" : "none";
 }
 function gpsOk(p) {
-  gps.fix = { lng: p.coords.longitude, lat: p.coords.latitude, acc: p.coords.accuracy, t: Date.now() };
+  gps.fix = { lng: p.coords.longitude, lat: p.coords.latitude, acc: p.coords.accuracy, t: Date.now(), vel: (p.coords.speed != null && isFinite(p.coords.speed)) ? p.coords.speed : null, rumbo: (p.coords.heading != null && isFinite(p.coords.heading)) ? p.coords.heading : null };
+  if (nav) nav.hist.push({ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat });
   metricas.gpsUltimo = { acc: Math.round(p.coords.accuracy), hora: fechaHM() };
   if (map && mapaListo && map.getSource("gps")) map.getSource("gps").setData(geoGps());
   chipGps();
-  if (gps.primera) { gps.primera = false; map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 15), duration: 600 }); }
+  if (nav) actualizarNavegacion();
+  if (gps.primera && !nav) { gps.primera = false; map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 15), duration: 600 }); }
 }
 function gpsError(e) {
-  var c = $("mp-chip-gps"); if (c) { c.className = "mp-chip rojo"; c.textContent = e.code === 1 ? "GPS sin permiso" : "GPS sin señal"; }
+  var c = $("mp-chip-gps"); if (c) { c.className = "mp-chip mp-chip-btn rojo"; c.textContent = e.code === 1 ? "GPS sin permiso" : "GPS sin señal"; }
   anotarError("gps", e);
 }
 function gpsEncender() {
@@ -673,7 +678,15 @@ function gpsApagar(olvidar) {
 /* ---------- estilo y mapa ---------- */
 function rutaBase() { return location.origin + location.pathname.replace(/[^\/]*$/, ""); }
 function vis(c) { return capasVis[c] ? "visible" : "none"; }
-function filtroPuntos() { return capasVis.anteriores ? ["has", "id"] : ["==", ["get", "activa"], 1]; }
+function visSesion(id) { return !(capasVis.sesiones && capasVis.sesiones[id] === false); }
+function filtroPuntos() {
+  var ids = LC.state.sesiones.filter(function (x) { return visSesion(x.id); }).map(function (x) { return x.id; });
+  return ["in", ["get", "sesion"], ["literal", ids]];
+}
+function aplicarFiltroPuntos() {
+  if (!map || !mapaListo) return;
+  ["puntos-circ", "puntos-texto"].forEach(function (id) { if (map.getLayer(id)) map.setFilter(id, filtroPuntos()); });
+}
 
 function construirEstilo(m) {
   var estilo = { version: 8, glyphs: rutaBase() + RUTA_MAPA + "fuentes/{fontstack}/{range}.pbf", sources: {}, layers: [] };
@@ -715,11 +728,16 @@ function construirEstilo(m) {
   estilo.sources.puntos = { type: "geojson", data: geoPuntos() };
   estilo.sources.gps = { type: "geojson", data: geoGps() };
   estilo.sources.resaltado = { type: "geojson", data: geoResaltado() };
+  estilo.sources.nav = { type: "geojson", data: geoNav() };
   capas.push({ id: "puntos-circ", type: "circle", source: "puntos", filter: filtroPuntos(),
     paint: { "circle-radius": ["case", ["==", ["get", "activa"], 1], 10, 6], "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
   capas.push({ id: "puntos-texto", type: "symbol", source: "puntos", filter: filtroPuntos(),
     layout: { "text-field": ["get", "codigo"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": [0, 1.5], "text-anchor": "top", "text-allow-overlap": true },
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
+  capas.push({ id: "nav-linea", type: "line", source: "nav", filter: ["==", ["get", "tipo"], "linea"], layout: { "line-cap": "round" },
+    paint: { "line-color": "#c9962c", "line-width": 3, "line-dasharray": [2, 2] } });
+  capas.push({ id: "nav-destino", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "destino"],
+    paint: { "circle-radius": 15, "circle-color": "rgba(201,150,44,0.18)", "circle-stroke-color": "#c9962c", "circle-stroke-width": 4 } });
   capas.push({ id: "resaltado-anillo", type: "circle", source: "resaltado",
     paint: { "circle-radius": 19, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#c9962c", "circle-stroke-width": 4 } });
   capas.push({ id: "gps-precision", type: "fill", source: "gps", filter: ["==", ["get", "tipo"], "precision"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.18 } });
@@ -745,7 +763,10 @@ function crearMapa() {
   map.on("styleimagemissing", function (e) {
     if (e.id === "rombo-cat" || e.id === "rombo-local") map.addImage(e.id, crearRombo(e.id === "rombo-local" ? COL_LOC : COL_CAT));
   });
+  instalarPulsacionLarga();
   map.on("click", function (ev) {
+    if (pulsacionReciente) { pulsacionReciente = false; return; }
+    cerrarPanelPuntos();
     if (resaltado) ponerResaltado(null);
     var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
     if (map.getLayer("puntos-circ")) {
@@ -818,8 +839,14 @@ async function alMostrar() {
   map.resize();
   var obj = mapaObjetivo();
   if (estiloId !== obj) await aplicarMapa(obj);
+  if (capasVis.anteriores === false && !capasVis.sesiones) {   /* v2.42: la opción antigua pasa a ser una casilla por sesión */
+    capasVis.sesiones = {};
+    LC.state.sesiones.forEach(function (x) { if (x.id !== LC.state.sesionActivaId) capasVis.sesiones[x.id] = false; });
+    delete capasVis.anteriores; guardarJSON(LS_CAPAS, capasVis);
+  }
   refrescarPuntos();
   actualizarAviso(); chipMapa(); chipGps();
+  if (nav) actualizarNavegacion();
   if (gps.quiere && gps.watch == null) gpsEncender();
   if (pendienteVer) {
     var pv = pendienteVer; pendienteVer = null;
@@ -828,17 +855,187 @@ async function alMostrar() {
   }
 }
 function alOcultar() {
-  cerrarTarjeta();
+  cerrarTarjeta(); cerrarPanelPuntos();
   document.body.classList.remove("vista-mapa");
   if (gps.watch != null) gpsApagar(false);   /* ahorra batería; vuelve a encender al regresar */
+}
+
+/* ---------- navegar hasta un punto (pulsación larga): brújula, distancia y tiempo estimado ---------- */
+var nav = null;                 /* { destino:{lng,lat,nombre}, hist:[{t,lng,lat}], vel:null, rumbo:null } */
+var pulsacionReciente = false;  /* el clic que sigue a una pulsación larga no debe abrir el registro */
+function distanciaM(a, b) {
+  var R = 6371000, r = Math.PI / 180, dLa = (b.lat - a.lat) * r, dLo = (b.lng - a.lng) * r;
+  var x = Math.sin(dLa / 2) * Math.sin(dLa / 2) + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
+  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+function rumboGrados(a, b) {
+  var r = Math.PI / 180, dLo = (b.lng - a.lng) * r, la1 = a.lat * r, la2 = b.lat * r;
+  var y = Math.sin(dLo) * Math.cos(la2), x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dLo);
+  return (Math.atan2(y, x) / r + 360) % 360;
+}
+function puntoCardinal(g) { return ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][Math.round(g / 45) % 8]; }
+function textoDistancia(m) { return m < 1000 ? Math.round(m) + " m" : (m / 1000).toFixed(2).replace(".", ",") + " km"; }
+function textoTiempo(seg) {
+  var min = Math.max(1, Math.round(seg / 60));
+  return min < 60 ? "≈ " + min + " min" : "≈ " + Math.floor(min / 60) + " h " + (min % 60 < 10 ? "0" : "") + (min % 60) + " min";
+}
+function geoNav() {
+  var fc = { type: "FeatureCollection", features: [] };
+  if (!nav) return fc;
+  fc.features.push({ type: "Feature", properties: { tipo: "destino" }, geometry: { type: "Point", coordinates: [nav.destino.lng, nav.destino.lat] } });
+  if (gps.fix) fc.features.push({ type: "Feature", properties: { tipo: "linea" }, geometry: { type: "LineString", coordinates: [[gps.fix.lng, gps.fix.lat], [nav.destino.lng, nav.destino.lat]] } });
+  return fc;
+}
+function refrescarNavMapa() { if (map && mapaListo && map.getSource("nav")) map.getSource("nav").setData(geoNav()); }
+function dibujarRosa() {
+  var marcas = "";
+  for (var g = 0; g < 360; g += 30) marcas += '<line x1="0" y1="' + (g % 90 === 0 ? -46 : -49) + '" x2="0" y2="-54" transform="rotate(' + g + ')" class="mp-rosa-marca"/>';
+  return '<svg id="mp-rosa" viewBox="-62 -62 124 124" aria-hidden="true">' +
+    '<circle r="55" class="mp-rosa-aro"/>' + marcas +
+    '<text x="0" y="-37" class="mp-rosa-n" text-anchor="middle">N</text><text x="39" y="4" class="mp-rosa-l" text-anchor="middle">E</text>' +
+    '<text x="0" y="45" class="mp-rosa-l" text-anchor="middle">S</text><text x="-39" y="4" class="mp-rosa-l" text-anchor="middle">O</text>' +
+    '<g id="mp-rosa-rumbo" style="display:none"><polygon points="0,-60 6,-51 -6,-51" class="mp-rosa-tu"/></g>' +
+    '<g id="mp-rosa-aguja"><polygon points="0,-34 8,0 -8,0" class="mp-rosa-flecha"/><polygon points="0,26 6,0 -6,0" class="mp-rosa-cola"/><circle r="3" class="mp-rosa-eje"/></g></svg>';
+}
+function actualizarNavegacion() {
+  var cuadro = $("mp-nav"); if (!cuadro) return;
+  if (!nav) { cuadro.style.display = "none"; return; }
+  cuadro.style.display = "block";
+  $("mp-nav-nombre").textContent = "Hacia " + nav.destino.nombre;
+  var rum = $("mp-nav-rumbo"), dis = $("mp-nav-dist"), eta = $("mp-nav-eta"), aguja = $("mp-rosa-aguja"), tu = $("mp-rosa-rumbo");
+  cuadro.classList.remove("llego");
+  if (!gps.fix) {
+    rum.textContent = "—"; dis.textContent = gps.watch == null ? "GPS apagado: toca GPS activar" : "Esperando señal GPS…"; eta.textContent = "";
+    tu.style.display = "none"; refrescarNavMapa(); return;
+  }
+  var yo = { lng: gps.fix.lng, lat: gps.fix.lat }, d = distanciaM(yo, nav.destino), rb = rumboGrados(yo, nav.destino);
+  aguja.setAttribute("transform", "rotate(" + rb.toFixed(1) + ")");
+  rum.textContent = Math.round(rb) + "° " + puntoCardinal(rb);
+  /* velocidad: la que informa el GPS o, si no, el desplazamiento de los últimos segundos */
+  var ahora = gps.fix.t, h = nav.hist.filter(function (x) { return ahora - x.t <= 30000; });
+  nav.hist = h;
+  var v = null, rumboPropio = gps.fix.rumbo;
+  if (h.length >= 2) {
+    var a = h[0], b = h[h.length - 1], dt = (b.t - a.t) / 1000, dm = distanciaM(a, b);
+    if (dt >= 6) { v = dm / dt; if (dm >= 6) rumboPropio = rumboGrados(a, b); }
+  }
+  if (gps.fix.vel != null && gps.fix.vel >= 0.3) v = gps.fix.vel;
+  if (v != null) nav.vel = nav.vel == null ? v : nav.vel * 0.6 + v * 0.4;
+  if (rumboPropio != null && v != null && v >= 0.4) { tu.style.display = ""; tu.setAttribute("transform", "rotate(" + rumboPropio.toFixed(1) + ")"); } else tu.style.display = "none";
+  var umbral = Math.max(10, Math.min(25, gps.fix.acc * 0.8));
+  if (d <= umbral) {
+    cuadro.classList.add("llego");
+    dis.textContent = "¡Llegaste!"; eta.textContent = "A " + Math.round(d) + " m del punto";
+    if (!nav.avisado) { nav.avisado = true; if (navigator.vibrate) navigator.vibrate([60, 40, 60]); }
+  } else {
+    nav.avisado = false;
+    dis.textContent = textoDistancia(d);
+    var kmh = nav.vel != null ? (nav.vel * 3.6).toFixed(1).replace(".", ",") + " km/h" : "";
+    eta.textContent = (nav.vel != null && nav.vel >= 0.4) ? textoTiempo(d / nav.vel) + " · " + kmh : "Ponte en marcha para estimar el tiempo";
+  }
+  refrescarNavMapa();
+}
+function iniciarNavegacion(dest) {
+  nav = { destino: dest, hist: gps.fix ? [{ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat }] : [], vel: null, avisado: false };
+  if (gps.watch == null) gpsEncender();
+  cerrarPanelPuntos(); cerrarTarjeta();
+  actualizarNavegacion();
+  LC.toast("Navegando hacia " + dest.nombre + ". Toca ✕ para terminar", 3200);
+}
+function terminarNavegacion() { nav = null; actualizarNavegacion(); refrescarNavMapa(); }
+function destinoEn(pt) {
+  var caja = [[pt[0] - 14, pt[1] - 14], [pt[0] + 14, pt[1] + 14]];
+  var capas = ["puntos-circ", "capas-estaciones"].filter(function (l) { return map.getLayer(l); });
+  if (!capas.length) return null;
+  var fs = map.queryRenderedFeatures(caja, { layers: capas });
+  if (!fs.length) return null;
+  var f = fs[0], pr = f.properties || {};
+  return { lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], nombre: pr.codigo || pr.nombre || pr.estacion || "el punto" };
+}
+function instalarPulsacionLarga() {
+  var cont = map.getCanvasContainer(), timer = null, ini = null;
+  function cancelar() { clearTimeout(timer); timer = null; }
+  cont.addEventListener("pointerdown", function (e) {
+    cancelar();
+    if (e.isPrimary === false) return;
+    ini = { x: e.clientX, y: e.clientY };
+    timer = setTimeout(function () {
+      timer = null;
+      var r = cont.getBoundingClientRect(), dest = destinoEn([ini.x - r.left, ini.y - r.top]);
+      if (!dest) return;
+      pulsacionReciente = true; setTimeout(function () { pulsacionReciente = false; }, 1000);
+      if (navigator.vibrate) navigator.vibrate(35);
+      iniciarNavegacion(dest);
+    }, 650);
+  });
+  cont.addEventListener("pointermove", function (e) { if (timer && ini && Math.hypot(e.clientX - ini.x, e.clientY - ini.y) > 10) cancelar(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { cont.addEventListener(ev, cancelar); });
+  cont.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+}
+
+/* ---------- lista flotante "Mis puntos": todos los conjuntos de puntos disponibles ---------- */
+function conjuntosPuntos() {
+  var porSesion = {}, out = [];
+  geoPuntos().features.forEach(function (f) { var k = f.properties.sesion; (porSesion[k] = porSesion[k] || []).push(f.geometry.coordinates); });
+  LC.state.sesiones.slice().sort(function (a, b) {
+    if (a.id === LC.state.sesionActivaId) return -1; if (b.id === LC.state.sesionActivaId) return 1;
+    return (b.creada || "").localeCompare(a.creada || "");
+  }).forEach(function (x) {
+    if (!porSesion[x.id]) return;
+    out.push({ tipo: "sesion", clave: x.id, nombre: LC.nombreSesionMostrar(x), activa: x.id === LC.state.sesionActivaId, color: LC.colorSesion(x.id), n: porSesion[x.id].length, coords: porSesion[x.id] });
+  });
+  capasActuales.forEach(function (c) {
+    out.push({ tipo: "capa", clave: c.clave, nombre: c.nombre, origen: c.origen, resumen: resumenCuenta(c.datos.cuenta), bbox: c.datos.bbox });
+  });
+  return out;
+}
+function encuadrarConjunto(c) {
+  var b = new maplibregl.LngLatBounds();
+  if (c.tipo === "sesion") c.coords.forEach(function (x) { b.extend(x); });
+  else { b.extend([c.bbox[0], c.bbox[1]]); b.extend([c.bbox[2], c.bbox[3]]); }
+  map.fitBounds(b, { padding: 70, maxZoom: 17, duration: 500 });
+}
+function cerrarPanelPuntos() { var pn = $("mp-panel-puntos"); if (pn) pn.style.display = "none"; var b = $("mp-puntos"); if (b) b.classList.remove("on"); }
+function renderPanelPuntos() {
+  var pn = $("mp-panel-puntos"); if (!pn) return;
+  pn.textContent = "";
+  var cab = el("div", { class: "mp-panel-cab" }, [el("b", { texto: "Puntos y capas" }), el("button", { type: "button", class: "mp-panel-x", texto: "✕", "aria-label": "Cerrar", onclick: cerrarPanelPuntos })]);
+  pn.appendChild(cab);
+  var lista = conjuntosPuntos();
+  if (!lista.length) pn.appendChild(el("p", { class: "mp-suave", texto: "Aún no hay registros con ubicación ni capas cargadas." }));
+  var grupos = [["sesion", "Registros por sesión"], ["capa", "Capas del mapa"]];
+  grupos.forEach(function (g) {
+    var items = lista.filter(function (c) { return c.tipo === g[0]; });
+    if (!items.length) return;
+    pn.appendChild(el("div", { class: "mp-panel-grupo", texto: g[1] }));
+    items.forEach(function (c) {
+      var inp = el("input", { type: "checkbox" });
+      inp.checked = c.tipo === "sesion" ? visSesion(c.clave) : visCapa(c.clave);
+      inp.onchange = function () {
+        if (c.tipo === "sesion") { if (!capasVis.sesiones) capasVis.sesiones = {}; capasVis.sesiones[c.clave] = inp.checked; aplicarFiltroPuntos(); }
+        else { if (!capasVis.capas) capasVis.capas = {}; capasVis.capas[c.clave] = inp.checked; aplicarFiltrosCapas(); }
+        guardarJSON(LS_CAPAS, capasVis);
+      };
+      var punto = c.tipo === "sesion" ? el("span", { class: "mp-punto", style: "background:" + c.color }) : el("span", { class: "mp-punto mp-punto-capa", style: "background:" + (c.origen === "local" ? COL_LOC : COL_CAT) });
+      var sub = c.tipo === "sesion" ? c.n + (c.n === 1 ? " punto" : " puntos") + (c.activa ? " · activa" : "") : c.resumen + (c.origen === "local" ? " · importada" : " · catálogo");
+      var ver = el("button", { type: "button", class: "mp-panel-ver", onclick: function () { encuadrarConjunto(c); cerrarPanelPuntos(); } }, [el("b", { texto: c.nombre }), el("span", { class: "mp-suave", texto: sub })]);
+      pn.appendChild(el("div", { class: "mp-panel-fila" }, [inp, punto, ver]));
+    });
+  });
+  if (lista.length) pn.appendChild(el("p", { class: "mp-suave", style: "margin:8px 0 0;", texto: "La casilla muestra u oculta el conjunto. Toca el nombre para acercar el mapa a él." }));
+}
+function alternarPanelPuntos() {
+  var pn = $("mp-panel-puntos"); if (!pn) return;
+  if (pn.style.display === "block") { cerrarPanelPuntos(); return; }
+  renderPanelPuntos(); pn.style.display = "block"; $("mp-puntos").classList.add("on");
 }
 
 /* ---------- Guardar punto aquí ---------- */
 function guardarPuntoAqui() {
   var btn = $("mp-guardar"), orig = "📍 Guardar punto aquí";
   if (LC.gpsCapturaActiva()) { LC.gpsCapturaActiva().cerrarYa(); return; }
+  if (!LC.exigirSesionActiva()) return;
   if (!navigator.geolocation) { LC.toast("Este navegador no tiene GPS disponible"); return; }
-  var habiaSesion = !!LC.sesionActiva();
   btn.textContent = "📡 Buscando…";
   LC.obtenerPosicionMejorada(btn, "📡 Afinando", function (pos) {
     btn.textContent = orig;
@@ -846,10 +1043,6 @@ function guardarPuntoAqui() {
     LC.abrirRegistro();   /* crea (o recupera) el registro en curso y abre Nuevo; sin sesión activa, crea una */
     var d = LC.state.draft;
     if (!d || d._editando || d._viendo) { LC.toast("Hay un registro en edición. Usa Capturar ubicación dentro de Nuevo.", 5000); return; }
-    if (!habiaSesion) {
-      var s = LC.sesionActiva();
-      if (s && !s.mapaId && actualId && inst[actualId]) { s.mapaId = actualId; LC.guardarListaSesiones(); }
-    }
     LC.aplicarPosicionAlBorrador(c.latitude, c.longitude, c.altitude, c.accuracy, pos.muestras);
   }, function (err) {
     btn.textContent = orig;
@@ -1016,13 +1209,11 @@ function renderGestor() {
         if (!map || !mapaListo) return;
         if (clave === "sombra" && map.getLayer("relieve-sombra")) map.setLayoutProperty("relieve-sombra", "visibility", v);
         if (clave === "curvas") ["curvas-linea", "curvas-texto"].forEach(function (id) { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", v); });
-        if (clave === "anteriores") ["puntos-circ", "puntos-texto"].forEach(function (id) { if (map.getLayer(id)) map.setFilter(id, filtroPuntos()); });
       };
       return el("label", { class: "mp-chk" }, [inp, el("span", { texto: texto })]);
     };
     cu.appendChild(chk("sombra", "Sombreado del relieve", tieneRel));
     cu.appendChild(chk("curvas", "Curvas de nivel (calculadas en el teléfono)", tieneRel));
-    cu.appendChild(chk("anteriores", "Puntos de sesiones anteriores", true));
     if (!tieneRel) cu.appendChild(el("p", { class: "mp-suave", texto: "El mapa abierto no trae relieve." }));
     cu.appendChild(el("h3", { texto: "Capas del mapa", style: "margin:16px 0 6px;font-size:1rem;" }));
     if (!estiloId || !inst[estiloId]) cu.appendChild(el("p", { class: "mp-suave", texto: "Abre un mapa para ver o importar sus capas." }));
@@ -1075,8 +1266,8 @@ function renderAsociado(s) {
   var cont = $("sesion-mapa-asoc"); if (!cont || !s) return;
   cont.textContent = "";
   if (!LISTO) { cont.appendChild(el("p", { class: "campo-ayuda", texto: "🗺️ El mapa no está disponible: faltan archivos de la carpeta de apoyo." })); return; }
-  var campo = el("div", { class: "field" });
-  campo.appendChild(el("label", { texto: "🗺️ Mapa asociado" }));
+  var campo = el("div", { class: "bloque" });
+  campo.appendChild(el("div", { class: "bloque-titulo", texto: "🗺️ Mapa asociado" }));
   var sel = el("select", { id: "mp-asoc-sel" });
   sel.appendChild(el("option", { value: "", texto: "Sin mapa" }));
   var ids = [], vistos = {};
@@ -1086,16 +1277,17 @@ function renderAsociado(s) {
   ids.forEach(function (m) { sel.appendChild(el("option", { value: m.id, texto: (inst[m.id] ? "✅ " : "⬇️ ") + nombreCorto(m.nombre) })); });
   sel.value = s.mapaId || "";
   sel.onchange = function () {
-    var sesion = LC.sesionPorId(s.id); if (!sesion) return;
+    var sesion = LC.sesionPorId(s.id) || (LC.sesionEnPantalla() && LC.sesionEnPantalla().id === s.id ? LC.sesionEnPantalla() : null);   /* incluye la sesión nueva sin guardar */
+    if (!sesion) return;
     sesion.mapaId = sel.value || null;
     if (!sesion.mapaId) delete sesion.mapaId;
-    LC.guardarListaSesiones();
+    LC.guardarSesion();
     if (sesion.id === (LC.sesionActiva() || {}).id && sesion.mapaId && inst[sesion.mapaId]) { actualId = sesion.mapaId; localStorage.setItem(LS_ACTUAL, actualId); }
     renderAsociado(sesion);
     LC.actualizarPestanaMapa();
     LC.toast(sesion.mapaId ? "Mapa asociado a la sesión" : "Sesión sin mapa");
   };
-  campo.appendChild(sel);
+  campo.appendChild(el("div", { class: "field" }, [sel]));
   var est = estadoAsociado(s);
   campo.appendChild(el("p", { class: "mp-asoc-estado " + est.cls, id: "mp-asoc-estado", texto: est.txt }));
   var fila = [];
@@ -1123,34 +1315,24 @@ function construirPantalla() {
     '<div class="topbar mp-topbar"><div class="brand"><span class="ic">🗺️</span><div><h2>Mapa</h2><p class="sub" id="mp-sub">Sin mapa instalado</p></div></div></div>' +
     '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
-    '<div id="mp-barra"><span class="mp-chip" id="mp-chip-gps">GPS apagado</span><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span></div>' +
+    '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span></div>' +
     '<div id="mp-ctrl">' +
-      '<button type="button" class="mp-btn" id="mp-mas" aria-label="Acercar">+</button>' +
-      '<button type="button" class="mp-btn" id="mp-menos" aria-label="Alejar">−</button>' +
-      '<button type="button" class="mp-btn" id="mp-gps" aria-label="GPS y centrar">GPS</button>' +
       '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
+      '<button type="button" class="mp-btn mp-centrar" id="mp-centrar" aria-label="Centrar en mi ubicación" style="display:none">◎</button>' +
     '</div>' +
     '<div id="mp-aviso"></div>' +
+    '<div id="mp-panel-puntos"></div>' +
+    '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
+      '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div></div>' +
     '<div id="mp-tarjeta"></div>' +
     '<button type="button" class="mp-btn" id="mp-guardar">📍 Guardar punto aquí</button>' +
     '</div>';
-  $("mp-mas").onclick = function () { if (map) map.zoomIn(); };
-  $("mp-menos").onclick = function () { if (map) map.zoomOut(); };
-  $("mp-gps").onclick = function () {
-    if (gps.watch == null) gpsEncender();
-    else if (gps.fix && map) map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 15), duration: 400 });
-  };
-  $("mp-gps").ondblclick = function () { gpsApagar(true); };
-  $("mp-puntos").onclick = function () {
-    var fs = geoPuntos().features.filter(function (f) { return f.properties.activa; });
-    if (!fs.length) fs = geoPuntos().features;
-    if (!fs.length) { LC.toast("Aún no hay registros con ubicación"); return; }
-    var b = new maplibregl.LngLatBounds();
-    fs.forEach(function (f) { b.extend(f.geometry.coordinates); });
-    map.fitBounds(b, { padding: 60, maxZoom: 17, duration: 500 });
-  };
+  $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagar(true); };
+  $("mp-centrar").onclick = function () { if (gps.fix && map) map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 16), duration: 400 }); };
+  $("mp-puntos").onclick = alternarPanelPuntos;
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
+  $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-guardar").onclick = guardarPuntoAqui;
 }
 
@@ -1164,7 +1346,7 @@ async function precargarArchivos() {
   } catch (e) { anotarError("precarga", e); }
 }
 function alDesactivar() {
-  gpsApagar(true); cerrarGestor();
+  nav = null; gpsApagar(true); cerrarGestor(); cerrarPanelPuntos();
   document.body.classList.remove("vista-mapa");
 }
 
@@ -1189,6 +1371,6 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto,
   /* para pruebas */
-  _debug: function () { return { capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloId: estiloId, actualId: actualId, gps: gps }; }
+  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloId: estiloId, actualId: actualId, gps: gps }; }
 };
 })();

@@ -48,3 +48,37 @@
 .mp-asoc-estado{font-size:.84rem; margin:6px 0 0; color:var(--texto-sec);}
 .mp-asoc-estado.ok{color:var(--verde); font-weight:700;}
 .mp-asoc-estado.aviso{color:var(--ambar-osc); font-weight:700;}
+
+/* ---- v2.42: GPS en el indicador superior, lista de puntos, centrar y navegación ---- */
+.mp-chip-btn{pointer-events:auto; cursor:pointer; font-family:inherit; min-height:34px;}
+.mp-chip-btn:active{filter:brightness(.93);}
+.mp-centrar{min-width:40px; min-height:40px; width:40px; height:40px; padding:0; border-radius:50%; font-size:1.15rem; opacity:.9;}
+.mp-btn.chico.on{background:var(--verde); color:#fff;}
+#mp-panel-puntos{position:absolute; top:8px; right:64px; width:min(290px, calc(100% - 76px)); max-height:calc(100% - 100px); overflow:auto; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:10px 12px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:4;}
+.mp-panel-cab{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+.mp-panel-x{background:none; border:0; color:var(--texto-sec); font-size:1.1rem; min-width:36px; min-height:36px; cursor:pointer;}
+.mp-panel-grupo{font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--texto-sec); margin:10px 0 2px;}
+.mp-panel-fila{display:flex; align-items:center; gap:9px; min-height:46px; border-top:1px solid var(--borde);}
+.mp-panel-fila input{width:22px; height:22px; flex:0 0 auto; accent-color:var(--verde);}
+.mp-punto{width:13px; height:13px; border-radius:50%; flex:0 0 auto; border:2px solid #fff; box-shadow:0 0 0 1px var(--borde);}
+.mp-punto-capa{border-radius:2px; transform:rotate(45deg); width:11px; height:11px;}
+.mp-panel-ver{flex:1; min-width:0; text-align:left; background:none; border:0; padding:4px 2px; color:var(--texto); cursor:pointer; font-family:inherit;}
+.mp-panel-ver b{display:block; font-size:.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.mp-panel-ver .mp-suave{display:block; margin:0;}
+#mp-nav{position:absolute; left:8px; top:50px; width:214px; background:var(--card); color:var(--texto); border:1.5px solid var(--verde); border-radius:var(--radio); padding:8px 10px 10px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:3;}
+#mp-nav.llego{border-color:var(--ok, #2d5f3f); background:var(--verde-cl);}
+.mp-nav-cab{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:4px;}
+.mp-nav-cab b{font-size:.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+.mp-nav-cuerpo{display:flex; align-items:center; gap:10px;}
+#mp-rosa{width:84px; height:84px; flex:0 0 auto;}
+.mp-rosa-aro{fill:var(--fondo); stroke:var(--borde); stroke-width:3;}
+.mp-rosa-marca{stroke:var(--texto-sec); stroke-width:2;}
+.mp-rosa-n{fill:var(--rojo); font-size:15px; font-weight:800;}
+.mp-rosa-l{fill:var(--texto-sec); font-size:12px; font-weight:700;}
+.mp-rosa-flecha{fill:var(--verde);}
+.mp-rosa-cola{fill:var(--texto-sec); opacity:.5;}
+.mp-rosa-eje{fill:var(--card); stroke:var(--verde); stroke-width:1.5;}
+.mp-rosa-tu{fill:var(--ambar);}
+.mp-nav-datos{min-width:0;}
+.mp-nav-grande{font-size:1.15rem; font-weight:800; line-height:1.1;}
+.mp-nav-med{font-size:1.02rem; font-weight:700; margin-top:2px;}
