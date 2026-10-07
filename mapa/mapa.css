@@ -31,7 +31,10 @@
 #s-mapa .maplibregl-ctrl-bottom-right{bottom:0; right:0;}
 
 /* ---- Gestor "Mapas sin conexión" ---- */
-#mp-modal-mapas .modal{max-height:92vh;}
+#mp-modal-mapas .modal{max-height:92vh; display:flex; flex-direction:column; overflow:hidden; padding-top:10px;}
+#mp-modal-cuerpo{overflow-y:auto; flex:1 1 auto; min-height:0; -webkit-overflow-scrolling:touch;}
+.mp-gestor-cab{flex:0 0 auto; margin:0 0 8px; padding-bottom:4px; border-bottom:1px solid var(--borde);}
+.mp-gestor-cab .mp-panel-x{min-width:44px; min-height:44px; font-size:1.25rem; margin-right:-8px;}
 .mp-caja{border:1px solid var(--borde); border-radius:var(--radio); padding:12px; margin:0 0 12px; background:var(--card); box-shadow:var(--sombra);}
 .mp-caja h3{margin:0 0 4px; font-size:1.02rem;}
 .mp-suave{color:var(--texto-sec); font-size:.82rem; margin:3px 0;}
@@ -102,3 +105,6 @@
 /* ---- v2.45: grabación de recorridos ---- */
 .mp-btn.grabando{background:var(--rojo); border-color:var(--rojo); color:#fff;}
 .mp-letra.linea{border-radius:4px; box-shadow:0 0 0 1.5px #fff, 0 0 0 2.5px var(--borde); font-size:.7rem;}
+
+/* ---- v2.47: varios mapas a la vez; gestor con X arriba; selector de mapa al importar capas ---- */
+#mp-import-sel{width:100%;}
