@@ -112,6 +112,9 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 
 .field{margin-bottom:15px;}
 .field label{display:block; font-size:.8rem; font-weight:700; color:var(--texto-sec); margin-bottom:6px; text-transform:uppercase;}
+/* v2.52: en Config los títulos de bloque (mayúsculas, verde, con línea) se distinguen de los subtítulos de cada campo (minúsculas, texto normal) */
+#s-config .section-title, details.cfg-bloque > summary{font-size:.92rem; letter-spacing:.7px; color:var(--verde-osc); font-weight:800;}
+#s-config .field label{text-transform:none; font-size:.9rem; font-weight:600; color:var(--texto); letter-spacing:0;}
 .field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{
   width:100%; padding:13px; border-radius:10px; border:1.5px solid var(--borde); font-size:1.02rem;
 }
@@ -923,8 +926,10 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div class="version-info" id="version-info">Comprobando versión...</div>
     <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
     <details class="cfg-bloque" id="cfg-gestion-mapas"><summary>Gestión de mapas</summary><div class="cfg-bloque-cuerpo" id="config-mapa"></div></details>
-    <div class="section-title">Datos</div>
-    <button type="button" class="btnfull btn-danger" id="btn-borrar-todo" style="margin-bottom:110px;">🗑 Borrar todos los registros y sesiones</button>
+    <details class="cfg-bloque" id="cfg-datos"><summary>Datos</summary><div class="cfg-bloque-cuerpo">
+      <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
+    </div></details>
+    <div style="height:110px;"></div>
   </div>
 </div>
 
@@ -3544,7 +3549,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-16 · v2.51";
+var APP_BUILD = "2026-10-16 · v2.52";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -4149,6 +4154,8 @@ function cerrarModalAbierto(m){
 }
 window.addEventListener("popstate", function(e){
   if(salidaConfirmada) return;
+  // v2.52: con el Bloqueo de grabación activo, Atrás no navega: se repone la entrada y se avisa
+  if(window.__lcBloqueo){ empujarEntradaHistorial(state.currentView); return; }
   var st = e.state;
   var modal = document.querySelector(".modal-bg.on");
   if(modal){
@@ -5219,9 +5226,11 @@ function exportarLibretaHTML(lista){
     var blob = new Blob([html], {type:"text/html"});
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    a.href = url; a.download = "LibretaDeCampo_"+((s&&s.prefijo)||"registro")+".html";
+    var nomHtml = "LibretaDeCampo_"+((s&&s.prefijo)||"registro")+".html";
+    a.href = url; a.download = nomHtml;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    copiarARespaldos("Libreta", nomHtml, blob);
     toast("✅ Libreta exportada");
   });
 }
@@ -5305,9 +5314,11 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
   generarPaqueteZip(sel.idsSesiones, sel.idsSueltos).then(function(blob){
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    a.href = url; a.download = "LibretaDeCampo_"+sel.sufijo+"_"+fechaLocalISO()+".zip";
+    var nomZip = "LibretaDeCampo_"+sel.sufijo+"_"+fechaLocalISO()+".zip";
+    a.href = url; a.download = nomZip;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    copiarARespaldos("Respaldos", nomZip, blob);
     btn.disabled = false; btn.textContent = "📦 Registros (.zip)";
     toast("✅ Paquete .zip listo — puedes compartirlo por WhatsApp como documento");
   }).catch(function(err){
@@ -6851,10 +6862,26 @@ function reiniciarObservacion(){
 function activarSeguimientoEnVivo(){
   detenerSeguimientoEnVivo();
   var d = state.draft; if(!d || !d.obsInicio) return;
-  trackingRuntime.intervalId = setInterval(actualizarVisorTracking, 1000);
+  trackingRuntime.ultimoFixTs = Date.now();
+  trackingRuntime.intervalId = setInterval(function(){
+    if(trackingRuntime.watchId!=null && !document.hidden && Date.now() - Math.max(trackingRuntime.ultimoFixTs||0, trackingRuntime.armadoTs||0) > 20000) armarWatchObs();
+    actualizarVisorTracking();
+  }, 1000);
   if(navigator.geolocation && d.obsInicio.lat!=null){
+    armarWatchObs();
+  }
+  actualizarVisorTracking();
+  actualizarWakeLock();
+}
+// v2.52: el seguimiento puede quedar dormido (pantalla apagada, ahorro de batería): se vuelve a pedir el GPS al volver a la app
+// y cuando pasan más de 20 s sin lecturas.
+function armarWatchObs(){
+  if(!navigator.geolocation) return;
+  if(trackingRuntime.watchId!=null){ try{ navigator.geolocation.clearWatch(trackingRuntime.watchId); }catch(e){} trackingRuntime.watchId = null; }
+  trackingRuntime.armadoTs = Date.now();
+  {
     trackingRuntime.watchId = navigator.geolocation.watchPosition(function(pos){
-      trackingRuntime.ultimaPos = pos;
+      trackingRuntime.ultimaPos = pos; trackingRuntime.ultimoFixTs = Date.now();
       if(state.draft){
         state.draft.trackPuntos = state.draft.trackPuntos || [];
         if(!state.draft.obsPausado){
@@ -6865,9 +6892,10 @@ function activarSeguimientoEnVivo(){
       actualizarVisorTracking();
     }, function(){}, {enableHighAccuracy:true, maximumAge:4000});
   }
-  actualizarVisorTracking();
-  actualizarWakeLock();
 }
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState==="visible" && trackingRuntime.watchId!=null) armarWatchObs();
+});
 function detenerSeguimientoEnVivo(){
   if(trackingRuntime.intervalId){ clearInterval(trackingRuntime.intervalId); trackingRuntime.intervalId=null; }
   if(trackingRuntime.watchId!=null && navigator.geolocation){ navigator.geolocation.clearWatch(trackingRuntime.watchId); trackingRuntime.watchId=null; }
@@ -7108,8 +7136,8 @@ function renderEspecies(){
    Los videos van solo a la carpeta (no al .zip): en el respaldo queda el registro de su nombre y ubicación. */
 var LS_COPIA = "libretaCampo_copiaOrig";
 function copiaCfg(){
-  var c = {modo:"off", tam:"original"};
-  try{ var j = JSON.parse(localStorage.getItem(LS_COPIA)||"null"); if(j){ if(j.modo) c.modo = j.modo; if(j.tam) c.tam = j.tam; } }catch(e){}
+  var c = {modo:"off", tam:"original", ruta:""};
+  try{ var j = JSON.parse(localStorage.getItem(LS_COPIA)||"null"); if(j){ if(j.modo) c.modo = j.modo; if(j.tam) c.tam = j.tam; if(j.ruta) c.ruta = j.ruta; } }catch(e){}
   return c;
 }
 function guardarCopiaCfg(c){ try{ localStorage.setItem(LS_COPIA, JSON.stringify(c)); }catch(e){} }
@@ -7186,12 +7214,36 @@ function elegirCarpetaCopia(){
     return guardarOriginal("__carpeta__", null, {handle:h}).then(function(){ return true; });
   }).catch(function(){ return false; });
 }
+// subcarpeta admite varios niveles separados por "/" (por ejemplo "Fotos/Rucamanque_01"); se crean si no existen.
 function escribirEnCarpeta(dir, subcarpeta, nombre, blob){
-  return dir.getDirectoryHandle(subcarpeta, {create:true}).then(function(d){
+  var partes = String(subcarpeta||"").split("/").filter(function(x){ return x; });
+  var p = Promise.resolve(dir);
+  partes.forEach(function(nom){ p = p.then(function(d){ return d.getDirectoryHandle(nom, {create:true}); }); });
+  return p.then(function(d){
     return d.getFileHandle(nombre, {create:true});
   }).then(function(fh){ return fh.createWritable(); }).then(function(w){
     return w.write(blob).then(function(){ return w.close(); });
   });
+}
+/* v2.52: respaldos de los datos descargados dentro de la carpeta elegida.
+   Estructura: Fotos/<sesión>/, Videos/<sesión>/, Respaldos/ (paquetes .zip y respaldo unificado .json), DarwinCore/ (.xlsx y .csv),
+   Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html). La descarga normal sigue ocurriendo; esto es una copia adicional. */
+var SUBCARPETAS_RESPALDO = ["Fotos","Videos","Respaldos","DarwinCore","Mediciones","Libreta"];
+function copiarARespaldos(subcarpeta, nombre, blob){
+  if(copiaCfg().modo !== "carpeta" || !soportaCarpeta()) return Promise.resolve(false);
+  return carpetaConPermiso().then(function(dir){
+    if(!dir){ setTimeout(function(){ toast("⚠️ No se pudo copiar el respaldo a la carpeta: elígela de nuevo en Config", 5000); }, 1500); return false; }
+    return escribirEnCarpeta(dir, subcarpeta, nombre, blob).then(function(){
+      setTimeout(function(){ toast("📁 Copia guardada en "+subcarpeta+"/"+nombre, 4200); }, 1500);
+      return true;
+    });
+  }).catch(function(){
+    setTimeout(function(){ toast("⚠️ No se pudo copiar el respaldo a la carpeta del teléfono", 5000); }, 1500);
+    return false;
+  });
+}
+function blobXlsx(wb){
+  return new Blob([XLSX.write(wb, {bookType:"xlsx", type:"array"})], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
 function descargarBlob(blob, nombre){
   return new Promise(function(resolve){
@@ -7214,6 +7266,7 @@ function volcarOriginalesPendientes(){
       regs.forEach(function(r){
         var ses = sesionPorId(r.sesionId);
         var carpetaSes = sanitizarNombreArchivo(ses ? nombreSesionMostrar(ses) : "sesion");
+        var carpetaFoto = "Fotos/" + carpetaSes, carpetaVideo = "Videos/" + carpetaSes;
         var base = baseNombreRegistro(r), kVideo = 0;
         elementosArchivables(r).forEach(function(e){
           if(e.tipo === "video") kVideo++;
@@ -7224,7 +7277,8 @@ function volcarOriginalesPendientes(){
               var nombre = base + "_" + sanitizarNombreFoto(e.it.nombre || (e.tipo === "video" ? "video"+kVideo : "foto")) + "." + extDeBlob(o.blob, o.nombre);
               if(cfg.modo === "carpeta"){
                 if(!dir){ res.pend++; return; }
-                return escribirEnCarpeta(dir, carpetaSes, nombre, o.blob).then(function(){ e.it.copiaLocal = carpetaSes + "/" + nombre; return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
+                var subDest = e.tipo === "video" ? carpetaVideo : carpetaFoto;
+                return escribirEnCarpeta(dir, subDest, nombre, o.blob).then(function(){ e.it.copiaLocal = subDest + "/" + nombre; return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
                   .catch(function(){ res.fallo++; });
               }
               return descargarBlob(o.blob, carpetaSes + "__" + nombre).then(function(){ e.it.copiaLocal = "Descargas/" + carpetaSes + "__" + nombre; return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
@@ -7302,6 +7356,9 @@ function renderConfigCopia(){
       '<option value="fullhd">Full HD (1920 px de lado mayor)</option></select></div>'+
     '<button type="button" class="btnfull btn-secondary" id="cc-elegir" style="display:none;">📁 Elegir carpeta…</button>'+
     '<div class="campo-ayuda" id="cc-estado"></div>'+
+    '<div class="field" id="cc-ruta-wrap" style="display:none; margin-top:10px;"><label>Ruta de la carpeta (para ubicarla)</label><input type="text" id="cc-ruta" placeholder="Ej.: Almacenamiento interno/Documents/LibretaCampo" autocomplete="off" autocapitalize="off">'+
+      '<span class="campo-ayuda">El navegador solo informa el nombre de la carpeta, no su ruta completa. Escríbela aquí como referencia para encontrarla desde el administrador de archivos.</span></div>'+
+    '<div class="campo-ayuda" id="cc-estructura" style="display:none;"></div>'+
     '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
     '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en una subcarpeta por sesión. Los videos no se incluyen en el .zip.</div>';
   document.getElementById("cc-modo").value = cfg.modo;
@@ -7309,11 +7366,15 @@ function renderConfigCopia(){
   function estado(){
     var c = copiaCfg();
     document.getElementById("cc-elegir").style.display = c.modo === "carpeta" ? "block" : "none";
+    document.getElementById("cc-ruta-wrap").style.display = c.modo === "carpeta" ? "block" : "none";
+    var est = document.getElementById("cc-estructura");
+    est.style.display = c.modo === "carpeta" ? "block" : "none";
+    est.textContent = "Dentro de la carpeta se crean: Fotos/ y Videos/ (una subcarpeta por sesión), Respaldos/ (paquetes .zip y respaldo unificado .json), DarwinCore/ (.xlsx y .csv), Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html). Cada descarga se guarda además en la carpeta.";
     Promise.all([carpetaHandleGuardado(), idsOriginalesPendientes()]).then(function(v){
       var h = v[0], ids = v[1], set = {}; ids.forEach(function(i){ set[i] = 1; });
       var nPend = 0;
       state.registros.forEach(function(r){ elementosArchivables(r).forEach(function(e){ if(set[e.it.id]) nPend++; }); });
-      var t = c.modo === "off" ? "La copia original está desactivada." : c.modo === "descargas" ? "Las copias se descargarán a la carpeta Descargas." : (h ? "Carpeta elegida: "+h.name : "Aún no hay carpeta elegida.");
+      var t = c.modo === "off" ? "La copia original está desactivada." : c.modo === "descargas" ? "Las copias se descargarán a la carpeta Descargas." : (h ? "Carpeta elegida: "+h.name+(c.ruta ? " · Ruta: "+c.ruta : "") : "Aún no hay carpeta elegida.");
       if(nPend) t += " Pendientes de copiar: "+nPend+".";
       document.getElementById("cc-estado").textContent = t;
       document.getElementById("cc-elegir").textContent = h ? "📁 Cambiar carpeta…" : "📁 Elegir carpeta…";
@@ -7325,6 +7386,8 @@ function renderConfigCopia(){
     estado();
   });
   document.getElementById("cc-tam").addEventListener("change", function(){ var c = copiaCfg(); c.tam = this.value; guardarCopiaCfg(c); });
+  document.getElementById("cc-ruta").value = cfg.ruta || "";
+  document.getElementById("cc-ruta").addEventListener("change", function(){ var c = copiaCfg(); c.ruta = this.value.trim(); guardarCopiaCfg(c); estado(); });
   document.getElementById("cc-elegir").addEventListener("click", function(){ elegirCarpetaCopia().then(estado); });
   document.getElementById("cc-pendientes").addEventListener("click", function(){
     volcarOriginalesPendientes().then(function(r){
@@ -8428,9 +8491,11 @@ function descargarDwcCsv(d){
   var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
-  a.href = url; a.download = "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".csv";
+  var nomCsv = "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".csv";
+  a.href = url; a.download = nomCsv;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
+  copiarARespaldos("DarwinCore", nomCsv, blob);
   toast("✅ Darwin Core (.csv) descargado — "+d.filas.length+" fila(s)");
 }
 document.getElementById("btn-descargar-dwc").addEventListener("click", function(){ var d = prepararDescargaDwc(); if(d) descargarDwcCsv(d); });
@@ -8451,7 +8516,9 @@ function descargarDwcXlsx(d){
   ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:aoa.length-1, c:COLS_DWC.length-1}})};
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "DarwinCore");
-  XLSX.writeFile(wb, "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".xlsx");
+  var nomDwcX = "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".xlsx";
+  XLSX.writeFile(wb, nomDwcX);
+  copiarARespaldos("DarwinCore", nomDwcX, blobXlsx(wb));
   toast("✅ Darwin Core (.xlsx) descargado — "+d.filas.length+" fila(s)");
 }
 document.getElementById("btn-descargar-dwc-xlsx").addEventListener("click", function(){ var d = prepararDescargaDwc(); if(d) descargarDwcXlsx(d); });
@@ -8521,6 +8588,7 @@ function exportarMedicionXlsx(registrosMed){
 
   var nombreArchivo = "LibretaDeCampo_Medicion_"+fechaLocalISO()+".xlsx";
   XLSX.writeFile(wb, nombreArchivo);
+  copiarARespaldos("Mediciones", nombreArchivo, blobXlsx(wb));
   toast("✅ Planilla de Medición generada — "+filas.length+" individuo(s)");
 }
 document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
@@ -8662,8 +8730,10 @@ document.getElementById("btn-descargar-unificado").addEventListener("click", fun
   if(combinado.recorridos.length) data.recorridos = combinado.recorridos;
   var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   var url = URL.createObjectURL(blob); var a = document.createElement("a");
-  a.href=url; a.download="LibretaDeCampo_respaldo_unificado_"+fechaLocalISO()+".json";
+  var nomUni = "LibretaDeCampo_respaldo_unificado_"+fechaLocalISO()+".json";
+  a.href=url; a.download=nomUni;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  copiarARespaldos("Respaldos", nomUni, blob);
   toast("Respaldo unificado descargado");
 });
 
