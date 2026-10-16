@@ -145,6 +145,10 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .cons-etiqueta::before{content:"Datos para la etiqueta"; position:absolute; top:5px; left:12px; font-size:.64rem; letter-spacing:.5px; text-transform:uppercase; color:var(--texto-sec); font-weight:700;}
 .cons-etiqueta .narr-linea{font-size:.97rem; color:var(--texto);}
 .cons-etiqueta .narr-linea b{color:var(--verde-osc);}
+/* v2.54: el taxón es el subtítulo de la ficha, junto con el código del registro */
+.cons-etiqueta .cons-taxon{font-size:1.1rem; font-weight:800; color:var(--verde-osc); line-height:1.3; margin:0 0 8px;}
+.cons-etiqueta .cons-taxon .cons-taxon-et{display:none;}
+.cons-etiqueta .cons-taxon .cons-taxon-cant{font-size:.84rem; font-weight:600; color:var(--texto-sec);}
 .cons-sesion{font-size:1.1rem; font-weight:800; line-height:1.3; color:var(--cons-sesion); margin-bottom:8px;}
 .cons-tipo{font-size:.8rem; font-weight:600; color:var(--texto-sec);}
 .cons-sesion-estado{font-size:.72rem; font-weight:600; color:var(--texto-sec); margin-left:4px; white-space:nowrap;}
@@ -224,6 +228,7 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .narr-foto-imgwrap img{transform-origin:center center; will-change:transform; user-select:none; -webkit-user-select:none; -webkit-user-drag:none; touch-action:none;}
 .narr-foto-tit{color:#fff; font-size:.88rem; font-weight:800; padding:10px 14px 0; text-align:center;}
 .narr-foto-ver{display:block; width:calc(100% - 28px); margin:0 14px 14px; padding:11px; border-radius:10px; border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.14); color:#fff; font-size:.9rem; font-weight:700; cursor:pointer;}
+.narr-foto-ver.solo-x{width:46px; height:46px; padding:0; border-radius:50%; margin:0 auto 14px; font-size:1.2rem; line-height:1;}
 .narr-foto-zoom{position:absolute; left:10px; top:10px; background:rgba(0,0,0,.5); color:#fff; font-size:.72rem; padding:3px 9px; border-radius:10px; display:none;}
 .narr-foto-nav{position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,.45); color:#fff; border:none; width:42px; height:42px; border-radius:50%; font-size:1.6rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
 .narr-foto-nav.prev{left:10px;}
@@ -904,6 +909,9 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos. Excel a veces muestra mal las tildes de un .csv (aparecen como «Ã³», «Ã­»…); para abrirlo en Excel usa el .xlsx.</p>
     <div class="section-title">Registros de medición</div>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
+    <div class="section-title">Carpeta de respaldos</div>
+    <button type="button" class="btnfull btn-secondary" id="btn-explorar-carpeta">📂 Explorar carpeta del teléfono</button>
+    <p class="campo-ayuda" style="margin:-4px 0 12px;">Muestra el contenido de la carpeta elegida en Config («Gestión de imágenes»): fotos, videos y respaldos. Desde ahí puedes abrir archivos o importar un respaldo (.zip o .json). El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</p>
     <div class="section-title">Respaldo e importación</div>
     <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.zip)</label>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
@@ -1016,7 +1024,17 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     </div>
     <div class="narr-foto-tit" id="narr-foto-tit"></div>
     <div class="narr-foto-cap" id="narr-foto-cap"></div>
+    <button type="button" class="narr-foto-ver" id="narr-foto-orig" style="display:none;">🖼️ Ver original (carpeta)</button>
     <button type="button" class="narr-foto-ver" id="narr-foto-ver-reg" style="display:none;">📄 Ver datos de este registro</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-carpeta">
+  <div class="modal">
+    <button type="button" class="modal-x" id="carp-x" aria-label="Cerrar">✕</button>
+    <h3>📂 Carpeta de respaldos</h3>
+    <div class="campo-ayuda" id="carp-ruta" style="margin:0 0 8px; font-style:normal;"></div>
+    <div id="carp-lista"></div>
   </div>
 </div>
 
@@ -3549,7 +3567,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-16 · v2.53";
+var APP_BUILD = "2026-10-16 · v2.54";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -4916,7 +4934,7 @@ function listaGaleriaGlobal(){
     var op = ordenarFotosConPortada(r);
     var orden = (op.portada ? [op.portada] : []).concat(op.resto);
     orden.forEach(function(f){
-      items.push({regId:r.id, fotoId:f.id, nombre:f.nombre, comentario:f.comentario, titulo:(r.codigo || r.notaTitulo || "Registro sin código")});
+      items.push({regId:r.id, fotoId:f.id, nombre:f.nombre, comentario:f.comentario, copiaLocal:f.copiaLocal||"", titulo:(r.codigo || r.notaTitulo || "Registro sin código")});
     });
   });
   return items;
@@ -4949,7 +4967,16 @@ function mostrarFotoNarrativaEnIndice(){
   document.getElementById("narr-foto-tit").style.display = f.titulo ? "block" : "none";
   document.getElementById("narr-foto-cap").textContent = f.comentario||f.nombre||"";
   var btnReg = document.getElementById("narr-foto-ver-reg");
-  btnReg.style.display = f.regId ? "block" : "none";
+  // v2.54: desde la vista Consulta el botón es solo una X que cierra el visor
+  var enConsulta = state.currentView === "consulta";
+  btnReg.style.display = (f.regId || enConsulta) ? "block" : "none";
+  btnReg.classList.toggle("solo-x", enConsulta);
+  btnReg.textContent = enConsulta ? "✕" : "📄 Ver datos de este registro";
+  btnReg.setAttribute("aria-label", enConsulta ? "Cerrar" : "Ver datos de este registro");
+  liberarOriginalVisor();
+  var btnOrig = document.getElementById("narr-foto-orig");
+  btnOrig.style.display = rutaOriginalCarpeta(f) ? "block" : "none";
+  btnOrig.textContent = "🖼️ Ver original (carpeta)";
   var multiple = narrFotosActuales.length > 1;
   document.getElementById("narr-foto-prev").style.display = multiple ? "flex" : "none";
   document.getElementById("narr-foto-next").style.display = multiple ? "flex" : "none";
@@ -4982,16 +5009,60 @@ function abrirFotoNarrativa(listaFotosDelRegistro, indiceInicial, regId){
       return;
     }
   }
-  narrFotosActuales = listaFotosDelRegistro.map(function(f){ return {regId:null, fotoId:f.id, nombre:f.nombre, comentario:f.comentario, dataURL:f.dataURL, titulo:""}; });
+  narrFotosActuales = listaFotosDelRegistro.map(function(f){ return {regId:null, fotoId:f.id, nombre:f.nombre, comentario:f.comentario, copiaLocal:f.copiaLocal||"", dataURL:f.dataURL, titulo:""}; });
   narrFotoIndiceActual = indiceInicial;
   mostrarFotoNarrativaEnIndice();
   document.getElementById("modal-narr-foto").classList.add("on");
 }
 document.getElementById("narr-foto-prev").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(-1); });
 document.getElementById("narr-foto-next").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(1); });
+/* v2.54: la foto original guardada en la carpeta local se abre dentro del visor */
+var narrOrigURL = null;
+function liberarOriginalVisor(){ if(narrOrigURL){ try{ URL.revokeObjectURL(narrOrigURL); }catch(e){} narrOrigURL = null; } }
+function rutaOriginalCarpeta(f){
+  var c = f && f.copiaLocal ? String(f.copiaLocal) : "";
+  return (c && !/^Descargas\//.test(c) && soportaCarpeta()) ? c : "";
+}
+// Abre un archivo de la carpeta elegida a partir de su ruta relativa ("Fotos/Sesión/JPS-001_foto1.jpg"). Devuelve un File.
+function archivoDeCarpeta(dir, ruta){
+  var partes = String(ruta).split("/").filter(function(x){ return x; }), nombre = partes.pop();
+  var p = Promise.resolve(dir);
+  partes.forEach(function(n){ p = p.then(function(d){ return d.getDirectoryHandle(n); }); });
+  return p.then(function(d){ return d.getFileHandle(nombre); }).then(function(fh){ return fh.getFile(); });
+}
+document.getElementById("narr-foto-orig").addEventListener("click", function(e){
+  e.stopPropagation();
+  var f = narrFotosActuales[narrFotoIndiceActual], btn = this, img = document.getElementById("narr-foto-img");
+  if(!f) return;
+  if(narrOrigURL){   // ya se muestra el original: volver a la imagen de la app
+    liberarOriginalVisor(); reiniciarZoomNarr();
+    if(f.dataURL) img.src = f.dataURL;
+    btn.textContent = "🖼️ Ver original (carpeta)";
+    return;
+  }
+  var ruta = rutaOriginalCarpeta(f); if(!ruta) return;
+  btn.textContent = "Abriendo…";
+  carpetaConPermiso().then(function(dir){
+    if(!dir) throw new Error("sin carpeta");
+    return archivoDeCarpeta(dir, ruta);
+  }).then(function(file){
+    if(f !== narrFotosActuales[narrFotoIndiceActual]) return;
+    narrOrigURL = URL.createObjectURL(file); reiniciarZoomNarr();
+    img.onerror = function(){
+      img.onerror = null; liberarOriginalVisor(); if(f.dataURL) img.src = f.dataURL;
+      btn.textContent = "🖼️ Ver original (carpeta)";
+      toast("Este formato no se puede mostrar aquí. Ábrelo desde la carpeta (Exportar, «Explorar carpeta»)", 5200);
+    };
+    img.src = narrOrigURL; btn.textContent = "↩ Ver imagen de la app";
+  }).catch(function(){
+    btn.textContent = "🖼️ Ver original (carpeta)";
+    toast("No se encontró el original en la carpeta: "+ruta, 5000);
+  });
+});
 document.getElementById("narr-foto-ver-reg").addEventListener("click", function(e){
   e.stopPropagation();
   var f = narrFotosActuales[narrFotoIndiceActual];
+  if(this.classList.contains("solo-x")){ document.getElementById("modal-narr-foto").classList.remove("on"); liberarOriginalVisor(); return; }
   if(!f || !f.regId) return;
   document.getElementById("modal-narr-foto").classList.remove("on");
   verRegistroExistente(f.regId);
@@ -5062,7 +5133,7 @@ document.getElementById("narr-foto-ver-reg").addEventListener("click", function(
   window.__narrZoomDebug = {zoomEn:zoomEn};
 })();
 document.getElementById("modal-narr-foto").addEventListener("click", function(e){
-  if(e.target===this) this.classList.remove("on");
+  if(e.target===this){ this.classList.remove("on"); liberarOriginalVisor(); }
 });
 var narrColapsadas = new Set(); // ids de registros colapsados en la vista Libreta (no persiste entre recargas)
 function toggleColapsoRegistroNarrativo(id){
@@ -5945,10 +6016,10 @@ function htmlConsultaRegistro(r, conBotonMapa){
   if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length){
     var itemsEsp = r.especies.map(function(e){ return '<li>'+escapeHtml(e.nombre)+' <b>— '+e.cantidad+(e.cantidad==1?' ejemplar':' ejemplares')+'</b></li>'; }).join("");
     var numEsp = r.especies.length;
-    et.push('<div class="narr-linea"><b>Especies observadas:</b> '+numEsp+(numEsp===1?' especie':' especies')+' · '+sumaEspecies(r)+' individuos en total</div><ul class="narr-especies-lista">'+itemsEsp+'</ul>');
+    et.push('<div class="cons-taxon"><span class="cons-taxon-et">Especies observadas: </span>'+numEsp+(numEsp===1?' especie':' especies')+' <span class="cons-taxon-cant">· '+sumaEspecies(r)+' individuos en total</span></div><ul class="narr-especies-lista">'+itemsEsp+'</ul>');
   } else {
     var cant = cantidadEjemplares(r);
-    if(r.taxonLibre) et.push('<div class="narr-linea"><b>Taxón:</b> '+escapeHtml(r.taxonLibre)+(cant!=null?(' ('+cant+(cant==1?' ejemplar)':' ejemplares)')):'')+'</div>');
+    if(r.taxonLibre) et.push('<div class="cons-taxon"><span class="cons-taxon-et">Taxón: </span>'+escapeHtml(r.taxonLibre)+(cant!=null?(' <span class="cons-taxon-cant">('+cant+(cant==1?' ejemplar)':' ejemplares)')+'</span>'):'')+'</div>');
   }
   // Localidad (verbatim: localidad específica + localidad general)
   var locVerb = localidadVerbatimExportar(r, sesR);
@@ -8636,7 +8707,10 @@ function procesarArchivoZip(file){
   });
 }
 document.getElementById("input-import-json").addEventListener("change", function(e){
-  var files = Array.prototype.slice.call(e.target.files||[]);
+  cargarArchivosRespaldo(Array.prototype.slice.call(e.target.files||[]));
+  e.target.value = "";
+});
+function cargarArchivosRespaldo(files){
   if(files.length===0) return;
   toast("Procesando archivo(s)...");
   var promesas = files.map(function(file){
@@ -8677,9 +8751,81 @@ document.getElementById("input-import-json").addEventListener("change", function
     renderImportados();
     if(totalFotos>0) toast("✅ "+totalFotos+" foto(s) recuperadas del paquete — revisa la lista abajo antes de importar");
   });
-  e.target.value = "";
-});
+}
 
+/* ---------------- v2.54: explorador de la carpeta de respaldos ---------------- */
+var carpNav = {pila:[], nombres:[]};
+function cerrarExploradorCarpeta(){ document.getElementById("modal-carpeta").classList.remove("on"); }
+document.getElementById("carp-x").addEventListener("click", cerrarExploradorCarpeta);
+document.getElementById("modal-carpeta").addEventListener("click", function(e){ if(e.target===this) cerrarExploradorCarpeta(); });
+document.getElementById("btn-explorar-carpeta").addEventListener("click", function(){
+  if(!soportaCarpeta()){ toast("Este navegador no permite explorar carpetas. Usa Chrome en Android", 5000); return; }
+  carpetaHandleGuardado().then(function(h){
+    if(!h){ toast("Primero elige una carpeta: Config, «Gestión de imágenes»", 5000); return; }
+    return carpetaConPermiso().then(function(dir){
+      if(!dir){ toast("Sin permiso para leer la carpeta. Vuelve a elegirla en Config", 5000); return; }
+      carpNav.pila = [dir]; carpNav.nombres = [dir.name];
+      document.getElementById("modal-carpeta").classList.add("on");
+      listarCarpetaActual();
+    });
+  });
+});
+function listarCarpetaActual(){
+  var dir = carpNav.pila[carpNav.pila.length-1], lista = document.getElementById("carp-lista");
+  document.getElementById("carp-ruta").textContent = "📁 " + carpNav.nombres.join(" / ");
+  lista.innerHTML = '<div class="campo-ayuda">Leyendo…</div>';
+  var carpetas = [], archivos = [];
+  var it = dir.values ? dir.values() : null;
+  function leer(){
+    return it.next().then(function(r){
+      if(r.done) return;
+      (r.value.kind === "directory" ? carpetas : archivos).push(r.value);
+      return leer();
+    });
+  }
+  Promise.resolve(it ? leer() : null).then(function(){
+    var porNombre = function(a,b){ return a.name.localeCompare(b.name, "es", {numeric:true}); };
+    carpetas.sort(porNombre); archivos.sort(porNombre);
+    lista.innerHTML = "";
+    function fila(icono, nombre, extra){
+      var d = document.createElement("div"); d.className = "importado-item"; d.style.cursor = "pointer";
+      d.innerHTML = '<div class="info"><div class="nombre">'+icono+' '+escapeHtml(nombre)+'</div></div>';
+      if(extra) d.appendChild(extra);
+      lista.appendChild(d); return d;
+    }
+    if(carpNav.pila.length > 1){
+      fila("⬆️", "Subir un nivel").addEventListener("click", function(){ carpNav.pila.pop(); carpNav.nombres.pop(); listarCarpetaActual(); });
+    }
+    carpetas.forEach(function(h){
+      fila("📁", h.name).addEventListener("click", function(){ carpNav.pila.push(h); carpNav.nombres.push(h.name); listarCarpetaActual(); });
+    });
+    archivos.forEach(function(h){
+      var esResp = /\.(zip|json)$/i.test(h.name), extra = null;
+      if(esResp){
+        extra = document.createElement("button"); extra.type = "button"; extra.className = "btn-secondary"; extra.textContent = "⬆️ Importar";
+        extra.style.cssText = "margin-left:auto; padding:6px 10px; border-radius:8px; font-size:.78rem; white-space:nowrap;";
+        extra.addEventListener("click", function(e){
+          e.stopPropagation();
+          h.getFile().then(function(file){
+            cerrarExploradorCarpeta(); cargarArchivosRespaldo([file]);
+            toast("Respaldo cargado: revisa la lista de «Respaldo e importación» antes de importar", 5000);
+          }).catch(function(){ toast("No se pudo leer el archivo"); });
+        });
+      }
+      fila(/\.(jpe?g|png|webp|heic|heif)$/i.test(h.name) ? "🖼️" : /\.(mp4|mov|webm|3gp)$/i.test(h.name) ? "🎥" : "📄", h.name, extra).addEventListener("click", function(){ abrirArchivoDeCarpeta(h); });
+    });
+    if(!carpetas.length && !archivos.length) lista.appendChild(Object.assign(document.createElement("div"), {className:"campo-ayuda", textContent:"La carpeta está vacía."}));
+  }).catch(function(){ lista.innerHTML = '<div class="campo-ayuda">No se pudo leer esta carpeta.</div>'; });
+}
+function abrirArchivoDeCarpeta(fh){
+  fh.getFile().then(function(file){
+    var url = URL.createObjectURL(file), a = document.createElement("a");
+    a.href = url; a.target = "_blank"; a.rel = "noopener";
+    if(!/^(image|video|text|application\/pdf)/.test(file.type || "")) a.download = file.name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  }).catch(function(){ toast("No se pudo abrir el archivo"); });
+}
 function renderImportados(){
   var box = document.getElementById("importados-lista");
   var acciones = document.getElementById("importados-acciones");
