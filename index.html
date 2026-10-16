@@ -485,7 +485,10 @@ details.cfg-bloque > .cfg-bloque-cuerpo{padding-bottom:6px;}
 details.mas-opciones > summary{font-size:.8rem; color:var(--texto-sec); cursor:pointer; padding:8px 4px; list-style:none; text-align:center; opacity:.8;}
 details.mas-opciones > summary::-webkit-details-marker{display:none;}
 details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
-.cons-compartir-fila{display:flex; justify-content:flex-end; margin:0 0 8px;}
+.cons-fila-opciones{display:flex; gap:10px; margin:0 0 12px; align-items:stretch;}
+.cons-fila-opciones > *{flex:1 1 0; min-width:0; margin:0;}
+.cons-fila-opciones .consulta-opcion{padding:10px 12px; gap:10px; font-size:.9rem;}
+.cons-fila-opciones .btn-compartir{font-size:.9rem; padding:10px 12px; border-radius:12px;}
 .btn-compartir{font-size:.85rem; padding:8px 14px; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-weight:700; cursor:pointer;}
 .cons-ubic-mapa{display:inline-block; margin-left:4px; padding:3px 10px; font-size:.82rem; font-weight:700; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); cursor:pointer; vertical-align:baseline;}
 .mapa-cfg-card{border:1px solid var(--borde); border-radius:12px; padding:12px; margin:0 0 10px; background:var(--card);}
@@ -931,8 +934,10 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
   <button type="button" class="cons-flecha cons-flecha-der sin-destino" id="cons-flecha-der" aria-label="Registro siguiente (mayor)">›</button>
   <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura — desliza a los lados para cambiar de registro</p></div></div></div>
   <div class="pad">
-    <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Mantener la pantalla encendida</span></label>
-    <div class="cons-compartir-fila"><button type="button" class="btn-compartir" id="btn-consulta-compartir">📤 Compartir o copiar</button></div>
+    <div class="cons-fila-opciones">
+      <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Pantalla encendida</span></label>
+      <button type="button" class="btn-compartir" id="btn-consulta-compartir">📤 Compartir</button>
+    </div>
     <div class="narr-entrada" id="consulta-tarjeta"></div>
     <label class="consulta-opcion" style="margin-top:12px;"><input type="checkbox" id="consulta-transcrito"><span>✍️ Ya transcrito en libreta física</span></label>
     <div id="consulta-espacio" style="height:calc(190px + env(safe-area-inset-bottom, 0px));"></div>
@@ -3539,7 +3544,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-16 · v2.50";
+var APP_BUILD = "2026-10-16 · v2.51";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -5946,7 +5951,7 @@ function htmlConsultaRegistro(r, conBotonMapa){
       (conBotonMapa && mapaPestanaVisible() ? ' <button type="button" class="cons-ubic-mapa">🗺️ Ver en el mapa</button>' : '')+'</div>');
   }
   // Fecha dd/mm/aa
-  if(r.fecha) et.push('<div class="narr-linea"><b>Fecha:</b> '+escapeHtml(fechaCortaDMA(r.fecha))+'</div>');
+  if(r.fecha || r.hora) et.push('<div class="narr-linea"><b>Fecha:</b> '+escapeHtml(fechaCortaDMA(r.fecha))+(r.hora?((r.fecha?' · ':'')+escapeHtml(r.hora)):'')+'</div>');
   // Colector
   if(r.colector) et.push('<div class="narr-linea"><b>'+(r.tipo==="coleccion"?"Colector":"Observador")+':</b> '+escapeHtml(r.colector)+'</div>');
   // Hábitat, microhábitat y estación
@@ -5957,7 +5962,6 @@ function htmlConsultaRegistro(r, conBotonMapa){
   // Notas
   if(r.notas) p.push('<div class="narr-linea"><b>Notas:</b></div><div class="narr-notas" style="margin-top:0;">'+formatearNotasHtml(r.notas)+'</div>');
   // Resto de la información registrada
-  if(r.hora) p.push('<div class="narr-linea"><b>Hora:</b> '+escapeHtml(r.hora)+'</div>');
   if(r.sustrato) p.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
   if(r.metodo) p.push('<div class="narr-linea"><b>Método:</b> '+escapeHtml(r.metodo)+'</div>');
   if(r.tipo==="observacion" && (r.obsInicio || r.obsTermino)){
@@ -6066,7 +6070,7 @@ function sincronizarOpcionesConsulta(r){
   var op = document.getElementById("consulta-opcion-pantalla");
   if(!soportaWakeLock()){
     chkP.checked = false; chkP.disabled = true; op.classList.add("desactivada");
-    document.getElementById("consulta-pantalla-texto").textContent = "🔆 Mantener la pantalla encendida (no disponible en este navegador)";
+    document.getElementById("consulta-pantalla-texto").textContent = "🔆 Pantalla encendida (no disponible)";
   } else {
     chkP.checked = !!state.pantallaActiva; chkP.disabled = false; op.classList.remove("desactivada");
   }
