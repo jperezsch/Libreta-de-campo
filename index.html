@@ -138,6 +138,10 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .tipo-btn.on{background:var(--verde); color:#fff; border-color:var(--verde); font-weight:700;}
 .colector-todos{display:inline-block; padding:8px 14px; border-radius:20px; border:1.5px dashed var(--borde); background:var(--card); font-size:.9rem; margin:0 6px 6px 0; cursor:pointer;}
 .colector-todos.on{background:var(--verde-cl); color:var(--verde-osc); border-color:var(--verde);}
+.cons-etiqueta{background:var(--verde-cl); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:20px 12px 8px; margin:6px 0 12px; position:relative;}
+.cons-etiqueta::before{content:"Datos para la etiqueta"; position:absolute; top:5px; left:12px; font-size:.64rem; letter-spacing:.5px; text-transform:uppercase; color:var(--texto-sec); font-weight:700;}
+.cons-etiqueta .narr-linea{font-size:.97rem; color:var(--texto);}
+.cons-etiqueta .narr-linea b{color:var(--verde-osc);}
 .cons-sesion{font-size:1.1rem; font-weight:800; line-height:1.3; color:var(--cons-sesion); margin-bottom:8px;}
 .cons-tipo{font-size:.8rem; font-weight:600; color:var(--texto-sec);}
 .cons-sesion-estado{font-size:.72rem; font-weight:600; color:var(--texto-sec); margin-left:4px; white-space:nowrap;}
@@ -471,6 +475,13 @@ details.mas-opciones.en-sesion{margin:2px 0 12px;}
 .sesion-acciones-fila .btnfull{flex:1; margin:0; min-width:0;}
 #ss-proyecto{background:var(--fondo); color:var(--texto-sec); border-style:dashed; cursor:not-allowed;}
 details.mas-opciones{margin:26px 0 110px;}
+/* v2.50: bloques desplegables de Config (Gestión de imágenes / Gestión de mapas) */
+details.cfg-bloque{margin:20px 0 0; border-top:1px solid var(--borde, rgba(128,128,128,.25));}
+details.cfg-bloque > summary{font-size:.82rem; text-transform:uppercase; letter-spacing:.4px; color:var(--texto-sec); font-weight:700; cursor:pointer; padding:12px 2px; list-style:none; display:flex; align-items:center; justify-content:space-between;}
+details.cfg-bloque > summary::-webkit-details-marker{display:none;}
+details.cfg-bloque > summary::after{content:"▾"; font-size:1rem; transition:transform .15s;}
+details.cfg-bloque[open] > summary::after{transform:rotate(180deg);}
+details.cfg-bloque > .cfg-bloque-cuerpo{padding-bottom:6px;}
 details.mas-opciones > summary{font-size:.8rem; color:var(--texto-sec); cursor:pointer; padding:8px 4px; list-style:none; text-align:center; opacity:.8;}
 details.mas-opciones > summary::-webkit-details-marker{display:none;}
 details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
@@ -907,11 +918,10 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div class="section-title">Aplicación</div>
     <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
     <div class="version-info" id="version-info">Comprobando versión...</div>
-    <div class="section-title">Copia original de fotos y videos</div>
-    <div id="config-copia"></div>
-       <div class="section-title">Datos</div>
-    <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
- <details class="mas-opciones" id="mas-opciones"><summary>Más opciones</summary><div id="config-mapa"></div></details>
+    <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
+    <details class="cfg-bloque" id="cfg-gestion-mapas"><summary>Gestión de mapas</summary><div class="cfg-bloque-cuerpo" id="config-mapa"></div></details>
+    <div class="section-title">Datos</div>
+    <button type="button" class="btnfull btn-danger" id="btn-borrar-todo" style="margin-bottom:110px;">🗑 Borrar todos los registros y sesiones</button>
   </div>
 </div>
 
@@ -3529,7 +3539,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-16 · v2.49";
+var APP_BUILD = "2026-10-16 · v2.50";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -5241,7 +5251,7 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
   var promesas = todasLasFotos.map(function(item){
     return leerFotoDB(item.foto.id).then(function(dataURL){
       if(!dataURL) return;
-      var conExif = incrustarExif(dataURL, item.foto.comentario, item.registro.lat, item.registro.lon, item.registro.altitud);
+      var conExif = incrustarExif(dataURL, comentarioConEnlaceHD(item.foto), item.registro.lat, item.registro.lon, item.registro.altitud);
       var base64 = conExif.split(",")[1];
       var filename = nombreUnico(sanitizarNombreArchivo(item.registro.codigo || item.registro.id)+"__"+sanitizarNombreFoto(item.foto.nombre)+".jpg");
       carpetaFotos.file(filename, base64, {base64:true});
@@ -5913,34 +5923,41 @@ function htmlConsultaRegistro(r, conBotonMapa){
   var derecha = r.codigo ? ('<span class="narr-codigo">'+escapeHtml(r.codigo)+'</span>')
     : (r.notaTitulo ? ('<span style="font-weight:800; color:var(--verde-osc); font-size:.9rem;">'+escapeHtml(r.notaTitulo)+'</span>') : '');
   p.push('<div class="narr-cabecera"><span class="cons-tipo">'+ti.ic+' '+ti.label+subtipoTxt+'</span>'+derecha+'</div>');
+  // v2.50: los datos que se copian textualmente a la etiqueta del ejemplar van juntos en un bloque (Taxón, Localidad, Ubicación, Fecha, Colector, Hábitat, Microhábitat, Estación)
+  var et = [];
   // Taxón
   if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length){
     var itemsEsp = r.especies.map(function(e){ return '<li>'+escapeHtml(e.nombre)+' <b>— '+e.cantidad+(e.cantidad==1?' ejemplar':' ejemplares')+'</b></li>'; }).join("");
     var numEsp = r.especies.length;
-    p.push('<div class="narr-linea"><b>Especies observadas:</b> '+numEsp+(numEsp===1?' especie':' especies')+' · '+sumaEspecies(r)+' individuos en total</div><ul class="narr-especies-lista">'+itemsEsp+'</ul>');
+    et.push('<div class="narr-linea"><b>Especies observadas:</b> '+numEsp+(numEsp===1?' especie':' especies')+' · '+sumaEspecies(r)+' individuos en total</div><ul class="narr-especies-lista">'+itemsEsp+'</ul>');
   } else {
     var cant = cantidadEjemplares(r);
-    if(r.taxonLibre) p.push('<div class="narr-linea"><b>Taxón:</b> '+escapeHtml(r.taxonLibre)+(cant!=null?(' ('+cant+(cant==1?' ejemplar)':' ejemplares)')):'')+'</div>');
+    if(r.taxonLibre) et.push('<div class="narr-linea"><b>Taxón:</b> '+escapeHtml(r.taxonLibre)+(cant!=null?(' ('+cant+(cant==1?' ejemplar)':' ejemplares)')):'')+'</div>');
   }
+  // Localidad (verbatim: localidad específica + localidad general)
+  var locVerb = localidadVerbatimExportar(r, sesR);
+  if(locVerb) et.push('<div class="narr-linea"><b>Localidad:</b> '+escapeHtml(locVerb)+'</div>');
   // Ubicación con precisión
   if(r.lat && r.lon){
     var prec = precisionGpsDeRegistro(r);
     var clsPrec = prec==null ? "" : (prec<=10 ? "" : (prec<=25 ? "precision-moderada" : "precision-baja"));
-    p.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null&&r.altitud!==""?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+
+    et.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null&&r.altitud!==""?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+
       (prec!=null?(' · <span class="'+clsPrec+'" style="font-weight:600;">±'+Math.round(prec)+' m</span>'):'')+
       (conBotonMapa && mapaPestanaVisible() ? ' <button type="button" class="cons-ubic-mapa">🗺️ Ver en el mapa</button>' : '')+'</div>');
   }
   // Fecha dd/mm/aa
-  if(r.fecha || r.hora) p.push('<div class="narr-linea"><b>Fecha:</b> '+escapeHtml(fechaCortaDMA(r.fecha))+(r.hora?(' · '+escapeHtml(r.hora)):'')+'</div>');
+  if(r.fecha) et.push('<div class="narr-linea"><b>Fecha:</b> '+escapeHtml(fechaCortaDMA(r.fecha))+'</div>');
   // Colector
-  if(r.colector) p.push('<div class="narr-linea"><b>'+(r.tipo==="coleccion"?"Colector":"Observador")+':</b> '+escapeHtml(r.colector)+'</div>');
-  // Hábitat y notas
-  if(r.habitat) p.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
+  if(r.colector) et.push('<div class="narr-linea"><b>'+(r.tipo==="coleccion"?"Colector":"Observador")+':</b> '+escapeHtml(r.colector)+'</div>');
+  // Hábitat, microhábitat y estación
+  if(r.habitat) et.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
+  if(r.referencia) et.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
+  if(r.estacion) et.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
+  if(et.length) p.push('<div class="cons-etiqueta">'+et.join("")+'</div>');
+  // Notas
   if(r.notas) p.push('<div class="narr-linea"><b>Notas:</b></div><div class="narr-notas" style="margin-top:0;">'+formatearNotasHtml(r.notas)+'</div>');
   // Resto de la información registrada
-  if(r.localidadEspecifica) p.push('<div class="narr-linea"><b>Localidad específica:</b> '+escapeHtml(r.localidadEspecifica)+'</div>');
-  if(r.estacion) p.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
-  if(r.referencia) p.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
+  if(r.hora) p.push('<div class="narr-linea"><b>Hora:</b> '+escapeHtml(r.hora)+'</div>');
   if(r.sustrato) p.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
   if(r.metodo) p.push('<div class="narr-linea"><b>Método:</b> '+escapeHtml(r.metodo)+'</div>');
   if(r.tipo==="observacion" && (r.obsInicio || r.obsTermino)){
@@ -6106,7 +6123,12 @@ function textoRegistroConsulta(r, conFotos){
   d.innerHTML = htmlConsultaRegistro(r, false);
   function limpio(t){ return String(t||"").replace(/\s+/g," ").trim(); }
   var cab = "", sesion = "", cuerpo = [];
+  var elementos = [];
   Array.prototype.forEach.call(d.children, function(el){
+    if(el.classList.contains("cons-etiqueta")) Array.prototype.forEach.call(el.children, function(h){ elementos.push(h); });
+    else elementos.push(el);
+  });
+  elementos.forEach(function(el){
     if(el.classList.contains("cons-sesion")){ sesion = limpio(el.textContent); return; }
     if(el.classList.contains("narr-cabecera")){ cab = Array.prototype.map.call(el.children, function(c){ return limpio(c.textContent); }).filter(Boolean).join(" · "); return; }
     if(el.tagName==="UL"){ Array.prototype.forEach.call(el.children, function(li){ cuerpo.push("  • "+limpio(li.textContent)); }); return; }
@@ -7268,7 +7290,7 @@ function renderConfigCopia(){
   var cfg = copiaCfg();
   box.innerHTML =
     '<div class="field"><label>Guardar copia original en</label><select id="cc-modo">'+
-      '<option value="off">Apagada (solo la foto reducida del .zip)</option>'+
+      '<option value="off">Desactivada (solo foto en .zip)</option>'+
       '<option value="carpeta"'+(soportaCarpeta()?'':' disabled')+'>Una carpeta del teléfono'+(soportaCarpeta()?'':' (no disponible en este navegador)')+'</option>'+
       '<option value="descargas">Descargas del teléfono</option></select></div>'+
     '<div class="field"><label>Tamaño de la copia de las fotos</label><select id="cc-tam">'+
@@ -7277,7 +7299,7 @@ function renderConfigCopia(){
     '<button type="button" class="btnfull btn-secondary" id="cc-elegir" style="display:none;">📁 Elegir carpeta…</button>'+
     '<div class="campo-ayuda" id="cc-estado"></div>'+
     '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
-    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en una subcarpeta por sesión. Los videos solo se guardan aquí, no en el .zip.</div>';
+    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en una subcarpeta por sesión. Los videos no se incluyen en el .zip.</div>';
   document.getElementById("cc-modo").value = cfg.modo;
   document.getElementById("cc-tam").value = cfg.tam;
   function estado(){
@@ -7287,15 +7309,16 @@ function renderConfigCopia(){
       var h = v[0], ids = v[1], set = {}; ids.forEach(function(i){ set[i] = 1; });
       var nPend = 0;
       state.registros.forEach(function(r){ elementosArchivables(r).forEach(function(e){ if(set[e.it.id]) nPend++; }); });
-      var t = c.modo === "off" ? "La copia original está apagada." : c.modo === "descargas" ? "Las copias se descargarán a la carpeta Descargas." : (h ? "Carpeta elegida: "+h.name : "Aún no hay carpeta elegida.");
+      var t = c.modo === "off" ? "La copia original está desactivada." : c.modo === "descargas" ? "Las copias se descargarán a la carpeta Descargas." : (h ? "Carpeta elegida: "+h.name : "Aún no hay carpeta elegida.");
       if(nPend) t += " Pendientes de copiar: "+nPend+".";
       document.getElementById("cc-estado").textContent = t;
+      document.getElementById("cc-elegir").textContent = h ? "📁 Cambiar carpeta…" : "📁 Elegir carpeta…";
       document.getElementById("cc-pendientes").style.display = (c.modo !== "off" && nPend) ? "block" : "none";
     });
   }
   document.getElementById("cc-modo").addEventListener("change", function(){
     var c = copiaCfg(); c.modo = this.value; guardarCopiaCfg(c);
-    if(c.modo === "carpeta") elegirCarpetaCopia().then(estado); else estado();
+    estado();
   });
   document.getElementById("cc-tam").addEventListener("change", function(){ var c = copiaCfg(); c.tam = this.value; guardarCopiaCfg(c); });
   document.getElementById("cc-elegir").addEventListener("click", function(){ elegirCarpetaCopia().then(estado); });
@@ -7368,6 +7391,14 @@ function generarGPXRecorrido(rc, sesion){
 function nombreArchivoRecorrido(rc, sesion){
   return sanitizarNombreArchivo(sesion ? nombreSesionMostrar(sesion) : "sesion")+"__recorrido_"+pad(rc.n||1,2)+".gpx";
 }
+// v2.50: si la foto tiene copia HD/original en la carpeta del teléfono, la foto reducida del .zip lleva la ruta a esa copia en su comentario EXIF
+// (la ruta ya viaja también en respaldo.json, campo copiaLocal de cada foto). Solo ASCII: las rutas ya vienen saneadas.
+function comentarioConEnlaceHD(foto){
+  var c = foto.comentario || "";
+  if(!foto.copiaLocal) return c;
+  var enl = "HD: " + foto.copiaLocal;
+  return c ? (c + " | " + enl) : enl;
+}
 function incrustarExif(dataURL, comentario, lat, lon, alt){
   if(typeof piexif === "undefined") return dataURL;
   try{
@@ -7395,7 +7426,7 @@ function incrustarExif(dataURL, comentario, lat, lon, alt){
 function descargarFotoComoArchivo(foto, registro){
   return leerFotoDB(foto.id).then(function(dataURL){
     if(!dataURL) return;
-    var conExif = incrustarExif(dataURL, foto.comentario, registro.lat, registro.lon, registro.altitud);
+    var conExif = incrustarExif(dataURL, comentarioConEnlaceHD(foto), registro.lat, registro.lon, registro.altitud);
     var filename = sanitizarNombreArchivo(registro.codigo || registro.id)+"__"+sanitizarNombreFoto(foto.nombre)+".jpg";
     var a = document.createElement("a");
     a.href = conExif;
