@@ -213,7 +213,11 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .narr-foto-bg{align-items:center; justify-content:center; padding:24px;}
 .narr-foto-inner{width:100%; max-width:520px; max-height:88vh; background:#111; border-radius:16px; overflow:hidden; display:flex; flex-direction:column;}
 .narr-foto-inner img{width:100%; max-height:76vh; object-fit:contain; background:#000;}
-.narr-foto-imgwrap{position:relative;}
+.narr-foto-imgwrap{position:relative; overflow:hidden; touch-action:none; background:#000;}
+.narr-foto-imgwrap img{transform-origin:center center; will-change:transform; user-select:none; -webkit-user-select:none; -webkit-user-drag:none; touch-action:none;}
+.narr-foto-tit{color:#fff; font-size:.88rem; font-weight:800; padding:10px 14px 0; text-align:center;}
+.narr-foto-ver{display:block; width:calc(100% - 28px); margin:0 14px 14px; padding:11px; border-radius:10px; border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.14); color:#fff; font-size:.9rem; font-weight:700; cursor:pointer;}
+.narr-foto-zoom{position:absolute; left:10px; top:10px; background:rgba(0,0,0,.5); color:#fff; font-size:.72rem; padding:3px 9px; border-radius:10px; display:none;}
 .narr-foto-nav{position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,.45); color:#fff; border:none; width:42px; height:42px; border-radius:50%; font-size:1.6rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
 .narr-foto-nav.prev{left:10px;}
 .narr-foto-nav.next{right:10px;}
@@ -258,6 +262,14 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .dg-body{display:none; padding:4px 14px 16px;}
 .dg-box.abierto .dg-body{display:block;}
 .dg-box .field label{color:var(--texto-sec);}
+/* v2.48: subtítulos bien distintos para "Tipo de registro" (verde, botones cuadrados) y "Colector / observador" (ámbar, chips redondeados con ✓) */
+.dg-box .field label.dg-subtitulo{display:block; margin:6px 0 10px; padding:7px 10px; border-radius:8px; font-size:.8rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase;}
+.dg-box .field label.dg-sub-tipo{background:var(--verde-cl); color:var(--verde-osc); border-left:5px solid var(--verde);}
+.dg-box .field label.dg-sub-colector{background:rgba(201,150,44,.16); color:var(--ambar-osc); border-left:5px solid var(--ambar);}
+#colector-wrap{padding:8px 8px 2px; border:1.5px dashed var(--ambar); border-radius:12px; margin-bottom:6px;}
+#colector-wrap .colector-chip.on, #colector-wrap .colector-todos.on{background:rgba(201,150,44,.22); color:var(--ambar-osc); border-color:var(--ambar); font-weight:700;}
+#colector-wrap .colector-chip.on:before, #colector-wrap .colector-todos.on:before{content:"✓ ";}
+#tipo-botones{margin-bottom:6px;}
 .btn-cerrar-dg{display:block; width:auto; margin:16px auto 0; padding:9px 22px; border-radius:10px; border:1.5px solid var(--verde); background:none; color:var(--verde-osc); font-size:.85rem; font-weight:700; cursor:pointer;}
 .aviso-tipo-bloqueado{
   margin-top:10px; padding:12px 14px; border-radius:12px; background:#fdeaea; border:1.5px solid #e8a8a8;
@@ -597,7 +609,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
         <span class="dg-chev" id="dg-chev">▾</span>
       </button>
       <div class="dg-body" id="dg-body">
-        <div class="field"><label>Tipo de registro</label>
+        <div class="field"><label class="dg-subtitulo dg-sub-tipo">🏷️ Tipo de registro</label>
           <div class="tipo-botones" id="tipo-botones">
             <button type="button" class="tipo-btn" data-tipo="coleccion">🧪 Recolección</button>
             <button type="button" class="tipo-btn" data-tipo="observacion">👁 Observación</button>
@@ -613,7 +625,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
           </select>
           <div id="aviso-tipo-bloqueado" class="aviso-tipo-bloqueado" style="display:none;"></div>
         </div>
-        <div class="field"><label id="label-colector">Colector / observador</label><div id="colector-wrap"></div></div>
+        <div class="field"><label id="label-colector" class="dg-subtitulo dg-sub-colector">👥 Colector / observador</label><div id="colector-wrap"></div></div>
         <div id="dg-observacion-extra" style="display:none;">
           <div class="field"><label>Tipo de observación</label>
             <select id="f-metodo-obs">
@@ -676,6 +688,9 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <button type="button" class="btnfull btn-amber" style="margin:0;" id="btn-tomar-foto">📷 Tomar foto</button>
       <button type="button" class="btnfull btn-secondary" style="margin:0;" id="btn-galeria-foto">🖼 Seleccionar desde galería</button>
     </div>
+    <button type="button" class="btnfull btn-secondary" style="margin:8px 0 0;" id="btn-grabar-video">🎥 Grabar video (se guarda en la carpeta del teléfono)</button>
+    <input type="file" id="f-input-video" accept="video/*" capture="environment" style="display:none;">
+    <div id="videos-lista"></div>
     <input type="file" id="f-input-camara" accept="image/*" capture="environment" style="display:none;">
     <input type="file" id="f-input-galeria" accept="image/*" multiple style="display:none;">
     <div id="fotos-lista"></div>
@@ -813,6 +828,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <button type="button" class="vista-btn" id="btn-nota-operativo">📌 Operativo</button>
       <button type="button" class="vista-btn" id="btn-nota-narrativo">📖 Narrativo</button>
     </div>
+    <div class="switch-row" id="nota-codigo-wrap" style="display:none; margin-bottom:12px;"><div>Asignar código a esta nota</div><input type="checkbox" id="f-nota-con-codigo"></div>
     <div class="field">
       <div class="notas-toolbar">
         <button type="button" id="btn-notas-bold" title="Negrita"><b>N</b></button>
@@ -891,6 +907,8 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div class="section-title">Aplicación</div>
     <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
     <div class="version-info" id="version-info">Comprobando versión...</div>
+    <div class="section-title">Copia original de fotos y videos</div>
+    <div id="config-copia"></div>
        <div class="section-title">Datos</div>
     <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
  <details class="mas-opciones" id="mas-opciones"><summary>Más opciones</summary><div id="config-mapa"></div></details>
@@ -974,8 +992,11 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <button type="button" class="narr-foto-nav prev" id="narr-foto-prev" style="display:none;">‹</button>
       <button type="button" class="narr-foto-nav next" id="narr-foto-next" style="display:none;">›</button>
       <div class="narr-foto-contador" id="narr-foto-contador" style="display:none;"></div>
+      <div class="narr-foto-zoom" id="narr-foto-zoom"></div>
     </div>
+    <div class="narr-foto-tit" id="narr-foto-tit"></div>
     <div class="narr-foto-cap" id="narr-foto-cap"></div>
+    <button type="button" class="narr-foto-ver" id="narr-foto-ver-reg" style="display:none;">📄 Ver datos de este registro</button>
   </div>
 </div>
 
@@ -3508,7 +3529,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-06 · v2.47";
+var APP_BUILD = "2026-10-16 · v2.49";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -3787,17 +3808,18 @@ function guardarRecorridos(){ return setLS(LSK.rec, JSON.stringify(state.recorri
 function guardarDraft(){ if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
 
 /* ---------------- Fotos: almacenamiento en IndexedDB (mucho más espacio que localStorage) ---------------- */
-var FOTOS_DB_NAME = "libretacampo_fotos_db", FOTOS_STORE = "fotos";
+var FOTOS_DB_NAME = "libretacampo_fotos_db", FOTOS_STORE = "fotos", ORIG_STORE = "originales";   // v2.49: "originales" guarda las copias en tamaño original hasta volcarlas a la carpeta del teléfono
 var fotosDbPromise = null;
 var fotoCache = {}; // cache en memoria para la sesión actual, evita relecturas
 function abrirFotosDB(){
   if(fotosDbPromise) return fotosDbPromise;
   fotosDbPromise = new Promise(function(resolve, reject){
     if(!window.indexedDB){ reject(new Error("IndexedDB no disponible")); return; }
-    var req = indexedDB.open(FOTOS_DB_NAME, 1);
+    var req = indexedDB.open(FOTOS_DB_NAME, 2);
     req.onupgradeneeded = function(e){
       var db = e.target.result;
       if(!db.objectStoreNames.contains(FOTOS_STORE)) db.createObjectStore(FOTOS_STORE, {keyPath:"id"});
+      if(!db.objectStoreNames.contains(ORIG_STORE)) db.createObjectStore(ORIG_STORE, {keyPath:"id"});
     };
     req.onsuccess = function(e){ resolve(e.target.result); };
     req.onerror = function(e){ reject(e.target.error); };
@@ -3828,6 +3850,7 @@ function leerFotoDB(id){
 }
 function borrarFotoDB(id){
   delete fotoCache[id];
+  if(typeof borrarOriginal === "function") borrarOriginal(id);
   return abrirFotosDB().then(function(db){
     return new Promise(function(resolve){
       var tx = db.transaction(FOTOS_STORE, "readwrite");
@@ -3922,14 +3945,12 @@ function numerosUsadosPrefijo(prefijo, excluirId){
   });
   return usados;
 }
-// El código sugerido parte del contador de la sesión y salta los números que ya existen con ese prefijo
+// v2.48: el código sugerido es exactamente el contador que fijó la persona ("Siguiente número"). La app ya no salta ni corrige
+// números por su cuenta: si hay saltos, repeticiones o huecos, solo lo informa (aviso bajo el código y pista del prefijo).
 function proximoCodigo(sesion){
   var s = sesion || sesionActiva();
   if(!s) return "—";
   var n = parseInt(s.contador,10); if(isNaN(n)) n = 0;
-  var usados = numerosUsadosPrefijo(s.prefijo);
-  var guard = 0;
-  while(usados[n] && guard < 100000){ n++; guard++; }
   return s.prefijo + "-" + pad(n, 3);
 }
 function actualizarCamposProximo(s){
@@ -3970,7 +3991,7 @@ function actualizarAvisoCodigo(){
   var d = state.draft;
   var codigo = (document.getElementById("f-codigo").value||"").trim();
   function ocultar(){ el.style.display = "none"; el.textContent = ""; el.className = "campo-aviso-codigo"; }
-  if(!d || d._viendo || d.tipo==="nota" || !codigo){ ocultar(); return; }
+  if(!d || d._viendo || (d.tipo==="nota" && !d.notaConCodigo) || !codigo){ ocultar(); return; }
   var dup = state.registros.filter(function(r){ return r.id!==d.id && r.codigo && String(r.codigo).toLowerCase()===codigo.toLowerCase(); })[0];
   var txt = "", cls = "";
   if(dup){
@@ -3996,6 +4017,7 @@ function actualizarAvisoCodigo(){
 
 /* ---------------- Navegación ---------------- */
 function irA(view, opts){
+  var idResaltar = null;
   document.querySelectorAll(".screen").forEach(function(v){ v.classList.remove("on"); });
   document.querySelectorAll(".navbtn").forEach(function(b){ b.classList.remove("on"); });
   document.getElementById("s-"+view).classList.add("on");
@@ -4017,7 +4039,13 @@ function irA(view, opts){
     state.registros.forEach(function(r){
       if(r.sesionId !== idAbierta) narrColapsadas.add(r.id);
     });
-    renderLista();
+    // v2.48: si se viene de guardar un registro, se abre su sesión y se resalta
+    idResaltar = state.resaltarRegistroId || null; state.resaltarRegistroId = null;
+    if(idResaltar){
+      var rrs = state.registros.filter(function(x){ return x.id===idResaltar; })[0];
+      if(rrs){ listaSesionesColapsadas.delete(rrs.sesionId); narrColapsadas.delete(rrs.id); } else idResaltar = null;
+    }
+    renderLista(idResaltar);
   }
   if(view!=="sesion") state.sesionEditando = false;
   if(view==="sesion") renderSesion();
@@ -4025,13 +4053,17 @@ function irA(view, opts){
   if(view==="config") renderConfig();
   if(view==="consulta") renderConsulta(state.consultaId);
   if(window.MapaPro){ if(view==="mapa") MapaPro.alMostrar(); else MapaPro.alOcultar(); }
-  if(view==="lista") irBajarFinal(); else irSubirInicio();
+  if(view==="lista") irBajarFinal(idResaltar); else irSubirInicio();
   if(!(opts && opts.sinHistorial)) registrarVistaEnHistorial(view);
   actualizarWakeLock();
 }
-function irBajarFinal(){
+function irBajarFinal(idResaltar){
   if(window.requestAnimationFrame){
     requestAnimationFrame(function(){
+      if(idResaltar){
+        var objetivo = document.querySelector('#s-lista [data-id="'+idResaltar+'"]');
+        if(objetivo && objetivo.scrollIntoView){ objetivo.scrollIntoView({block:"center"}); return; }
+      }
       var el = document.getElementById("card-draft-pendiente");
       if(!el){
         var cards = document.querySelectorAll("#lista-registros .card");
@@ -4290,7 +4322,7 @@ document.getElementById("ss-selector-sesion").addEventListener("change", functio
 function sincronizarCodigoDraftConSesion(){
   if(!state.draft || state.draft._editando || state.draft._viendo) return;
   if(state.draft.sesionId !== state.sesionActivaId) return;
-  if(state.draft.tipo === "nota") return;
+  if(state.draft.tipo === "nota" && !state.draft.notaConCodigo) return;
   state.draft.codigo = proximoCodigo(sesionActiva());
   guardarDraft();
   if(state.currentView === "form"){
@@ -4681,6 +4713,15 @@ function iconoFotosHtml(r){
   if(!n) return "";
   return '<span class="reg-foto" title="'+n+(n===1?' foto':' fotos')+'">📷'+(n>1?' '+n:'')+'</span>';
 }
+// v2.48: botón 🗺️ de cada tarjeta de Registros (reemplaza al ojo; tocar la tarjeta sigue abriendo la consulta del registro)
+function verRegistroEnMapa(id){
+  var r = state.registros.filter(function(x){ return x.id===id; })[0];
+  if(!r) return;
+  var lat = parseFloat(r.lat), lon = parseFloat(r.lon);
+  if(isNaN(lat) || isNaN(lon)){ toast("Este registro no tiene coordenadas para mostrar en el mapa", 3500); return; }
+  if(!(window.MapaPro && MapaPro.verPunto) || !mapaPestanaVisible()){ toast("El mapa no está disponible: actívalo en Config o asocia un mapa a la sesión", 4200); return; }
+  MapaPro.verPunto({id:r.id, lat:lat, lon:lon, sesionId:r.sesionId, volverA:null});
+}
 function renderListaTarjetas(lista, justSavedId){
   var cont = document.getElementById("lista-registros");
   var htmlDraft = (state.draft && !state.draft._viendo) ? ('<div class="card card-draft" id="card-draft-pendiente">'+
@@ -4728,14 +4769,14 @@ function renderListaTarjetas(lista, justSavedId){
             '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+iconoFotosHtml(r)+'</div>'+
           '</div>'+
           (modoReordenarRegistros ? '' : ('<div class="reg-actions">'+
-            '<button type="button" class="btn-icon" data-action="ver" data-id="'+r.id+'" title="Ver">👁</button>'+
+            '<button type="button" class="btn-icon" data-action="mapa" data-id="'+r.id+'" title="Ver en el mapa">🗺️</button>'+
             '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
           '</div>'))+'</div>';
       }).join("");
       return headerHtml + tarjetasHtml;
     }).join("");
   }
-  cont.querySelectorAll('.btn-icon[data-action="ver"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); verRegistroExistente(b.dataset.id); }); });
+  cont.querySelectorAll('.btn-icon[data-action="mapa"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); verRegistroEnMapa(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
   cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ if(modoReordenarRegistros) return; verRegistroExistente(c.dataset.id); }); });
   cont.querySelectorAll('.reg-handle[data-handle]').forEach(function(h){
@@ -4840,43 +4881,163 @@ function textoEntradaNarrativa(r){
   if(r.notas) partes.push('<div class="narr-notas">'+formatearNotasHtml(r.notas)+'</div>');
   return partes.join("");
 }
+// v2.49: visor de fotos con zoom (pellizco, doble toque y rueda), navegación entre las fotos de TODOS los registros
+// y botón para volver a los datos del registro de la foto que se está viendo.
 var narrFotosActuales = [];
 var narrFotoIndiceActual = 0;
+var narrZoom = {s:1, x:0, y:0};
+var narrFotoToken = 0;
+function listaGaleriaGlobal(){
+  var items = [];
+  state.registros.forEach(function(r){
+    if(!r.fotos || !r.fotos.length) return;
+    var op = ordenarFotosConPortada(r);
+    var orden = (op.portada ? [op.portada] : []).concat(op.resto);
+    orden.forEach(function(f){
+      items.push({regId:r.id, fotoId:f.id, nombre:f.nombre, comentario:f.comentario, titulo:(r.codigo || r.notaTitulo || "Registro sin código")});
+    });
+  });
+  return items;
+}
+function aplicarZoomNarr(){
+  var img = document.getElementById("narr-foto-img");
+  img.style.transform = narrZoom.s===1 ? "" : "translate("+narrZoom.x+"px,"+narrZoom.y+"px) scale("+narrZoom.s+")";
+  var z = document.getElementById("narr-foto-zoom");
+  z.style.display = narrZoom.s>1.01 ? "block" : "none";
+  z.textContent = Math.round(narrZoom.s*100)+"%";
+}
+function limitarZoomNarr(){
+  var wrap = document.getElementById("narr-foto-imgwrap");
+  narrZoom.s = Math.max(1, Math.min(6, narrZoom.s));
+  if(narrZoom.s===1){ narrZoom.x = 0; narrZoom.y = 0; return; }
+  var mx = (narrZoom.s-1)*wrap.clientWidth/2, my = (narrZoom.s-1)*wrap.clientHeight/2;
+  narrZoom.x = Math.max(-mx, Math.min(mx, narrZoom.x));
+  narrZoom.y = Math.max(-my, Math.min(my, narrZoom.y));
+}
+function reiniciarZoomNarr(){ narrZoom = {s:1, x:0, y:0}; aplicarZoomNarr(); }
 function mostrarFotoNarrativaEnIndice(){
   var f = narrFotosActuales[narrFotoIndiceActual];
   if(!f) return;
-  document.getElementById("narr-foto-img").src = f.dataURL;
+  reiniciarZoomNarr();
+  var token = ++narrFotoToken;
+  var img = document.getElementById("narr-foto-img");
+  if(f.dataURL) img.src = f.dataURL;
+  else { img.removeAttribute("src"); leerFotoDB(f.fotoId).then(function(d){ if(token===narrFotoToken && d){ f.dataURL = d; img.src = d; } }); }
+  document.getElementById("narr-foto-tit").textContent = f.titulo || "";
+  document.getElementById("narr-foto-tit").style.display = f.titulo ? "block" : "none";
   document.getElementById("narr-foto-cap").textContent = f.comentario||f.nombre||"";
+  var btnReg = document.getElementById("narr-foto-ver-reg");
+  btnReg.style.display = f.regId ? "block" : "none";
   var multiple = narrFotosActuales.length > 1;
   document.getElementById("narr-foto-prev").style.display = multiple ? "flex" : "none";
   document.getElementById("narr-foto-next").style.display = multiple ? "flex" : "none";
   var contador = document.getElementById("narr-foto-contador");
   contador.style.display = multiple ? "block" : "none";
   if(multiple) contador.textContent = (narrFotoIndiceActual+1)+" / "+narrFotosActuales.length;
+  // se precargan las fotos vecinas para que el cambio sea inmediato
+  [1,-1].forEach(function(d){
+    var v = narrFotosActuales[(narrFotoIndiceActual+d+narrFotosActuales.length)%narrFotosActuales.length];
+    if(v && !v.dataURL && v.fotoId) leerFotoDB(v.fotoId).then(function(x){ if(x) v.dataURL = x; });
+  });
 }
 function navegarFotoNarrativa(delta){
   if(narrFotosActuales.length<=1) return;
   narrFotoIndiceActual = (narrFotoIndiceActual + delta + narrFotosActuales.length) % narrFotosActuales.length;
   mostrarFotoNarrativaEnIndice();
 }
-function abrirFotoNarrativa(listaFotosDelRegistro, indiceInicial){
-  narrFotosActuales = listaFotosDelRegistro;
+// Con regId: galería de todo el cuaderno, empezando en la foto indicada del registro. Sin regId (compatibilidad): solo la lista recibida.
+function abrirFotoNarrativa(listaFotosDelRegistro, indiceInicial, regId){
+  var inicio = listaFotosDelRegistro[indiceInicial];
+  if(regId && inicio){
+    var g = listaGaleriaGlobal();
+    var idx = -1;
+    g.forEach(function(it, i){ if(idx<0 && it.fotoId===inicio.id) idx = i; });
+    if(idx>=0){
+      listaFotosDelRegistro.forEach(function(f){ g.forEach(function(it){ if(it.fotoId===f.id && !it.dataURL && f.dataURL) it.dataURL = f.dataURL; }); });
+      narrFotosActuales = g; narrFotoIndiceActual = idx;
+      mostrarFotoNarrativaEnIndice();
+      document.getElementById("modal-narr-foto").classList.add("on");
+      return;
+    }
+  }
+  narrFotosActuales = listaFotosDelRegistro.map(function(f){ return {regId:null, fotoId:f.id, nombre:f.nombre, comentario:f.comentario, dataURL:f.dataURL, titulo:""}; });
   narrFotoIndiceActual = indiceInicial;
   mostrarFotoNarrativaEnIndice();
   document.getElementById("modal-narr-foto").classList.add("on");
 }
 document.getElementById("narr-foto-prev").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(-1); });
 document.getElementById("narr-foto-next").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(1); });
+document.getElementById("narr-foto-ver-reg").addEventListener("click", function(e){
+  e.stopPropagation();
+  var f = narrFotosActuales[narrFotoIndiceActual];
+  if(!f || !f.regId) return;
+  document.getElementById("modal-narr-foto").classList.remove("on");
+  verRegistroExistente(f.regId);
+});
 (function(){
   var wrap = document.getElementById("narr-foto-imgwrap");
-  var xInicioSwipe = null;
-  wrap.addEventListener("touchstart", function(e){ xInicioSwipe = e.touches[0].clientX; }, {passive:true});
-  wrap.addEventListener("touchend", function(e){
-    if(xInicioSwipe==null) return;
-    var dx = e.changedTouches[0].clientX - xInicioSwipe;
-    if(Math.abs(dx) > 40) navegarFotoNarrativa(dx>0 ? -1 : 1);
-    xInicioSwipe = null;
+  var punteros = {}, gesto = null, ultimoToque = 0, inicioX = null, inicioY = null, movio = false;
+  function lista(){ return Object.keys(punteros).map(function(k){ return punteros[k]; }); }
+  function distancia(a, b){ return Math.sqrt(Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2)) || 1; }
+  function centroWrap(){ var r = wrap.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; }
+  function zoomEn(punto, nuevaEscala){
+    var c = centroWrap();
+    var k = nuevaEscala / narrZoom.s;
+    narrZoom.x = (punto.x - c.x) - k*((punto.x - c.x) - narrZoom.x);
+    narrZoom.y = (punto.y - c.y) - k*((punto.y - c.y) - narrZoom.y);
+    narrZoom.s = nuevaEscala;
+    limitarZoomNarr(); aplicarZoomNarr();
+  }
+  wrap.addEventListener("pointerdown", function(e){
+    if(e.target.closest && e.target.closest(".narr-foto-nav")) return;
+    punteros[e.pointerId] = {x:e.clientX, y:e.clientY};
+    try{ wrap.setPointerCapture(e.pointerId); }catch(err){}
+    var l = lista();
+    if(l.length===1){ inicioX = e.clientX; inicioY = e.clientY; movio = false; gesto = {tipo:"uno", x:e.clientX, y:e.clientY, zx:narrZoom.x, zy:narrZoom.y}; }
+    else if(l.length===2){ gesto = {tipo:"dos", d:distancia(l[0],l[1]), s:narrZoom.s, mx:(l[0].x+l[1].x)/2, my:(l[0].y+l[1].y)/2, zx:narrZoom.x, zy:narrZoom.y}; movio = true; }
   });
+  wrap.addEventListener("pointermove", function(e){
+    if(!punteros[e.pointerId]) return;
+    punteros[e.pointerId] = {x:e.clientX, y:e.clientY};
+    var l = lista();
+    if(l.length>=2 && gesto && gesto.tipo==="dos"){
+      var ns = Math.max(1, Math.min(6, gesto.s * distancia(l[0],l[1]) / gesto.d));
+      var mx = (l[0].x+l[1].x)/2, my = (l[0].y+l[1].y)/2;
+      var c = centroWrap(), k = ns / gesto.s;
+      narrZoom.s = ns;
+      narrZoom.x = (gesto.mx - c.x) * -(k-1) + gesto.zx*k + (mx - gesto.mx);
+      narrZoom.y = (gesto.my - c.y) * -(k-1) + gesto.zy*k + (my - gesto.my);
+      limitarZoomNarr(); aplicarZoomNarr();
+    } else if(l.length===1 && gesto && gesto.tipo==="uno"){
+      var dx = e.clientX - gesto.x, dy = e.clientY - gesto.y;
+      if(Math.abs(dx)>6 || Math.abs(dy)>6) movio = true;
+      if(narrZoom.s>1.01){ narrZoom.x = gesto.zx + dx; narrZoom.y = gesto.zy + dy; limitarZoomNarr(); aplicarZoomNarr(); }
+    }
+  });
+  function soltar(e){
+    if(!punteros[e.pointerId]) return;
+    var antes = lista().length;
+    delete punteros[e.pointerId];
+    var quedan = lista();
+    if(antes===1 && gesto && gesto.tipo==="uno"){
+      var dx = e.clientX - inicioX, dy = e.clientY - inicioY;
+      if(narrZoom.s<=1.01 && Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.3) navegarFotoNarrativa(dx>0 ? -1 : 1);
+      else if(!movio){   // toque corto: dos toques seguidos alternan entre ajustado y 2,5x
+        var ahora = Date.now();
+        if(ahora - ultimoToque < 320){ zoomEn({x:e.clientX, y:e.clientY}, narrZoom.s>1.01 ? 1 : 2.5); ultimoToque = 0; }
+        else ultimoToque = ahora;
+      }
+    }
+    if(quedan.length===1) gesto = {tipo:"uno", x:quedan[0].x, y:quedan[0].y, zx:narrZoom.x, zy:narrZoom.y};
+    else if(quedan.length===0) gesto = null;
+  }
+  wrap.addEventListener("pointerup", soltar);
+  wrap.addEventListener("pointercancel", soltar);
+  wrap.addEventListener("wheel", function(e){
+    e.preventDefault();
+    zoomEn({x:e.clientX, y:e.clientY}, Math.max(1, Math.min(6, narrZoom.s * (e.deltaY<0 ? 1.2 : 1/1.2))));
+  }, {passive:false});
+  window.__narrZoomDebug = {zoomEn:zoomEn};
 })();
 document.getElementById("modal-narr-foto").addEventListener("click", function(e){
   if(e.target===this) this.classList.remove("on");
@@ -4968,7 +5129,7 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
         if(img && f.dataURL){
           img.src = f.dataURL;
           img.style.cursor = "pointer";
-          img.addEventListener("click", function(){ abrirFotoNarrativa(fotosConDatos, idx); });
+          img.addEventListener("click", function(){ abrirFotoNarrativa(fotosConDatos, idx, r.id); });
         }
       });
     });
@@ -5202,7 +5363,7 @@ function iniciarNuevoRegistro(){
     obsAcumuladoMs:0, obsPausado:false, trackPuntos:[],
     especieMedida:especieMedidaDefault, medConSexo:medSexoDefault, medConLocalidad:medLocDefault, medConHabitat:medHabDefault, estructuras:estructurasDefault, individuos:[],
     notaSubtipo:"narrativo", notaTitulo:"", tejidoConservado:false,
-    fotos: [], especies: [], _editando:false, _viendo:false
+    fotos: [], videos: [], especies: [], _editando:false, _viendo:false
   };
   guardarDraft();
   document.querySelector(".dg-box").classList.remove("abierto");
@@ -5224,6 +5385,7 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-estacion").value = d.estacion || "";
   document.getElementById("f-tipo").value = d.tipo;
   actualizarBotonesTipo();
+  document.getElementById("f-nota-con-codigo").checked = !!d.notaConCodigo;
   document.getElementById("f-notas").value = d.notas;
   document.getElementById("f-nota-titulo").value = d.notaTitulo || "";
   document.getElementById("f-nind").value = d.nind || "";
@@ -5250,6 +5412,7 @@ function cargarDraftEnFormulario(){
   state.fotosTemp = (d.fotos||[]).slice();
   state.especiesTemp = (d.especies||[]).slice();
   renderFotosTemp();
+  renderVideosTemp();
   renderEspecies();
   renderBloqueEspecifico();
   if(d.tipo==="observacion"){ renderPreconfigObservacion(); actualizarEstadoObsPrincipal(); renderSelectorPlantillasObs(); }
@@ -5352,7 +5515,8 @@ function sincronizarDraftDesdeFormulario(){
   if(!state.draft) return;
   var d = state.draft;
   d.tipo = document.getElementById("f-tipo").value;
-  d.codigo = d.tipo === "nota" ? "" : (document.getElementById("f-codigo").value.trim() || d.codigo);
+  if(d.tipo==="nota") d.notaConCodigo = document.getElementById("f-nota-con-codigo").checked;
+  d.codigo = (d.tipo === "nota" && !d.notaConCodigo) ? "" : (document.getElementById("f-codigo").value.trim() || d.codigo);
   if(d.tipo==="observacion"){
     if(d.obsInicio && d.obsInicio.lat!=null){ d.lat = String(d.obsInicio.lat); d.lon = String(d.obsInicio.lon); }
   } else {
@@ -5422,9 +5586,9 @@ document.getElementById("f-tipo").addEventListener("change", function(){
   avisoEl.style.display = "none";
   detenerSeguimientoEnVivo();
   var tipoAnterior = state.draft.tipo;
-  if(this.value === "nota"){
+  if(this.value === "nota" && !state.draft.notaConCodigo){
     state.draft.codigo = "";
-  } else if(tipoAnterior === "nota" && !state.draft.codigo){
+  } else if(!state.draft.codigo && (this.value !== "nota" || state.draft.notaConCodigo)){
     state.draft.codigo = proximoCodigo(sesionPorId(state.draft.sesionId) || sesionActiva());
   }
   document.getElementById("f-codigo").value = state.draft.codigo;
@@ -5481,7 +5645,7 @@ function actualizarResumenDg(){
   var colectorTxt = obtenerColectorSeleccionado() || "sin colector";
   document.getElementById("dg-resumen").textContent = ti.ic+" "+ti.label+" · "+colectorTxt;
   var etiquetas = {coleccion:"Colector", observacion:"Observador", medicion:"Observador", nota:"Observador"};
-  document.getElementById("label-colector").textContent = etiquetas[tipo] || "Colector / observador";
+  document.getElementById("label-colector").textContent = "👥 " + (etiquetas[tipo] || "Colector / observador") + " (marca quién participó)";
 }
 
 /* ---------------- Colector: por defecto todos los participantes; permite especificar solo algunos ---------------- */
@@ -5818,13 +5982,26 @@ function htmlConsultaRegistro(r, conBotonMapa){
 var wakeLockSentinel = null, wakeLockPidiendo = false;
 state.pantallaActiva = false; // se mantiene mientras se usa la app, pero no persiste entre usos (cuida la batería)
 function soportaWakeLock(){ return !!(navigator.wakeLock && navigator.wakeLock.request); }
+// v2.48: además de la vista Consulta, la pantalla se mantiene encendida mientras corre el seguimiento de una Observación
+// (si el teléfono se bloquea, el GPS deja de registrar el track). Viene activado por defecto y se puede apagar en la tarjeta flotante.
+function pantallaSiempreGrabacion(){
+  try{ return localStorage.getItem("libretaCampo_pantallaGrabacion") !== "0"; }catch(e){ return true; }
+}
+function seguimientoObsCorriendo(){
+  return (typeof trackingRuntime !== "undefined") && !!trackingRuntime && trackingRuntime.intervalId != null;
+}
+function quiereWakeLock(){
+  var consulta = !!state.pantallaActiva && state.currentView==="consulta";
+  var grabando = seguimientoObsCorriendo() && pantallaSiempreGrabacion();
+  return (consulta || grabando) && document.visibilityState!=="hidden" && soportaWakeLock();
+}
 function actualizarWakeLock(){
-  var quiere = !!state.pantallaActiva && state.currentView==="consulta" && document.visibilityState!=="hidden" && soportaWakeLock();
+  var quiere = quiereWakeLock();
   if(quiere && !wakeLockSentinel && !wakeLockPidiendo){
     wakeLockPidiendo = true;
     navigator.wakeLock.request("screen").then(function(sentinel){
       wakeLockPidiendo = false;
-      if(!(state.pantallaActiva && state.currentView==="consulta")){ try{ sentinel.release(); }catch(e){} return; }
+      if(!quiereWakeLock()){ try{ sentinel.release(); }catch(e){} return; }
       wakeLockSentinel = sentinel;
       sentinel.addEventListener("release", function(){ if(wakeLockSentinel===sentinel) wakeLockSentinel = null; });
     }).catch(function(){
@@ -5899,7 +6076,7 @@ function renderConsulta(id){
       return '<div class="narr-foto"><img id="consulta-thumb-'+f.id+'" src=""><div class="cap">'+escapeHtml(f.comentario||f.nombre)+'</div></div>';
     }).join("")+'</div>';
   }
-  cont.innerHTML = htmlConsultaRegistro(r, true) + fotosHtml;
+  cont.innerHTML = htmlConsultaRegistro(r, true) + fotosHtml + htmlVideosConsulta(r);
   var btnMapa = cont.querySelector(".cons-ubic-mapa");
   if(btnMapa) btnMapa.addEventListener("click", function(){
     if(window.MapaPro && MapaPro.verPunto) MapaPro.verPunto({id:r.id, lat:parseFloat(r.lat), lon:parseFloat(r.lon), sesionId:r.sesionId, volverA:state.consultaVolverA});
@@ -5917,7 +6094,7 @@ function renderConsulta(id){
         if(img && f.dataURL){
           img.src = f.dataURL;
           img.style.cursor = "pointer";
-          img.addEventListener("click", function(){ abrirFotoNarrativa(fotosConDatos, idx); });
+          img.addEventListener("click", function(){ abrirFotoNarrativa(fotosConDatos, idx, r.id); });
         }
       });
     });
@@ -6146,7 +6323,9 @@ function ajustarPantallaSegunTipo(tipo){
   document.getElementById("identificacion-individual").style.display = (esObs||esMed||esNota) ? "none" : "block";
   document.getElementById("nota-subtipo-wrap").style.display = esNota ? "flex" : "none";
   document.getElementById("campo-nota-titulo").style.display = esNota ? "block" : "none";
-  document.getElementById("codigo-banner-wrap").style.display = esNota ? "none" : "inline";
+  var notaConCod = esNota && state.draft && state.draft.notaConCodigo;
+  document.getElementById("nota-codigo-wrap").style.display = esNota ? "flex" : "none";
+  document.getElementById("codigo-banner-wrap").style.display = (esNota && !notaConCod) ? "none" : "inline";
   if(!esObs){
     document.getElementById("obs-tracking-flotante").style.display = "none";
     mostrarSeccionFotosNotas(true);
@@ -6411,6 +6590,16 @@ function actualizarBotonesNotaSubtipo(){
   document.getElementById("btn-nota-operativo").classList.toggle("on", d.notaSubtipo==="operativo");
   document.getElementById("btn-nota-narrativo").classList.toggle("on", d.notaSubtipo!=="operativo");
 }
+// v2.48: las Notas generales pueden llevar código o no (por defecto no). Con código entran en la numeración correlativa.
+document.getElementById("f-nota-con-codigo").addEventListener("change", function(){
+  var d = state.draft; if(!d || d.tipo!=="nota") return;
+  d.notaConCodigo = this.checked;
+  d.codigo = this.checked ? proximoCodigo(sesionPorId(d.sesionId) || sesionActiva()) : "";
+  document.getElementById("f-codigo").value = d.codigo;
+  ajustarPantallaSegunTipo("nota");
+  actualizarAvisoCodigo();
+  guardarDraft();
+});
 document.getElementById("btn-nota-operativo").addEventListener("click", function(){
   if(!state.draft) return;
   state.draft.notaSubtipo = "operativo";
@@ -6651,11 +6840,13 @@ function activarSeguimientoEnVivo(){
     }, function(){}, {enableHighAccuracy:true, maximumAge:4000});
   }
   actualizarVisorTracking();
+  actualizarWakeLock();
 }
 function detenerSeguimientoEnVivo(){
   if(trackingRuntime.intervalId){ clearInterval(trackingRuntime.intervalId); trackingRuntime.intervalId=null; }
   if(trackingRuntime.watchId!=null && navigator.geolocation){ navigator.geolocation.clearWatch(trackingRuntime.watchId); trackingRuntime.watchId=null; }
   trackingRuntime.ultimaPos = null;
+  actualizarWakeLock();
 }
 function actualizarVisorTracking(){
   var d = state.draft;
@@ -6680,8 +6871,15 @@ function actualizarVisorTracking(){
   }
   contenido += '<div class="obs-flotante-controles">'+
     (d.obsPausado ? '<button type="button" id="btn-obs-reanudar">▶️ Reanudar</button>' : '<button type="button" id="btn-obs-pausar">⏸ Pausar</button>')+
-    '<button type="button" id="btn-obs-reiniciar-flot">🔄 Reiniciar</button></div>';
+    '<button type="button" id="btn-obs-reiniciar-flot">🔄 Reiniciar</button></div>'+
+    '<div class="obs-flotante-controles"><button type="button" id="btn-obs-pantalla">'+(pantallaSiempreGrabacion() ? '🔆 Pantalla siempre encendida: SÍ' : '🌙 Pantalla siempre encendida: NO')+'</button></div>';
   flot.innerHTML = '<div class="obs-flotante-card activo">'+contenido+'</div>';
+  var bpa = document.getElementById("btn-obs-pantalla"); if(bpa) bpa.addEventListener("click", function(){
+    var nuevo = !pantallaSiempreGrabacion();
+    try{ localStorage.setItem("libretaCampo_pantallaGrabacion", nuevo ? "1" : "0"); }catch(e){}
+    actualizarWakeLock(); actualizarVisorTracking();
+    toast(nuevo ? "🔆 La pantalla no se apagará mientras dure el seguimiento" : "⚠️ La pantalla podrá apagarse y el GPS dejar de registrar el track", 4200);
+  });
   var bp = document.getElementById("btn-obs-pausar"); if(bp) bp.addEventListener("click", pausarObservacion);
   var br = document.getElementById("btn-obs-reanudar"); if(br) br.addEventListener("click", reanudarObservacion);
   var bri = document.getElementById("btn-obs-reiniciar-flot"); if(bri) bri.addEventListener("click", reiniciarObservacion);
@@ -6878,6 +7076,238 @@ function renderEspecies(){
   });
 }
 
+/* ---------------- v2.49: copia original de fotos (tamaño original o Full HD) y videos en una carpeta del teléfono ----------------
+   La foto reducida sigue guardándose igual para el .zip. El original queda en IndexedDB solo hasta que se escribe en la carpeta elegida
+   (o se descarga), cosa que ocurre al guardar el registro. Estructura: <carpeta>/<nombre de la sesión>/<código del registro>_<foto1>.jpg.
+   Los videos van solo a la carpeta (no al .zip): en el respaldo queda el registro de su nombre y ubicación. */
+var LS_COPIA = "libretaCampo_copiaOrig";
+function copiaCfg(){
+  var c = {modo:"off", tam:"original"};
+  try{ var j = JSON.parse(localStorage.getItem(LS_COPIA)||"null"); if(j){ if(j.modo) c.modo = j.modo; if(j.tam) c.tam = j.tam; } }catch(e){}
+  return c;
+}
+function guardarCopiaCfg(c){ try{ localStorage.setItem(LS_COPIA, JSON.stringify(c)); }catch(e){} }
+function soportaCarpeta(){ return typeof window.showDirectoryPicker === "function"; }
+function origTx(modo, fn){
+  return abrirFotosDB().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction(ORIG_STORE, modo), r = fn(tx.objectStore(ORIG_STORE));
+      tx.oncomplete = function(){ resolve(r ? r.result : undefined); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  });
+}
+function guardarOriginal(id, blob, extra){ var o = {id:id, blob:blob}; Object.keys(extra||{}).forEach(function(k){ o[k] = extra[k]; }); return origTx("readwrite", function(s){ return s.put(o); }); }
+function leerOriginal(id){ return origTx("readonly", function(s){ return s.get(id); }); }
+function borrarOriginal(id){ return origTx("readwrite", function(s){ return s.delete(id); }).catch(function(){}); }
+function idsOriginalesPendientes(){
+  return origTx("readonly", function(s){ return s.getAllKeys(); }).then(function(ks){ return (ks||[]).filter(function(k){ return String(k).indexOf("__")!==0; }); }).catch(function(){ return []; });
+}
+function extDeBlob(b, nombre){
+  var t = (b && b.type) || "";
+  var m = {"image/jpeg":"jpg","image/png":"png","image/heic":"heic","image/heif":"heif","image/webp":"webp","video/mp4":"mp4","video/quicktime":"mov","video/webm":"webm","video/3gpp":"3gp"};
+  if(m[t]) return m[t];
+  var e = (String(nombre||"").match(/\.([a-zA-Z0-9]{2,4})$/)||[])[1];
+  return e ? e.toLowerCase() : "bin";
+}
+function reducirAFullHD(file){
+  return new Promise(function(resolve, reject){
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height, sc = Math.min(1, 1920/Math.max(w,h));
+      if(sc === 1){ URL.revokeObjectURL(url); resolve(file); return; }
+      var c = document.createElement("canvas"); c.width = Math.round(w*sc); c.height = Math.round(h*sc);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(b){ b ? resolve(b) : reject(new Error("No se pudo reducir")); }, "image/jpeg", 0.92);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("No se pudo leer la imagen")); };
+    img.src = url;
+  });
+}
+function prepararOriginalFoto(id, file){
+  var cfg = copiaCfg();
+  if(cfg.modo === "off" || !file) return Promise.resolve();
+  var p = cfg.tam === "fullhd" ? reducirAFullHD(file) : Promise.resolve(file);
+  return p.then(function(blob){ return guardarOriginal(id, blob, {tipo:"foto", nombre:file.name||""}); });
+}
+function baseNombreRegistro(r){
+  if(r.codigo) return sanitizarNombreArchivo(r.codigo);
+  if(r.notaTitulo) return "NOTA_" + sanitizarNombreArchivo(r.notaTitulo).slice(0,30);
+  return "REG_" + sanitizarNombreArchivo((r.fecha||"") + "_" + (r.hora||"")).slice(0,30);
+}
+function elementosArchivables(r){
+  var out = [];
+  (r.fotos||[]).forEach(function(f){ out.push({it:f, tipo:"foto"}); });
+  (r.videos||[]).forEach(function(v){ out.push({it:v, tipo:"video"}); });
+  return out;
+}
+function carpetaHandleGuardado(){
+  return origTx("readonly", function(s){ return s.get("__carpeta__"); }).then(function(o){ return o ? o.handle : null; }).catch(function(){ return null; });
+}
+function carpetaConPermiso(){
+  return carpetaHandleGuardado().then(function(h){
+    if(!h) return null;
+    return Promise.resolve(h.queryPermission ? h.queryPermission({mode:"readwrite"}) : "granted").then(function(p){
+      if(p === "granted") return h;
+      return h.requestPermission ? h.requestPermission({mode:"readwrite"}).then(function(q){ return q === "granted" ? h : null; }) : null;
+    }).catch(function(){ return null; });
+  });
+}
+function elegirCarpetaCopia(){
+  if(!soportaCarpeta()){ toast("Este navegador no permite elegir una carpeta: se usará Descargas", 4200); return Promise.resolve(false); }
+  return window.showDirectoryPicker({mode:"readwrite", id:"libretacampo"}).then(function(h){
+    return guardarOriginal("__carpeta__", null, {handle:h}).then(function(){ return true; });
+  }).catch(function(){ return false; });
+}
+function escribirEnCarpeta(dir, subcarpeta, nombre, blob){
+  return dir.getDirectoryHandle(subcarpeta, {create:true}).then(function(d){
+    return d.getFileHandle(nombre, {create:true});
+  }).then(function(fh){ return fh.createWritable(); }).then(function(w){
+    return w.write(blob).then(function(){ return w.close(); });
+  });
+}
+function descargarBlob(blob, nombre){
+  return new Promise(function(resolve){
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); resolve(); }, 600);
+  });
+}
+// Escribe los originales pendientes de TODOS los registros guardados. Devuelve {ok, fallo, pend}.
+function volcarOriginalesPendientes(){
+  var cfg = copiaCfg(), res = {ok:0, fallo:0, pend:0};
+  if(cfg.modo === "off") return Promise.resolve(res);
+  return idsOriginalesPendientes().then(function(ids){
+    var set = {}; ids.forEach(function(i){ set[i] = true; });
+    var regs = state.registros.filter(function(r){ return elementosArchivables(r).some(function(e){ return set[e.it.id]; }); });
+    if(!regs.length) return res;
+    var dirP = cfg.modo === "carpeta" ? carpetaConPermiso() : Promise.resolve(null);
+    return dirP.then(function(dir){
+      var seq = Promise.resolve();
+      regs.forEach(function(r){
+        var ses = sesionPorId(r.sesionId);
+        var carpetaSes = sanitizarNombreArchivo(ses ? nombreSesionMostrar(ses) : "sesion");
+        var base = baseNombreRegistro(r), kVideo = 0;
+        elementosArchivables(r).forEach(function(e){
+          if(e.tipo === "video") kVideo++;
+          if(!set[e.it.id]) return;
+          seq = seq.then(function(){
+            return leerOriginal(e.it.id).then(function(o){
+              if(!o || !o.blob) return;
+              var nombre = base + "_" + sanitizarNombreFoto(e.it.nombre || (e.tipo === "video" ? "video"+kVideo : "foto")) + "." + extDeBlob(o.blob, o.nombre);
+              if(cfg.modo === "carpeta"){
+                if(!dir){ res.pend++; return; }
+                return escribirEnCarpeta(dir, carpetaSes, nombre, o.blob).then(function(){ e.it.copiaLocal = carpetaSes + "/" + nombre; return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
+                  .catch(function(){ res.fallo++; });
+              }
+              return descargarBlob(o.blob, carpetaSes + "__" + nombre).then(function(){ e.it.copiaLocal = "Descargas/" + carpetaSes + "__" + nombre; return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
+                .catch(function(){ res.fallo++; });
+            });
+          });
+        });
+      });
+      return seq.then(function(){ if(res.ok) guardarRegistros(); return res; });
+    });
+  }).catch(function(){ res.fallo++; return res; });
+}
+function volcarPendientesTrasGuardar(){
+  if(copiaCfg().modo === "off") return;
+  volcarOriginalesPendientes().then(function(r){
+    var msg = "";
+    if(r.ok) msg += "📁 "+r.ok+(r.ok===1?" archivo copiado":" archivos copiados")+" a la carpeta del teléfono";
+    if(r.pend || r.fallo) msg += (msg?" · ":"")+"⚠️ "+(r.pend+r.fallo)+" pendiente(s): ábrelos en Config, «Copia original»";
+    if(msg) setTimeout(function(){ toast(msg, 5200); }, 1800);
+  });
+}
+function textoMB(b){ return b >= 1048576 ? (b/1048576).toFixed(b >= 10485760 ? 0 : 1)+" MB" : Math.max(1, Math.round(b/1024))+" KB"; }
+function renderVideosTemp(){
+  var box = document.getElementById("videos-lista");
+  if(!box) return;
+  var vs = (state.draft && state.draft.videos) || [];
+  box.innerHTML = vs.map(function(v,i){
+    var est = v.copiaLocal ? ("guardado en "+escapeHtml(v.copiaLocal)) : "se copiará a la carpeta al guardar el registro";
+    return '<div class="foto-item"><div style="font-size:1.4rem;">🎥</div><div class="info"><b>'+escapeHtml(v.nombre)+'</b> · '+textoMB(v.tam||0)+'<div class="coment">'+est+'</div></div><span class="x" data-vx="'+i+'">✕</span></div>';
+  }).join("");
+  box.querySelectorAll("[data-vx]").forEach(function(x){
+    x.addEventListener("click", function(){
+      var i = parseInt(x.dataset.vx,10), v = state.draft.videos[i];
+      if(!v || !confirm("¿Quitar este video del registro? Si ya se copió a la carpeta del teléfono, el archivo allí no se borra.")) return;
+      borrarFotoDB(v.id); state.draft.videos.splice(i,1); guardarDraft(); renderVideosTemp();
+    });
+  });
+}
+function htmlVideosConsulta(r){
+  var vs = r.videos || [];
+  if(!vs.length) return "";
+  return '<div class="narr-linea" style="margin-top:10px;"><b>🎥 Videos ('+vs.length+'):</b> '+vs.map(function(v){
+    return escapeHtml(v.nombre)+' ('+textoMB(v.tam||0)+(v.copiaLocal ? ', en '+escapeHtml(v.copiaLocal) : ', copia pendiente')+')';
+  }).join('; ')+'</div>';
+}
+document.getElementById("btn-grabar-video").addEventListener("click", function(){
+  if(copiaCfg().modo === "off"){ toast("Primero elige dónde guardar las copias: Config, «Copia original de fotos y videos»", 5000); return; }
+  document.getElementById("f-input-video").click();
+});
+document.getElementById("f-input-video").addEventListener("change", function(e){
+  var file = e.target.files && e.target.files[0]; e.target.value = "";
+  if(!file || !state.draft) return;
+  state.draft.videos = state.draft.videos || [];
+  var n = state.draft.videos.length + 1, usados = {};
+  state.draft.videos.forEach(function(v){ usados[v.nombre] = 1; });
+  while(usados["video"+n]) n++;
+  var id = uid(), nombre = "video"+n;
+  guardarOriginal(id, file, {tipo:"video", nombre:file.name||""}).then(function(){
+    state.draft.videos.push({id:id, nombre:nombre, tam:file.size, tipo:file.type||"", copiaLocal:null});
+    guardarDraft(); renderVideosTemp();
+    toast("🎥 Video añadido ("+textoMB(file.size)+"). Se copiará a la carpeta al guardar el registro");
+  }).catch(function(){ toast("No se pudo guardar el video: espacio insuficiente en el dispositivo", 5000); });
+});
+function renderConfigCopia(){
+  var box = document.getElementById("config-copia");
+  if(!box) return;
+  var cfg = copiaCfg();
+  box.innerHTML =
+    '<div class="field"><label>Guardar copia original en</label><select id="cc-modo">'+
+      '<option value="off">Apagada (solo la foto reducida del .zip)</option>'+
+      '<option value="carpeta"'+(soportaCarpeta()?'':' disabled')+'>Una carpeta del teléfono'+(soportaCarpeta()?'':' (no disponible en este navegador)')+'</option>'+
+      '<option value="descargas">Descargas del teléfono</option></select></div>'+
+    '<div class="field"><label>Tamaño de la copia de las fotos</label><select id="cc-tam">'+
+      '<option value="original">Original de la cámara, sin cambios</option>'+
+      '<option value="fullhd">Full HD (1920 px de lado mayor)</option></select></div>'+
+    '<button type="button" class="btnfull btn-secondary" id="cc-elegir" style="display:none;">📁 Elegir carpeta…</button>'+
+    '<div class="campo-ayuda" id="cc-estado"></div>'+
+    '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
+    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en una subcarpeta por sesión. Los videos solo se guardan aquí, no en el .zip.</div>';
+  document.getElementById("cc-modo").value = cfg.modo;
+  document.getElementById("cc-tam").value = cfg.tam;
+  function estado(){
+    var c = copiaCfg();
+    document.getElementById("cc-elegir").style.display = c.modo === "carpeta" ? "block" : "none";
+    Promise.all([carpetaHandleGuardado(), idsOriginalesPendientes()]).then(function(v){
+      var h = v[0], ids = v[1], set = {}; ids.forEach(function(i){ set[i] = 1; });
+      var nPend = 0;
+      state.registros.forEach(function(r){ elementosArchivables(r).forEach(function(e){ if(set[e.it.id]) nPend++; }); });
+      var t = c.modo === "off" ? "La copia original está apagada." : c.modo === "descargas" ? "Las copias se descargarán a la carpeta Descargas." : (h ? "Carpeta elegida: "+h.name : "Aún no hay carpeta elegida.");
+      if(nPend) t += " Pendientes de copiar: "+nPend+".";
+      document.getElementById("cc-estado").textContent = t;
+      document.getElementById("cc-pendientes").style.display = (c.modo !== "off" && nPend) ? "block" : "none";
+    });
+  }
+  document.getElementById("cc-modo").addEventListener("change", function(){
+    var c = copiaCfg(); c.modo = this.value; guardarCopiaCfg(c);
+    if(c.modo === "carpeta") elegirCarpetaCopia().then(estado); else estado();
+  });
+  document.getElementById("cc-tam").addEventListener("change", function(){ var c = copiaCfg(); c.tam = this.value; guardarCopiaCfg(c); });
+  document.getElementById("cc-elegir").addEventListener("click", function(){ elegirCarpetaCopia().then(estado); });
+  document.getElementById("cc-pendientes").addEventListener("click", function(){
+    volcarOriginalesPendientes().then(function(r){
+      toast(r.ok ? ("📁 "+r.ok+" archivo(s) copiado(s)"+((r.pend||r.fallo)?(" · quedan "+(r.pend+r.fallo)):"")) : "No se pudo copiar ahora: revisa la carpeta elegida", 4200);
+      estado();
+    });
+  });
+  estado();
+}
+
 /* ---------------- Fotos: captura + comentario inmediato + lightbox (comprimidas, guardadas en IndexedDB) ---------------- */
 document.getElementById("btn-tomar-foto").addEventListener("click", function(){ document.getElementById("f-input-camara").click(); });
 document.getElementById("btn-galeria-foto").addEventListener("click", function(){ document.getElementById("f-input-galeria").click(); });
@@ -7008,7 +7438,7 @@ function procesarSiguienteFoto(){
   toast("Procesando foto...");
   var marca = state.draft ? {fecha:state.draft.fecha, hora:state.draft.hora, lat:state.draft.lat, lon:state.draft.lon} : null;
   comprimirImagen(file, 1280, 0.72, marca).then(function(dataURL){
-    state.captionPending = {nombre:nombreOriginal, dataURL:dataURL};
+    state.captionPending = {nombre:nombreOriginal, dataURL:dataURL, file:file};
     document.getElementById("caption-preview").src = dataURL;
     document.getElementById("caption-texto").value = "";
     document.getElementById("modal-caption").classList.add("on");
@@ -7023,7 +7453,10 @@ document.getElementById("btn-caption-guardar").addEventListener("click", functio
   var id = uid();
   var comentario = document.getElementById("caption-texto").value.trim();
   var nombre = nombreFotoCorto();
+  var archivoOriginal = state.captionPending.file;
   guardarFotoDB(id, state.captionPending.dataURL).then(function(){
+    return prepararOriginalFoto(id, archivoOriginal).catch(function(){ toast("No se pudo preparar la copia original de esta foto (la foto reducida sí quedó guardada)", 4200); });
+  }).then(function(){
     state.fotosTemp.push({id:id, nombre:nombre, comentario:comentario, descargada:false, nombreDescargado:null});
     if(state.draft && !state.draft.fotoPortadaId) state.draft.fotoPortadaId = id;
     state.captionPending = null;
@@ -7228,6 +7661,14 @@ CAMPOS_LOC_EST.forEach(function(c){
 });
 
 /* ---------------- Guardar ---------------- */
+function tienePuntoGps(d){
+  if(!d) return false;
+  if(d.tipo === "observacion"){
+    var p = d.obsInicio;
+    return !!(p && p.lat!=null && p.lon!=null && !isNaN(parseFloat(p.lat)) && !isNaN(parseFloat(p.lon)));
+  }
+  return !isNaN(parseFloat(d.lat)) && !isNaN(parseFloat(d.lon)) && String(d.lat).trim()!=="" && String(d.lon).trim()!=="";
+}
 document.getElementById("btn-guardar").addEventListener("click", function(){
   if(!state.draft) return;
   detenerSeguimientoEnVivo();
@@ -7235,6 +7676,16 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   if(state.draft.tipo === "nota" && !(state.draft.notaTitulo||"").trim()){
     document.getElementById("f-nota-titulo").focus();
     toast("⚠️ Escribe un título para identificar esta Nota antes de guardar", 3500);
+    return;
+  }
+  // v2.48: un registro nuevo no se guarda sin el punto GPS (en Observación, el punto de inicio). Editar uno ya guardado no lo exige.
+  if(!state.draft._editando && !tienePuntoGps(state.draft)){
+    var esObsG = state.draft.tipo === "observacion";
+    toast(esObsG
+      ? "⚠️ Falta el punto GPS. Toca «Capturar punto de inicio» (o «Capturar punto») antes de guardar"
+      : "⚠️ Falta el punto GPS. Toca «Capturar ubicación» para registrarlo antes de guardar", 5000);
+    var objGps = document.getElementById(esObsG ? "obs-principal" : "seccion-ubicacion-general");
+    if(objGps && objGps.scrollIntoView) objGps.scrollIntoView({block:"center"});
     return;
   }
   if(!sesionPorId(state.draft.sesionId)){
@@ -7270,26 +7721,36 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     var okE = guardarRegistros();
     state.draft = null; guardarDraft();
     if(okE) toast(r.codigo ? ("✅ Registro "+r.codigo+" actualizado") : "✅ Registro actualizado");
+    volcarPendientesTrasGuardar();
     if(state.volverConsultaId === r.id){
       state.volverConsultaId = null;
       state.consultaId = r.id;
       irA("consulta");
     } else {
+      state.resaltarRegistroId = r.id;
       irA("lista");
-      renderLista(r.id);
     }
   } else {
     state.registros.push(r);
     var sAct = sesionPorId(r.sesionId) || sesionActiva();
-    if(sAct && r.tipo !== "nota"){
+    if(sAct && r.codigo){
+      // v2.48: la numeración la manda la persona. El contador solo avanza si el número guardado alcanza o supera al contador;
+      // si se rellenó un hueco o se usó un número menor, el contador queda donde estaba.
       var nGuardado = numeroDeCodigo(r.codigo, sAct.prefijo);
-      if(nGuardado !== null) sAct.contador = nGuardado + 1;
+      var cont = parseInt(sAct.contador,10); if(isNaN(cont)) cont = 0;
+      if(nGuardado !== null && nGuardado >= cont) sAct.contador = nGuardado + 1;
     }
     guardarListaSesiones();
     var ok = guardarRegistros();
-    if(ok) toast(r.codigo ? ("✅ Guardado "+r.codigo+" — iniciando "+proximoCodigo(sAct)) : "✅ Nota guardada");
+    if(ok){
+      var sigTxt = (r.codigo && sAct) ? (" · siguiente "+proximoCodigo(sAct)) : "";
+      toast(r.codigo ? ("✅ Guardado "+r.codigo+sigTxt) : "✅ Nota guardada");
+    }
     state.draft = null; guardarDraft();
-    iniciarNuevoRegistro();
+    volcarPendientesTrasGuardar();
+    // v2.48: tras guardar se va a Registros, directo al registro recién guardado
+    state.resaltarRegistroId = r.id;
+    irA("lista");
   }
 });
 
@@ -7321,7 +7782,7 @@ function eliminarSesionConRegistros(id){
     (draftDeSesion ? '\n\nEl registro en curso, que todavía está vacío, también se descartará.' : '');
   if(!confirm(msg1)) return;
   if(!confirm('Última confirmación: se borrarán para siempre la sesión "'+nombre+'" y sus '+regs.length+(regs.length===1?' registro':' registros')+'. ¿Continuar?')) return;
-  regs.forEach(function(r){ (r.fotos || []).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); }); });
+  regs.forEach(function(r){ (r.fotos || []).concat(r.videos || []).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); }); });
   state.registros = state.registros.filter(function(r){ return r.sesionId!==id; });
   guardarRegistros();
   if(nRecs){ state.recorridos = state.recorridos.filter(function(rc){ return rc.sesionId!==id; }); guardarRecorridos(); }
@@ -8341,6 +8802,7 @@ function renderConfigMapa(){
 /* ---------------- Config ---------------- */
 function renderConfig(){
   document.getElementById("version-info").textContent = "Versión cargada: " + APP_BUILD;
+  renderConfigCopia();
   renderConfigMapa();
 }
 document.getElementById("btn-buscar-actualizacion").addEventListener("click", function(){
