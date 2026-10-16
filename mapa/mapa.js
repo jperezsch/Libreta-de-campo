@@ -958,10 +958,19 @@ function construirLeyenda() {
       if (visClase(x.clase)) capasVis.tipos[x.clase] = false; else delete capasVis.tipos[x.clase];
       guardarJSON(LS_CAPAS, capasVis);
       construirLeyenda(); aplicarFiltroPuntos();
-      LC.toast(x.nombre + (visClase(x.clase) ? ": visible" : ": oculto"), 1400);
+      mostrarTipLeyenda(x.clase, x.nombre + (visClase(x.clase) ? ": visible" : ": oculto"));
     };
     cont.appendChild(b);
   });
+  if (!$("mp-ley-tip")) cont.appendChild(el("div", { id: "mp-ley-tip" }));
+}
+/* v2.50: el aviso de la leyenda aparece un momento a la derecha de su ícono (antes era el aviso negro de abajo) */
+var tipLeyTimer = null;
+function mostrarTipLeyenda(clase, texto) {
+  var cont = $("mp-leyenda"), tip = $("mp-ley-tip"); if (!cont || !tip) return;
+  var b = cont.querySelector('[data-clase="' + clase + '"]'); if (!b) return;
+  tip.textContent = texto; tip.style.top = (b.offsetTop + Math.max(0, (b.offsetHeight - 26) / 2)) + "px"; tip.style.display = "block";
+  clearTimeout(tipLeyTimer); tipLeyTimer = setTimeout(function () { tip.style.display = "none"; }, 1500);
 }
 function filtroPuntosCirc() { return ["all", filtroPuntos(), ["==", ["get", "nota"], 0]]; }
 function filtroTrack(recto) { return ["all", filtroPuntos(), ["==", ["get", "recto"], recto]]; }

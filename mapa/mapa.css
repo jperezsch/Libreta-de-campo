@@ -24,7 +24,7 @@
 .mp-btn.on{background:var(--verde); color:#fff;}
 .mp-btn.chico{font-size:.72rem; min-height:44px;}
 #mp-guardar{position:absolute; left:50%; transform:translateX(-50%); bottom:14px; min-height:52px; padding:0 24px; background:var(--verde); color:#fff; font-size:1rem; box-shadow:0 2px 8px rgba(0,0,0,.35); z-index:2; max-width:calc(100% - 140px); white-space:nowrap;}
-#mp-aviso{position:absolute; left:8px; right:64px; top:54px; background:var(--nota-bg); color:var(--nota-txt); border:1px solid var(--nota-borde); border-radius:10px; padding:9px 10px; font-size:.82rem; display:none; z-index:2;}
+#mp-aviso{position:absolute; left:52px; right:64px; top:46px; background:var(--nota-bg); color:var(--nota-txt); border:1px solid var(--nota-borde); border-radius:10px; padding:9px 10px; font-size:.82rem; display:none; z-index:2;}
 #mp-tarjeta{position:absolute; left:8px; right:64px; bottom:80px; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:12px; box-shadow:0 2px 8px rgba(0,0,0,.35); display:none; z-index:3; font-size:.9rem; max-height:50%; overflow:auto;}
 #mp-tarjeta b{font-size:1.02rem;}
 #s-mapa .maplibregl-ctrl-bottom-left{bottom:0;}
@@ -68,7 +68,7 @@
 .mp-panel-ver{flex:1; min-width:0; text-align:left; background:none; border:0; padding:4px 2px; color:var(--texto); cursor:pointer; font-family:inherit;}
 .mp-panel-ver b{display:block; font-size:.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .mp-panel-ver .mp-suave{display:block; margin:0;}
-#mp-nav{position:absolute; left:8px; top:50px; width:214px; background:var(--card); color:var(--texto); border:1.5px solid var(--verde); border-radius:var(--radio); padding:8px 10px 10px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:3;}
+#mp-nav{position:absolute; left:52px; top:46px; width:214px; background:var(--card); color:var(--texto); border:1.5px solid var(--verde); border-radius:var(--radio); padding:8px 10px 10px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:3;}
 #mp-nav.llego{border-color:var(--ok, #2d5f3f); background:var(--verde-cl);}
 .mp-nav-cab{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:4px;}
 .mp-nav-cab b{font-size:.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
@@ -110,7 +110,8 @@
 #mp-import-sel{width:100%;}
 
 /* ---- v2.49: leyenda de tipos de punto, que también filtra (toca para ocultar o mostrar) ---- */
-#mp-leyenda{position:absolute; left:8px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:7px; z-index:2;}
+#mp-leyenda{position:absolute; left:8px; top:46px; display:flex; flex-direction:column; gap:7px; z-index:2;}
+#mp-ley-tip{position:absolute; left:46px; background:rgba(25,25,22,.92); color:#fff; font-size:.78rem; font-weight:600; padding:5px 10px; border-radius:8px; white-space:nowrap; pointer-events:none; display:none; box-shadow:0 1px 5px rgba(0,0,0,.35);}
 .mp-ley{width:34px; height:34px; padding:0; border:2px solid var(--verde); background:var(--card); color:var(--verde); font-size:.85rem; font-weight:800; font-family:inherit; line-height:1; cursor:pointer; box-shadow:0 1px 5px rgba(0,0,0,.3); opacity:.62;}
 .mp-ley.on{background:var(--verde); color:#fff; opacity:.92;}
 .mp-ley:not(.on){text-decoration:line-through; text-decoration-thickness:2px;}
