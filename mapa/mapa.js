@@ -754,24 +754,25 @@ function guardarGrab(forzar) {
 }
 /* v2.48: la pantalla siempre encendida durante la grabación viene activada por defecto; el botón "Pantalla" del mapa la apaga o la enciende.
    La preferencia se comparte con el seguimiento de las Observaciones (misma clave en localStorage). */
-function pantallaPref() { try { return localStorage.getItem("libretaCampo_pantallaGrabacion") !== "0"; } catch (e) { return true; } }
+/* v2.52: el botón se llama "Pantalla encendida" y viene APAGADO por defecto (clave propia del mapa, distinta de la del seguimiento de Observación). Con el Bloqueo activo la pantalla se mantiene encendida igual. */
+function pantallaPref() { try { return localStorage.getItem("libretaCampo_pantallaMapa") === "1"; } catch (e) { return false; } }
 function botonPantalla() {
   var b = $("mp-pantalla"); if (!b) return;
   var on = pantallaPref();
-  b.textContent = on ? "🔆 Pantalla" : "🌙 Pantalla";
-  b.title = on ? "Pantalla siempre encendida al grabar (activado)" : "Pantalla siempre encendida al grabar (apagado)";
+  b.textContent = (on ? "🔆 " : "🌙 ") + "Pantalla\nencendida";
+  b.title = on ? "Pantalla encendida al grabar (activado)" : "Pantalla encendida al grabar (apagado)";
   b.classList.toggle("on", on);
 }
 function alternarPantalla() {
   var nuevo = !pantallaPref();
-  try { localStorage.setItem("libretaCampo_pantallaGrabacion", nuevo ? "1" : "0"); } catch (e) {}
+  try { localStorage.setItem("libretaCampo_pantallaMapa", nuevo ? "1" : "0"); } catch (e) {}
   botonPantalla();
   if (nuevo) { pedirPantalla(); LC.toast("🔆 La pantalla no se apagará mientras grabas", 3500); }
-  else { soltarPantalla(); LC.toast("⚠️ La pantalla podrá apagarse y el GPS dejar de registrar el recorrido", 4500); }
+  else { if (!grab.bloq) soltarPantalla(); LC.toast("⚠️ La pantalla podrá apagarse y el GPS dejar de registrar el recorrido", 4500); }
 }
 async function pedirPantalla() {
   try {
-    if (!grab.rc || !pantallaPref() || !navigator.wakeLock || grab.wake) return;
+    if (!grab.rc || (!pantallaPref() && !grab.bloq) || !navigator.wakeLock || grab.wake) return;
     grab.wake = await navigator.wakeLock.request("screen");
     grab.wake.addEventListener("release", function () { grab.wake = null; });
   } catch (e) { grab.wake = null; }
@@ -824,7 +825,7 @@ function iniciarGrabacion() {
   if (gps.watch == null) gpsEncender();
   pedirPantalla();
   chipGrab(); refrescarRecorridos(true);
-  LC.toast(pantallaPref() ? "Grabando recorrido. La pantalla se mantendrá encendida para no perder la señal del GPS." : "Grabando recorrido. Con «Pantalla normal» el teléfono puede bloquearse y la grabación se interrumpe: mantén la pantalla encendida.", 6000);
+  LC.toast(pantallaPref() ? "Grabando recorrido. La pantalla se mantendrá encendida para no perder la señal del GPS." : "Grabando recorrido. Si la pantalla se apaga el GPS deja de registrar: usa «Bloqueo» o «Pantalla encendida».", 6000);
 }
 function detenerGrabacion(sinPreguntar) {
   var rc = grab.rc; if (!rc) return;
@@ -911,6 +912,7 @@ function desbloquear() {
   clearInterval(grab.bqTimer); grab.bqTimer = null;
   var o = $("mp-bq"); if (o) o.classList.remove("on");
   pantallaCompleta(false);
+  if (!pantallaPref()) soltarPantalla();
   chipGrab(); refrescarRecorridos(true);
 }
 function borrarRecorrido(rc) {
