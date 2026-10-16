@@ -224,8 +224,9 @@ var map = null, mapaListo = false, ESTILO_BASE = [], estiloPromesa = null;
 var gps = { watch: null, fix: null, primera: true, quiere: false };
 var rumbo = { activo: false, h: null, ultimo: 0, libre: 0, sensor: false, recibido: false };   /* v2.44: modo "rumbo arriba" (el mapa gira según hacia dónde apuntas) */
 var panelAbiertos = {};   /* v2.44: sesiones desplegadas en "Mis puntos" */
-var grab = { rc: null, watch: null, timer: null, wake: null, sucio: false, ultimoGuardado: 0, ultimoLat: null };   /* v2.45: recorrido que se está grabando */
-var GRAB_ACC_MAX = 50, GRAB_DIST_MIN = 4, GRAB_T_MAX = 30000, GRAB_CORTE_T = 60000, GRAB_CORTE_D = 50;
+var grab = { rc: null, watch: null, timer: null, wake: null, sucio: false, ultimoGuardado: 0, ultimoLat: null, bloq: false, bqTimer: null, ultimoFixTs: 0, ultimaAcc: null, rearmadoTs: 0, rearmados: 0, ocultoTs: null, cortarSig: false, salidas: 0 };   /* v2.45: recorrido que se está grabando */
+/* v2.52: grabación más frecuente (punto cada 2 m o cada 10 s) y vigilancia de señal perdida */
+var GRAB_ACC_MAX = 50, GRAB_DIST_MIN = 2, GRAB_T_MAX = 10000, GRAB_CORTE_T = 40000, GRAB_CORTE_D = 50, GRAB_WATCHDOG_T = 20000, GRAB_GUARDAR_T = 5000, BLOQ_HOLD_MS = 3000;
 var almEst = { usado: null, cuota: null, protegido: null };
 var bateria = "";
 
@@ -739,6 +740,7 @@ function chipGrab() {
   var c = $("mp-chip-grab"), b = $("mp-grabar");
   var rc = grab.rc;
   if (b) { b.textContent = rc ? "⏹ Detener" : "⏺ Grabar"; b.classList.toggle("on", !!rc); b.classList.toggle("grabando", !!rc); }
+  var bq = $("mp-bloqueo"); if (bq) bq.style.display = rc ? "" : "none";
   if (!c) return;
   if (!rc) { c.style.display = "none"; return; }
   c.style.display = ""; c.className = "mp-chip mp-chip-btn rojo";
@@ -778,18 +780,34 @@ function soltarPantalla() { try { if (grab.wake) grab.wake.release(); } catch (e
 function grabPunto(p) {
   var rc = grab.rc; if (!rc) return;
   var c = p.coords, acc = (typeof c.accuracy === "number" && c.accuracy > 0) ? c.accuracy : 999;
+  grab.ultimoFixTs = Date.now(); grab.ultimaAcc = acc < 999 ? Math.round(acc) : null;   /* v2.52: el vigilante mide el tiempo desde la última lectura recibida */
   if (acc > GRAB_ACC_MAX) return;   /* lecturas muy imprecisas ensucian el track */
   var ahora = Date.now(), pts = rc.puntos, ult = pts.length ? pts[pts.length - 1] : null;
   var nuevo = { lat: +c.latitude.toFixed(6), lon: +c.longitude.toFixed(6), horaTs: ahora, accuracy: Math.round(acc) };
   if (ult) {
     var d = distRec(ult, nuevo), dt = ahora - ult.horaTs;
     if (d < GRAB_DIST_MIN && dt < GRAB_T_MAX) return;   /* parado: no se llena de puntos repetidos */
-    if (dt > GRAB_CORTE_T && d > GRAB_CORTE_D) nuevo.corte = true;   /* hubo un hueco (pantalla bloqueada, sin señal): no se une con una recta inventada */
+    var hueco = grab.cortarSig; grab.cortarSig = false;
+    if ((dt > GRAB_CORTE_T || hueco) && d > (hueco ? 25 : GRAB_CORTE_D)) nuevo.corte = true;   /* hubo un hueco (pantalla bloqueada, sin señal): no se une con una recta inventada */
     else rc.distanciaM = (rc.distanciaM || 0) + d;
   }
   pts.push(nuevo); grab.sucio = true;
-  if (ahora - grab.ultimoGuardado > 10000) guardarGrab(true);
+  if (ahora - grab.ultimoGuardado > GRAB_GUARDAR_T) guardarGrab(true);
   chipGrab();
+}
+function armarWatchGrab() {
+  if (!grab.rc || !navigator.geolocation) return;
+  if (grab.watch != null) { try { navigator.geolocation.clearWatch(grab.watch); } catch (e) {} }
+  grab.watch = navigator.geolocation.watchPosition(grabPunto, function (e) { anotarError("grabacion", e); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+  grab.rearmadoTs = Date.now();
+}
+/* v2.52: si pasan GRAB_WATCHDOG_T ms sin recibir ninguna lectura, se vuelve a pedir el GPS (a veces el navegador lo deja dormido) */
+function vigilarGrab() {
+  if (!grab.rc) return;
+  guardarGrab(false);
+  var ref = Math.max(grab.ultimoFixTs || 0, grab.rearmadoTs || 0, grab.rc.inicioTs || 0);
+  if (Date.now() - ref > GRAB_WATCHDOG_T) { armarWatchGrab(); grab.rearmados++; }
+  if (!grab.bloq) { chipGrab(); refrescarRecorridos(false); }
 }
 function iniciarGrabacion() {
   if (grab.rc) return;
@@ -800,8 +818,9 @@ function iniciarGrabacion() {
   var n = 1; LC.state.recorridos.forEach(function (x) { if (x.sesionId === ses.id && (x.n || 0) >= n) n = x.n + 1; });
   var rc = { id: "rc_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), sesionId: ses.id, n: n, nombre: "Recorrido " + n, inicioTs: Date.now(), finTs: null, enCurso: true, interrumpido: false, distanciaM: 0, puntos: [] };
   LC.state.recorridos.push(rc); grab.rc = rc; grab.sucio = true; guardarGrab(true);
-  grab.watch = navigator.geolocation.watchPosition(grabPunto, function (e) { anotarError("grabacion", e); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
-  grab.timer = setInterval(function () { guardarGrab(false); chipGrab(); refrescarRecorridos(false); }, 5000);
+  grab.ultimoFixTs = Date.now(); grab.rearmados = 0; grab.salidas = 0; grab.cortarSig = false; grab.ocultoTs = null;
+  armarWatchGrab();
+  grab.timer = setInterval(vigilarGrab, 3000);
   if (gps.watch == null) gpsEncender();
   pedirPantalla();
   chipGrab(); refrescarRecorridos(true);
@@ -809,6 +828,7 @@ function iniciarGrabacion() {
 }
 function detenerGrabacion(sinPreguntar) {
   var rc = grab.rc; if (!rc) return;
+  if (grab.bloq) { LC.toast("Desbloquea la pantalla para detener la grabación"); return; }
   if (!sinPreguntar && !confirm("¿Detener y guardar el " + rc.nombre.toLowerCase() + "? (" + textoRecorrido(rc) + ")")) return;
   if (grab.watch != null) { try { navigator.geolocation.clearWatch(grab.watch); } catch (e) {} }
   clearInterval(grab.timer); soltarPantalla();
@@ -823,6 +843,76 @@ function detenerGrabacion(sinPreguntar) {
   LC.guardarRecorridos(); chipGrab(); refrescarRecorridos(true);
   LC.toast("Recorrido guardado: " + textoRecorrido(rc), 4000);
 }
+
+/* ---------------- v2.52 · Bloqueo de pantalla durante la grabación ----------------
+   Una página web no puede impedir que el teléfono cambie de app, ni cambiar el brillo del sistema. Lo que sí hace el bloqueo:
+   cubre todo con una pantalla casi negra (menos luz y gasto), pide pantalla completa, intercepta el botón Atrás y el cierre
+   de la pestaña, mantiene la pantalla encendida, y exige mantener presionado el botón 3 s para desbloquear. */
+function bloqueoMensaje(t) { var e = $("mp-bq-msg"); if (e) e.textContent = t || ""; }
+function pantallaCompleta(on) {
+  try {
+    var el = document.documentElement;
+    if (on) { if (!document.fullscreenElement && el.requestFullscreen) { var pr = el.requestFullscreen({ navigationUI: "hide" }); if (pr && pr.catch) pr.catch(function () {}); } }
+    else if (document.fullscreenElement && document.exitFullscreen) { var p2 = document.exitFullscreen(); if (p2 && p2.catch) p2.catch(function () {}); }
+  } catch (e) {}
+}
+function construirBloqueo() {
+  var o = $("mp-bq"); if (o) return o;
+  o = document.createElement("div"); o.id = "mp-bq"; o.setAttribute("role", "dialog"); o.setAttribute("aria-label", "Pantalla bloqueada durante la grabación");
+  o.innerHTML =
+    '<div id="mp-bq-estado"></div><div id="mp-bq-det"></div><div id="mp-bq-msg"></div>' +
+    '<button type="button" id="mp-bq-btn" aria-label="Mantén presionado para desbloquear">' +
+      '<svg viewBox="0 0 100 100" width="132" height="132" aria-hidden="true"><circle cx="50" cy="50" r="45" fill="none" stroke="#333" stroke-width="6"/><circle id="mp-bq-anillo" cx="50" cy="50" r="45" fill="none" stroke="#6fbf73" stroke-width="6" stroke-linecap="round" stroke-dasharray="282.7" stroke-dashoffset="282.7" transform="rotate(-90 50 50)"/></svg>' +
+      '<span id="mp-bq-ic">🔒</span></button>' +
+    '<div id="mp-bq-ayuda">Mantén presionado el círculo 3 segundos para desbloquear</div>';
+  document.body.appendChild(o);
+  var btn = $("mp-bq-btn"), anillo = $("mp-bq-anillo"), t0 = 0, raf = 0, id = null;
+  function pintar(f) { anillo.setAttribute("stroke-dashoffset", String(282.7 * (1 - f))); }
+  function paso() {
+    var f = Math.min(1, (Date.now() - t0) / BLOQ_HOLD_MS); pintar(f);
+    if (f >= 1) { cancelar(); desbloquear(); return; }
+    raf = requestAnimationFrame(paso);
+  }
+  function cancelar() { if (raf) cancelAnimationFrame(raf); raf = 0; t0 = 0; id = null; pintar(0); $("mp-bq-ic").textContent = "🔒"; }
+  btn.addEventListener("pointerdown", function (e) {
+    if (id != null) return;
+    id = e.pointerId; try { btn.setPointerCapture(id); } catch (x) {}
+    t0 = Date.now(); $("mp-bq-ic").textContent = "🔓"; raf = requestAnimationFrame(paso);
+  });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (ev) {
+    btn.addEventListener(ev, function (e) { if (t0 && Date.now() - t0 < BLOQ_HOLD_MS) { cancelar(); bloqueoMensaje("Mantén presionado sin soltar para desbloquear"); } });
+  });
+  o.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  /* cualquier toque es un gesto válido para volver a pantalla completa si se perdió */
+  o.addEventListener("pointerdown", function () { pantallaCompleta(true); }, true);
+  return o;
+}
+function actualizarBloqueo() {
+  var rc = grab.rc; if (!rc || !grab.bloq) return;
+  var est = $("mp-bq-estado"), det = $("mp-bq-det"); if (!est || !det) return;
+  est.textContent = "● Grabando · " + textoDistancia(rc.distanciaM || 0) + " · " + textoDuracion(Date.now() - rc.inicioTs);
+  var edad = grab.ultimoFixTs ? Math.round((Date.now() - grab.ultimoFixTs) / 1000) : null;
+  var sinSenal = edad == null || edad > 20;
+  det.textContent = (sinSenal ? "⚠️ Sin señal GPS" + (edad != null ? " hace " + edad + " s" : "") : "Último punto hace " + edad + " s" + (grab.ultimaAcc != null ? " · ±" + grab.ultimaAcc + " m" : "")) + " · " + (rc.puntos || []).length + " puntos" + (grab.salidas ? " · " + grab.salidas + " salida(s)" : "");
+  det.className = sinSenal ? "mala" : "";
+}
+function bloquear() {
+  if (!grab.rc || grab.bloq) return;
+  var o = construirBloqueo();
+  grab.bloq = true; window.__lcBloqueo = true;
+  o.classList.add("on"); bloqueoMensaje("");
+  try { history.pushState(history.state || { lc: true }, ""); } catch (e) {}
+  pantallaCompleta(true); pedirPantalla();
+  actualizarBloqueo(); grab.bqTimer = setInterval(actualizarBloqueo, 1000);
+}
+function desbloquear() {
+  if (!grab.bloq) return;
+  grab.bloq = false; window.__lcBloqueo = false;
+  clearInterval(grab.bqTimer); grab.bqTimer = null;
+  var o = $("mp-bq"); if (o) o.classList.remove("on");
+  pantallaCompleta(false);
+  chipGrab(); refrescarRecorridos(true);
+}
 function borrarRecorrido(rc) {
   if (grab.rc && grab.rc.id === rc.id) { LC.toast("Detén la grabación antes de borrar este recorrido"); return false; }
   if (!confirm("¿Borrar el " + rc.nombre.toLowerCase() + " (" + textoRecorrido(rc) + ")? No se puede deshacer.")) return false;
@@ -833,8 +923,18 @@ function borrarRecorrido(rc) {
 }
 document.addEventListener("visibilitychange", function () {
   if (!grab.rc) return;
-  if (document.visibilityState === "hidden") guardarGrab(true);
-  else { pedirPantalla(); chipGrab(); }
+  if (document.visibilityState === "hidden") { grab.ocultoTs = Date.now(); guardarGrab(true); return; }
+  /* v2.52: al volver se pide de nuevo el GPS y la pantalla encendida; si hubo un tramo sin registro, se marca como corte */
+  armarWatchGrab(); pedirPantalla();
+  var fuera = grab.ocultoTs ? Date.now() - grab.ocultoTs : 0; grab.ocultoTs = null;
+  if (fuera > 10000) {
+    var rc = grab.rc; if (!rc.huecos) rc.huecos = [];
+    rc.huecos.push({ desde: Date.now() - fuera, hasta: Date.now() }); grab.cortarSig = true; grab.salidas++; guardarGrab(true);
+    var txt = "⚠️ Saliste de la app " + textoDuracion(fuera) + ": el GPS no registró ese tramo";
+    if (grab.bloq) bloqueoMensaje(txt); else LC.toast(txt, 6000);
+  }
+  if (grab.bloq) pantallaCompleta(true);
+  chipGrab();
 });
 window.addEventListener("pagehide", function () { guardarGrab(true); });
 
@@ -1840,6 +1940,7 @@ function construirPantalla() {
       '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
       '<button type="button" class="mp-btn chico" id="mp-grabar">⏺ Grabar</button>' +
+      '<button type="button" class="mp-btn chico" id="mp-bloqueo" style="display:none">🔒 Bloqueo</button>' +
       '<button type="button" class="mp-btn chico" id="mp-pantalla">🔆 Pantalla</button>' +
       '<button type="button" class="mp-btn mp-centrar" id="mp-centrar" aria-label="Centrar en mi ubicación" style="display:none">◎</button>' +
       '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
@@ -1863,6 +1964,7 @@ function construirPantalla() {
   $("mp-grabar").onclick = function () { if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
   $("mp-chip-grab").onclick = function () { detenerGrabacion(false); };
   $("mp-pantalla").onclick = alternarPantalla; botonPantalla();
+  $("mp-bloqueo").onclick = bloquear;
   construirLeyenda();
   $("mp-chip-rec").onclick = function () { LC.abrirRegistro(); };   /* vuelve a la Observación que se está grabando */
   $("mp-norte").onclick = function () { if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
