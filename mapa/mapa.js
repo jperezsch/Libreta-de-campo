@@ -655,7 +655,7 @@ function geoTracks() {
   var fs = [];
   LC.state.registros.forEach(function (r) {
     if (r.tipo !== "observacion") return;
-    var pr = { id: r.id, sesion: r.sesionId, activa: r.sesionId === LC.state.sesionActivaId ? 1 : 0, color: LC.colorSesion(r.sesionId), recto: 0 };
+    var pr = { id: r.id, sesion: r.sesionId, activa: r.sesionId === LC.state.sesionActivaId ? 1 : 0, color: LC.colorSesion(r.sesionId), recto: 0, clase: "obs" };
     var cs = coordsTrack(r.trackPuntos);
     if (cs.length >= 2) { fs.push({ type: "Feature", properties: pr, geometry: { type: "LineString", coordinates: cs } }); return; }
     var la = numOk(r.lat), lo = numOk(r.lon), fin = r.obsTermino ? { la: numOk(r.obsTermino.lat), lo: numOk(r.obsTermino.lon) } : null;
@@ -714,7 +714,7 @@ function geoRecorridos() {
   var fs = [];
   listaRecorridos().forEach(function (rc) {
     var sg = segmentosRec(rc); if (!sg.length) return;
-    var pr = { id: rc.id, sesion: rc.sesionId, color: LC.colorSesion(rc.sesionId), grabando: rc.enCurso ? 1 : 0 };
+    var pr = { id: rc.id, sesion: rc.sesionId, color: LC.colorSesion(rc.sesionId), grabando: rc.enCurso ? 1 : 0, clase: "recorrido" };
     fs.push({ type: "Feature", properties: pr, geometry: sg.length === 1 ? { type: "LineString", coordinates: sg[0] } : { type: "MultiLineString", coordinates: sg } });
   });
   return { type: "FeatureCollection", features: fs };
@@ -750,9 +750,26 @@ function guardarGrab(forzar) {
   grab.sucio = false; grab.ultimoGuardado = Date.now();
   LC.guardarRecorridos();
 }
+/* v2.48: la pantalla siempre encendida durante la grabación viene activada por defecto; el botón "Pantalla" del mapa la apaga o la enciende.
+   La preferencia se comparte con el seguimiento de las Observaciones (misma clave en localStorage). */
+function pantallaPref() { try { return localStorage.getItem("libretaCampo_pantallaGrabacion") !== "0"; } catch (e) { return true; } }
+function botonPantalla() {
+  var b = $("mp-pantalla"); if (!b) return;
+  var on = pantallaPref();
+  b.textContent = on ? "🔆 Pantalla" : "🌙 Pantalla";
+  b.title = on ? "Pantalla siempre encendida al grabar (activado)" : "Pantalla siempre encendida al grabar (apagado)";
+  b.classList.toggle("on", on);
+}
+function alternarPantalla() {
+  var nuevo = !pantallaPref();
+  try { localStorage.setItem("libretaCampo_pantallaGrabacion", nuevo ? "1" : "0"); } catch (e) {}
+  botonPantalla();
+  if (nuevo) { pedirPantalla(); LC.toast("🔆 La pantalla no se apagará mientras grabas", 3500); }
+  else { soltarPantalla(); LC.toast("⚠️ La pantalla podrá apagarse y el GPS dejar de registrar el recorrido", 4500); }
+}
 async function pedirPantalla() {
   try {
-    if (!grab.rc || !navigator.wakeLock || grab.wake) return;
+    if (!grab.rc || !pantallaPref() || !navigator.wakeLock || grab.wake) return;
     grab.wake = await navigator.wakeLock.request("screen");
     grab.wake.addEventListener("release", function () { grab.wake = null; });
   } catch (e) { grab.wake = null; }
@@ -788,7 +805,7 @@ function iniciarGrabacion() {
   if (gps.watch == null) gpsEncender();
   pedirPantalla();
   chipGrab(); refrescarRecorridos(true);
-  LC.toast("Grabando recorrido. Mantén la pantalla encendida: si el teléfono se bloquea, la grabación se interrumpe.", 6000);
+  LC.toast(pantallaPref() ? "Grabando recorrido. La pantalla se mantendrá encendida para no perder la señal del GPS." : "Grabando recorrido. Con «Pantalla normal» el teléfono puede bloquearse y la grabación se interrumpe: mantén la pantalla encendida.", 6000);
 }
 function detenerGrabacion(sinPreguntar) {
   var rc = grab.rc; if (!rc) return;
@@ -913,10 +930,38 @@ function vis(c) { return capasVis[c] ? "visible" : "none"; }
 function visSesion(id) { return !(capasVis.sesiones && capasVis.sesiones[id] === false); }
 function visReg(id) { return !(capasVis.regs && capasVis.regs[id] === false); }
 function idsOcultos() { return Object.keys(capasVis.regs || {}).filter(function (k) { return capasVis.regs[k] === false; }); }
+/* v2.49: leyenda con filtro por tipo de punto. Todos visibles por defecto; capasVis.tipos[clase] === false oculta esa clase (puntos, tracks y recorridos). */
+var LEYENDA = [
+  { clase: "rec", letra: "R", nombre: "Recolección", forma: "circ" },
+  { clase: "obs", letra: "O", nombre: "Observación (con su track)", forma: "circ" },
+  { clase: "nota", letra: "N", nombre: "Nota general", forma: "rombo" },
+  { clase: "otro", letra: "M", nombre: "Medición", forma: "circ" },
+  { clase: "recorrido", letra: "〰", nombre: "Recorrido grabado", forma: "linea" }
+];
+function visClase(c) { return !(capasVis.tipos && capasVis.tipos[c] === false); }
+function clasesOcultas() { return LEYENDA.filter(function (x) { return !visClase(x.clase); }).map(function (x) { return x.clase; }); }
 function filtroPuntos() {
   var ids = LC.state.sesiones.filter(function (x) { return visSesion(x.id); }).map(function (x) { return x.id; });
-  var f = ["in", ["get", "sesion"], ["literal", ids]], oc = idsOcultos();
-  return oc.length ? ["all", f, ["!", ["in", ["get", "id"], ["literal", oc]]]] : f;   /* v2.44: registros que se ocultaron uno a uno desde "Mis puntos" */
+  var f = ["in", ["get", "sesion"], ["literal", ids]], oc = idsOcultos(), co = clasesOcultas();
+  var partes = ["all", f];
+  if (oc.length) partes.push(["!", ["in", ["get", "id"], ["literal", oc]]]);   /* v2.44: registros que se ocultaron uno a uno desde "Mis puntos" */
+  if (co.length) partes.push(["!", ["in", ["get", "clase"], ["literal", co]]]);
+  return partes.length > 2 ? partes : f;
+}
+function construirLeyenda() {
+  var cont = $("mp-leyenda"); if (!cont) return;
+  cont.innerHTML = "";
+  LEYENDA.forEach(function (x) {
+    var b = el("button", { type: "button", class: "mp-ley mp-ley-" + x.forma + (visClase(x.clase) ? " on" : ""), "data-clase": x.clase, title: x.nombre + (visClase(x.clase) ? " (visible)" : " (oculto)"), "aria-pressed": visClase(x.clase) ? "true" : "false", "aria-label": x.nombre, texto: x.letra });
+    b.onclick = function () {
+      if (!capasVis.tipos) capasVis.tipos = {};
+      if (visClase(x.clase)) capasVis.tipos[x.clase] = false; else delete capasVis.tipos[x.clase];
+      guardarJSON(LS_CAPAS, capasVis);
+      construirLeyenda(); aplicarFiltroPuntos();
+      LC.toast(x.nombre + (visClase(x.clase) ? ": visible" : ": oculto"), 1400);
+    };
+    cont.appendChild(b);
+  });
 }
 function filtroPuntosCirc() { return ["all", filtroPuntos(), ["==", ["get", "nota"], 0]]; }
 function filtroTrack(recto) { return ["all", filtroPuntos(), ["==", ["get", "recto"], recto]]; }
@@ -1786,10 +1831,12 @@ function construirPantalla() {
       '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
       '<button type="button" class="mp-btn chico" id="mp-grabar">⏺ Grabar</button>' +
+      '<button type="button" class="mp-btn chico" id="mp-pantalla">🔆 Pantalla</button>' +
       '<button type="button" class="mp-btn mp-centrar" id="mp-centrar" aria-label="Centrar en mi ubicación" style="display:none">◎</button>' +
       '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
       '<button type="button" class="mp-btn chico" id="mp-rumbo" style="display:none">Rumbo arriba</button>' +
     '</div>' +
+    '<div id="mp-leyenda" role="group" aria-label="Tipos de punto: toca para mostrar u ocultar"></div>' +
     '<div id="mp-aviso"></div>' +
     '<div id="mp-panel-puntos"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
@@ -1806,6 +1853,8 @@ function construirPantalla() {
   $("mp-volver-reg").onclick = volverAlRegistro;
   $("mp-grabar").onclick = function () { if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
   $("mp-chip-grab").onclick = function () { detenerGrabacion(false); };
+  $("mp-pantalla").onclick = alternarPantalla; botonPantalla();
+  construirLeyenda();
   $("mp-chip-rec").onclick = function () { LC.abrirRegistro(); };   /* vuelve a la Observación que se está grabando */
   $("mp-norte").onclick = function () { if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
   $("mp-rumbo").onclick = function () { if (rumbo.activo) apagarRumbo(true); else encenderRumbo(); };
