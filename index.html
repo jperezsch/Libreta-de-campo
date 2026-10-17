@@ -334,6 +334,13 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .btnfull:disabled{opacity:.6;}
 
 /* ---- Fotos ---- */
+details.foto-mas{margin:0 0 6px;}
+details.foto-mas > summary{font-size:.8rem; color:var(--texto-sec); cursor:pointer; padding:6px 4px; list-style:none; text-align:center; opacity:.85;}
+details.foto-mas > summary::-webkit-details-marker{display:none;}
+details.foto-mas > summary::after{content:" ▾";}
+details.foto-mas[open] > summary::after{content:" ▴";}
+.foto-mas-fila{display:flex; gap:9px; margin:2px 0 4px;}
+.foto-mas-fila .btnfull{flex:1 1 0; margin:0; min-width:0; padding-left:6px; padding-right:6px;}
 .foto-btns{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:9px;}
 .notas-toolbar{display:flex; gap:6px; margin-bottom:6px;}
 .notas-toolbar button{padding:7px 13px; border-radius:8px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.85rem; cursor:pointer;}
@@ -490,6 +497,11 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 .chips-sug{display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;}
 .chips-sug:empty{display:none;}
 .chip-sug{font-size:.92rem; min-height:40px; padding:8px 15px; border-radius:20px; border:2px solid var(--verde); background:var(--verde-cl); color:var(--verde-osc); cursor:pointer; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;}
+.chip-sug{-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation;}
+.sug-fila{display:flex; align-items:center; gap:8px; padding:4px 0 4px 2px; border-bottom:1px solid var(--borde);}
+.sug-fila span{flex:1; min-width:0; overflow-wrap:anywhere;}
+.sug-x{flex:0 0 auto; width:44px; height:44px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); color:#c0392b; font-size:1.1rem; cursor:pointer;}
+.chip-sug.quitando{background:#c0392b; border-color:#c0392b; color:#fff;}
 .chip-sug.on{background:var(--verde); border-color:var(--verde); color:#fff; font-weight:700;}
 .chips-sug{gap:8px;}
 .preview-loc{display:block; font-size:.76rem; color:var(--texto-sec); margin-top:6px;}
@@ -617,7 +629,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div class="field"><label>Notas generales</label><textarea id="ss-notas" spellcheck="true"></textarea></div>
     </div>
 
-    <details class="mas-opciones en-sesion" id="sesion-mas-opciones" style="display:none;"><summary>Más opciones</summary><div id="sesion-mapa-asoc"></div></details>
+    <div class="bloque" id="sesion-mas-opciones" style="display:none;"><div id="sesion-mapa-asoc"></div></div>
 
     <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos de la sesión</button>
     <button type="button" class="btnfull btn-secondary" id="btn-descartar-sesion-nueva" style="display:none; margin-top:8px;">Descartar sesión nueva</button>
@@ -745,8 +757,13 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <button type="button" class="btnfull btn-amber" style="margin:0;" id="btn-tomar-foto">📷 Tomar foto</button>
       <button type="button" class="btnfull btn-secondary" style="margin:0;" id="btn-galeria-foto">🖼 Seleccionar desde galería</button>
     </div>
-    <button type="button" class="btnfull btn-secondary" style="margin:8px 0 0; display:none;" id="btn-camara-avanzada">🎛 Cámara avanzada (zoom, lentes, exposición…)</button>
-    <button type="button" class="btnfull btn-secondary" style="margin:8px 0 0;" id="btn-grabar-video">🎥 Grabar video (se guarda en la carpeta del teléfono)</button>
+    <details class="foto-mas" id="foto-mas"><summary>Más formas de capturar</summary>
+      <div class="foto-mas-fila">
+        <button type="button" class="btnfull btn-secondary" id="btn-grabar-video">🎥 Grabar video</button>
+        <button type="button" class="btnfull btn-secondary" id="btn-camara-avanzada" style="display:none;">🎛 Cámara avanzada</button>
+      </div>
+      <span class="campo-ayuda">Los videos se guardan en la carpeta del teléfono.</span>
+    </details>
     <input type="file" id="f-input-video" accept="video/*" capture="environment" style="display:none;">
     <div id="videos-lista"></div>
     <input type="file" id="f-input-camara" accept="image/*" capture="environment" style="display:none;">
@@ -778,6 +795,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
         <input type="text" id="f-localidad-especifica" spellcheck="true" list="dl-localidad-especifica" autocomplete="off" placeholder="Punto exacto, incluyendo referencias">
         <datalist id="dl-localidad-especifica"></datalist>
         <div class="chips-sug" id="chips-localidad-especifica"></div>
+        <span class="campo-ayuda" id="ayuda-chips-loc" style="display:none;">Mantén presionada una sugerencia para quitarla.</span>
         <span class="preview-loc" id="preview-localidad"></span>
       </div>
       <div class="field"><label>Estación <span style="font-weight:400; text-transform:none;">(opcional)</span></label>
@@ -968,6 +986,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div class="version-info" id="version-info">Comprobando versión...</div>
     <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
     <details class="cfg-bloque" id="cfg-gestion-mapas"><summary>Gestión de mapas</summary><div class="cfg-bloque-cuerpo" id="config-mapa"></div></details>
+    <details class="cfg-bloque" id="cfg-sugerencias"><summary>Sugerencias guardadas</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
     <details class="cfg-bloque" id="cfg-datos"><summary>Datos</summary><div class="cfg-bloque-cuerpo">
       <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
     </div></details>
@@ -3627,7 +3646,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-17 · v2.61";
+var APP_BUILD = "2026-10-17 · v2.63";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -4397,13 +4416,15 @@ function actualizarCamposNombreSesion(s){
 }
 function valoresZonaSesiones(){
   var cuenta = {}, orden = [];
+  var ocultas = sugOcultas().zona || {};
   state.sesiones.forEach(function(x){
     var v = (x.zona||"").trim(); if(!v) return;
     var k = normalizarTextoComparar(v);
-    if(!cuenta[k]){ cuenta[k] = {texto:v, n:0}; orden.push(k); }
+    if(!cuenta[k]){ cuenta[k] = {texto:v, n:0, ultimo:0}; orden.push(k); }
     cuenta[k].n++;
+    var t = Date.parse(x.creada || "") || 0; if(t > cuenta[k].ultimo) cuenta[k].ultimo = t;
   });
-  return orden.map(function(k){ return cuenta[k]; }).sort(function(a,b){ return b.n - a.n || a.texto.localeCompare(b.texto); });
+  return orden.filter(function(k){ return !(ocultas[k] && cuenta[k].ultimo <= ocultas[k]); }).map(function(k){ return cuenta[k]; }).sort(function(a,b){ return b.n - a.n || a.texto.localeCompare(b.texto); });
 }
 function poblarSugerenciasZona(){
   var dl = document.getElementById("dl-ss-zona"); if(!dl) return;
@@ -8396,6 +8417,14 @@ document.getElementById("btn-lightbox-eliminar").addEventListener("click", funct
 /* ---------------- Localidad específica y Estación (v2.35) ----------------
    Campos opcionales por registro. Para mantener nombres estandarizados: sugerencias (lista y botones) con lo ya usado,
    y al salir del campo se reemplaza lo escrito por la grafía ya registrada si solo cambian mayúsculas, tildes o espacios. */
+/* v2.62: las sugerencias salen de los registros guardados; para quitar una se oculta (los registros no se tocan).
+   Reaparece sola si después se guarda un registro nuevo con ese valor. */
+function sugOcultas(){ try{ return JSON.parse(localStorage.getItem("libretacampo_sug_ocultas") || "{}") || {}; }catch(e){ return {}; } }
+function ocultarSugerencia(campo, texto){
+  var o = sugOcultas(); if(!o[campo]) o[campo] = {};
+  o[campo][normalizarTextoComparar(texto)] = Date.now();
+  try{ localStorage.setItem("libretacampo_sug_ocultas", JSON.stringify(o)); }catch(e){}
+}
 function valoresUsadosCampo(campo, sesionIdPrioritaria, excluirRegistroId){
   var cuenta = {}, orden = [];
   state.registros.forEach(function(r){
@@ -8408,7 +8437,8 @@ function valoresUsadosCampo(campo, sesionIdPrioritaria, excluirRegistroId){
     if(t > cuenta[k].ultimo) cuenta[k].ultimo = t;
     if(sesionIdPrioritaria && r.sesionId === sesionIdPrioritaria) cuenta[k].enSesion = true;
   });
-  return orden.map(function(k){ return cuenta[k]; }).sort(function(a,b){
+  var ocultas = sugOcultas()[campo] || {};
+  return orden.filter(function(k){ return !(ocultas[k] && cuenta[k].ultimo <= ocultas[k]); }).map(function(k){ return cuenta[k]; }).sort(function(a,b){
     if(a.enSesion !== b.enSesion) return a.enSesion ? -1 : 1;
     if(a.n !== b.n) return b.n - a.n;
     if(a.ultimo !== b.ultimo) return b.ultimo - a.ultimo;
@@ -8421,10 +8451,11 @@ var CAMPOS_LOC_EST = [
 ];
 // Valor del registro anterior (el más reciente de la sesión; si la sesión no tiene, el más reciente de todos): se ofrece como primer botón con ↺
 function valorAnteriorCampo(campo, sesionId, excluirId){
-  var mejor = null, mejorSesion = null;
+  var mejor = null, mejorSesion = null, ocultas = sugOcultas()[campo] || {};
   state.registros.forEach(function(r){
     if(r.id === excluirId || !(r[campo]||"").trim()) return;
     var t = timestampCreacionRegistro(r);
+    var kOc = ocultas[normalizarTextoComparar(r[campo])]; if(kOc && t <= kOc) return;
     if(!mejor || t > timestampCreacionRegistro(mejor)) mejor = r;
     if(r.sesionId === sesionId && (!mejorSesion || t > timestampCreacionRegistro(mejorSesion))) mejorSesion = r;
   });
@@ -8432,6 +8463,7 @@ function valorAnteriorCampo(campo, sesionId, excluirId){
   return r ? r[campo].trim() : "";
 }
 function poblarSugerenciasLocalidadEstacion(){
+  var hayChips = false;
   var sid = state.draft ? state.draft.sesionId : state.sesionActivaId;
   var excl = state.draft ? state.draft.id : null;
   CAMPOS_LOC_EST.forEach(function(c){
@@ -8442,10 +8474,12 @@ function poblarSugerenciasLocalidadEstacion(){
     var lista = [];
     if(ant) lista.push({texto:ant, anterior:true});
     vals.forEach(function(v){ if(normalizarTextoComparar(v.texto) !== kAnt) lista.push({texto:v.texto, anterior:false}); });
+    if(lista.length) hayChips = true;
     document.getElementById(c.chips).innerHTML = lista.slice(0, 6).map(function(v){
       return '<button type="button" class="chip-sug'+(normalizarTextoComparar(v.texto)===actual ? " on" : "")+'" data-input="'+c.input+'" data-val="'+escapeHtml(v.texto)+'"'+(v.anterior ? ' title="Registro anterior"' : '')+'>'+(v.anterior ? '↺ ' : '')+escapeHtml(v.texto)+'</button>';
     }).join("");
   });
+  var hint = document.getElementById("ayuda-chips-loc"); if(hint) hint.style.display = hayChips ? "" : "none";
 }
 function actualizarPreviewLocalidad(){
   var el = document.getElementById("preview-localidad"); if(!el) return;
@@ -8478,12 +8512,112 @@ CAMPOS_LOC_EST.forEach(function(c){
   });
   el.addEventListener("change", function(){ canonizarCampoLocEst(c); refrescar(); });
   el.addEventListener("blur", function(){ canonizarCampoLocEst(c); refrescar(); });
-  document.getElementById(c.chips).addEventListener("click", function(e){
+  var cont = document.getElementById(c.chips), timer = null, ini = null, largo = false;
+  function cancelar(){ clearTimeout(timer); timer = null; }
+  cont.addEventListener("click", function(e){
+    if(largo){ largo = false; return; }
     var b = e.target.closest ? e.target.closest(".chip-sug") : null; if(!b) return;
     el.value = b.dataset.val;
     refrescar();
   });
+  // v2.62: mantener presionado un botón verde permite quitarlo de las sugerencias
+  cont.addEventListener("pointerdown", function(e){
+    var b = e.target.closest ? e.target.closest(".chip-sug") : null; if(!b) return;
+    cancelar(); largo = false; ini = {x:e.clientX, y:e.clientY};
+    timer = setTimeout(function(){
+      timer = null; largo = true; b.classList.add("quitando");
+      if(navigator.vibrate) navigator.vibrate(35);
+      var txt = b.dataset.val;
+      setTimeout(function(){
+        if(confirm("¿Quitar «"+txt+"» de las sugerencias de "+c.etiqueta+"?\n\nLos registros que ya usan este texto no se modifican.")){
+          ocultarSugerencia(c.campo, txt); poblarSugerenciasLocalidadEstacion(); toast("Sugerencia quitada");
+        } else b.classList.remove("quitando");
+        setTimeout(function(){ largo = false; }, 400);
+      }, 30);
+    }, 600);
+  });
+  cont.addEventListener("pointermove", function(e){ if(timer && ini && Math.hypot(e.clientX-ini.x, e.clientY-ini.y) > 10) cancelar(); });
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){ cont.addEventListener(ev, cancelar); });
+  cont.addEventListener("contextmenu", function(e){ e.preventDefault(); });
 });
+
+/* ---------------- v2.63: administrar las sugerencias guardadas (las de la barra del teclado) ---------------- */
+var CAMPOS_SUGERENCIAS = [
+  {campo:"zona", etiqueta:"Localidad general", tipo:"zona"},
+  {campo:"localidadEspecifica", etiqueta:"Localidad específica", tipo:"reg"},
+  {campo:"estacion", etiqueta:"Estación", tipo:"reg"},
+  {campo:"objetivo", etiqueta:"Objetivo de la sesión"},
+  {campo:"participantes", etiqueta:"Participantes"},
+  {campo:"institucion", etiqueta:"Institución / permiso de colecta"},
+  {campo:"prefijo", etiqueta:"Acrónimo / prefijo"},
+  {campo:"clima", etiqueta:"Condiciones climáticas"},
+  {campo:"habitatOtro", etiqueta:"Hábitat (otro)"},
+  {campo:"taxonLibre", etiqueta:"Taxón / descripción"},
+  {campo:"referencia", etiqueta:"Microhábitat"},
+  {campo:"especieObservada", etiqueta:"Especie observada"},
+  {campo:"especieMedida", etiqueta:"Especie a medir"},
+  {campo:"estructuraNombre", etiqueta:"Estructura a medir"},
+  {campo:"metodoOtro", etiqueta:"Método de colecta (otro)"},
+  {campo:"metodoMedOtro", etiqueta:"Método de medición (otro)"}
+];
+function sugerenciasDeCampo(c){
+  if(c.tipo === "zona"){
+    var vistos = {}, out = [];
+    valoresZonaSesiones().forEach(function(x){ vistos[normalizarTextoComparar(x.texto)] = 1; out.push(x.texto); });
+    (state.historial.zona || []).forEach(function(v){ var k = normalizarTextoComparar(v); if(k && !vistos[k]){ vistos[k] = 1; out.push(v); } });
+    return out;
+  }
+  if(c.tipo === "reg") return valoresUsadosCampo(c.campo, null, null).map(function(x){ return x.texto; });
+  return (state.historial[c.campo] || []).slice();
+}
+function quitarSugerenciaCampo(c, texto){
+  var k = normalizarTextoComparar(texto);
+  if(state.historial[c.campo]){
+    state.historial[c.campo] = state.historial[c.campo].filter(function(v){ return normalizarTextoComparar(v) !== k; });
+    setLS(LSK.hist, JSON.stringify(state.historial));
+  }
+  if(c.tipo === "zona" || c.tipo === "reg") ocultarSugerencia(c.campo, texto);   // salen de sesiones o registros: se ocultan sin modificarlos
+}
+function vaciarSugerenciasCampo(c){ sugerenciasDeCampo(c).forEach(function(t){ quitarSugerenciaCampo(c, t); }); }
+function repoblarListasSugerencias(){
+  try{
+    poblarSugerenciasZona(); poblarSugerenciasLocalidadEstacion();
+    [["dl-ss-objetivo","objetivo"],["dl-ss-participantes","participantes"],["dl-ss-institucion","institucion"],["dl-ss-prefijo","prefijo"],["dl-ss-clima","clima"],
+     ["dl-habitat-otro","habitatOtro"],["dl-taxon","taxonLibre"],["dl-referencia","referencia"],["dl-especie-medida","especieMedida"],["dl-estructura-nombre","estructuraNombre"],
+     ["dl-esp-nombre","especieObservada"],["dl-metodo-otro","metodoOtro"],["dl-metodo-med-otro","metodoMedOtro"],["dl-localidad-individuo","zona"]].forEach(function(p){ poblarSugerencias(p[0], p[1]); });
+  }catch(e){}
+}
+var sugCampoElegido = "zona";
+function renderConfigSugerencias(){
+  var box = document.getElementById("config-sugerencias"); if(!box) return;
+  var c = CAMPOS_SUGERENCIAS.filter(function(x){ return x.campo === sugCampoElegido; })[0] || CAMPOS_SUGERENCIAS[0];
+  var lista = sugerenciasDeCampo(c);
+  var opciones = CAMPOS_SUGERENCIAS.map(function(x){
+    return '<option value="'+x.campo+'"'+(x.campo === c.campo ? ' selected' : '')+'>'+escapeHtml(x.etiqueta)+' ('+sugerenciasDeCampo(x).length+')</option>';
+  }).join("");
+  box.innerHTML = '<div class="campo-ayuda" style="margin:0 0 8px;">Son las palabras que la app ofrece sobre el teclado al escribir en cada campo. Quitarlas no modifica tus registros ni tus sesiones.</div>'+
+    '<div class="field"><label>Campo</label><select id="sug-campo">'+opciones+'</select></div>'+
+    (lista.length
+      ? '<div id="sug-lista">'+lista.map(function(t, i){ return '<div class="sug-fila"><span>'+escapeHtml(t)+'</span><button type="button" class="sug-x" data-i="'+i+'" aria-label="Quitar">✕</button></div>'; }).join("")+'</div>'+
+        '<button type="button" class="btnfull btn-secondary" id="sug-vaciar" style="margin-top:10px;">🗑 Quitar las '+lista.length+' sugerencias de este campo</button>'
+      : '<div class="campo-ayuda">Este campo no tiene sugerencias guardadas.</div>');
+  document.getElementById("sug-campo").addEventListener("change", function(){ sugCampoElegido = this.value; renderConfigSugerencias(); });
+  Array.prototype.forEach.call(box.querySelectorAll(".sug-x"), function(b){
+    b.addEventListener("click", function(){
+      var txt = lista[+b.getAttribute("data-i")];
+      quitarSugerenciaCampo(c, txt); repoblarListasSugerencias(); renderConfigSugerencias();
+    });
+  });
+  var v = document.getElementById("sug-vaciar");
+  if(v) v.addEventListener("click", function(){
+    if(!confirm("¿Quitar las "+lista.length+" sugerencias de «"+c.etiqueta+"»?\n\nNo se modifican registros ni sesiones.")) return;
+    vaciarSugerenciasCampo(c); repoblarListasSugerencias(); renderConfigSugerencias(); toast("Sugerencias quitadas");
+  });
+}
+(function(){
+  var det = document.getElementById("cfg-sugerencias"); if(!det) return;
+  det.addEventListener("toggle", function(){ if(det.open) renderConfigSugerencias(); });
+})();
 
 /* ---------------- Guardar ---------------- */
 function tienePuntoGps(d){
