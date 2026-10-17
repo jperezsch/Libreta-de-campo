@@ -1178,6 +1178,11 @@ function construirEstilo(sinMapas) {
   capas.push({ id: "puntos-texto", type: "symbol", source: "puntos", filter: ["all", filtroPuntos(), ["!=", ["get", "etq"], ""]],
     layout: { "text-field": ["get", "etq"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": ["case", ["==", ["get", "nota"], 1], ["literal", [0, 1.4]], ["literal", [0, 1.35]]], "text-anchor": "top", "text-allow-overlap": true },
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
+  /* v2.58: punto marcado a mano con un toque sostenido */
+  capas.push({ id: "nav-manual-halo", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
+    paint: { "circle-radius": 17, "circle-color": "#d64545", "circle-opacity": 0.22 } });
+  capas.push({ id: "nav-manual", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
+    paint: { "circle-radius": 8, "circle-color": "#d64545", "circle-stroke-color": "#ffffff", "circle-stroke-width": 3 } });
   capas.push({ id: "nav-linea", type: "line", source: "nav", filter: ["==", ["get", "tipo"], "linea"], layout: { "line-cap": "round" },
     paint: { "line-color": "#c9962c", "line-width": 3, "line-dasharray": [2, 2] } });
   capas.push({ id: "nav-destino", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "destino"],
@@ -1410,6 +1415,7 @@ function actualizarNorte() {
 
 /* ---------- navegar hasta un punto (pulsación larga): brújula, distancia y tiempo estimado ---------- */
 var nav = null;                 /* { destino:{lng,lat,nombre}, hist:[{t,lng,lat}], vel:null, rumbo:null } */
+var puntoManual = null;         /* v2.58: { lng, lat } marcado con toque sostenido en un lugar sin registros */
 var pulsacionReciente = false;  /* el clic que sigue a una pulsación larga no debe abrir el registro */
 function distanciaM(a, b) {
   var R = 6371000, r = Math.PI / 180, dLa = (b.lat - a.lat) * r, dLo = (b.lng - a.lng) * r;
@@ -1429,6 +1435,7 @@ function textoTiempo(seg) {
 }
 function geoNav() {
   var fc = { type: "FeatureCollection", features: [] };
+  if (puntoManual) fc.features.push({ type: "Feature", properties: { tipo: "manual" }, geometry: { type: "Point", coordinates: [puntoManual.lng, puntoManual.lat] } });
   if (!nav) return fc;
   fc.features.push({ type: "Feature", properties: { tipo: "destino" }, geometry: { type: "Point", coordinates: [nav.destino.lng, nav.destino.lat] } });
   if (gps.fix) fc.features.push({ type: "Feature", properties: { tipo: "linea" }, geometry: { type: "LineString", coordinates: [[gps.fix.lng, gps.fix.lat], [nav.destino.lng, nav.destino.lat]] } });
@@ -1502,6 +1509,36 @@ function destinoEn(pt) {
   var f = fs[0], pr = f.properties || {};
   return { lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], nombre: pr.codigo || pr.nombre || pr.estacion || "el punto" };
 }
+function textoCoordenada(p) { return p.lat.toFixed(6) + ", " + p.lng.toFixed(6); }
+function marcarPuntoManual(lng, lat) {
+  puntoManual = { lng: lng, lat: lat };
+  refrescarNavMapa();
+  mostrarTarjetaPuntoManual();
+}
+function quitarPuntoManual() { puntoManual = null; refrescarNavMapa(); cerrarTarjeta(); }
+function mostrarTarjetaPuntoManual() {
+  var t = $("mp-tarjeta"); if (!t || !puntoManual) return;
+  var pm = puntoManual, txt = textoCoordenada(pm);
+  t.textContent = "";
+  t.appendChild(el("b", { texto: "Punto marcado" }));
+  t.appendChild(el("div", { texto: "Lat " + pm.lat.toFixed(6) + "  ·  Lon " + pm.lng.toFixed(6) }));
+  if (gps.fix) {
+    var yo = { lng: gps.fix.lng, lat: gps.fix.lat };
+    t.appendChild(el("div", { class: "mp-suave", texto: "A " + textoDistancia(distanciaM(yo, pm)) + " hacia el " + puntoCardinal(rumboGrados(yo, pm)) + " desde tu ubicación" }));
+  } else {
+    t.appendChild(el("div", { class: "mp-suave", texto: "Activa el GPS para ver la distancia y navegar hasta aquí." }));
+  }
+  t.appendChild(el("div", { class: "mp-suave", texto: "Es solo una marca temporal: no es un registro de la libreta." }));
+  t.appendChild(el("div", { class: "mp-fila" }, [
+    el("button", { texto: "🧭 Navegar hasta aquí", onclick: function () { iniciarNavegacion({ lng: pm.lng, lat: pm.lat, nombre: "el punto marcado" }); } }),
+    el("button", { texto: "📋 Copiar", onclick: function () {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { LC.toast("Coordenadas copiadas: " + txt, 3200); }, function () { LC.toast("Coordenadas: " + txt, 5000); });
+      else LC.toast("Coordenadas: " + txt, 5000);
+    } }),
+    el("button", { texto: "Quitar", onclick: quitarPuntoManual })
+  ]));
+  t.style.display = "block";
+}
 function instalarPulsacionLarga() {
   var cont = map.getCanvasContainer(), timer = null, ini = null;
   function cancelar() { clearTimeout(timer); timer = null; }
@@ -1511,11 +1548,12 @@ function instalarPulsacionLarga() {
     ini = { x: e.clientX, y: e.clientY };
     timer = setTimeout(function () {
       timer = null;
-      var r = cont.getBoundingClientRect(), dest = destinoEn([ini.x - r.left, ini.y - r.top]);
-      if (!dest) return;
+      var r = cont.getBoundingClientRect(), pt = [ini.x - r.left, ini.y - r.top], dest = destinoEn(pt);
       pulsacionReciente = true; setTimeout(function () { pulsacionReciente = false; }, 1000);
       if (navigator.vibrate) navigator.vibrate(35);
-      iniciarNavegacion(dest);
+      if (dest) { iniciarNavegacion(dest); return; }
+      var ll = map.unproject(pt);
+      marcarPuntoManual(ll.lng, ll.lat);
     }, 650);
   });
   cont.addEventListener("pointermove", function (e) { if (timer && ini && Math.hypot(e.clientX - ini.x, e.clientY - ini.y) > 10) cancelar(); });
@@ -1808,6 +1846,8 @@ function renderGestor() {
   ]);
   cu.appendChild(pestanas);
   if (vistaGestor === "mapas") {
+    var cajaBusca = el("div", { class: "mp-busca" });   /* v2.58: buscador destacado, fijo arriba de la lista */
+    cu.appendChild(cajaBusca);
     cu.appendChild(el("div", { class: "mp-caja" }, [
       el("p", { class: "mp-suave", texto: (online ? "En línea. " : "Sin conexión. ") + catInfo }),
       el("p", { class: "mp-suave", texto: "Espacio usado por la app: " + (almEst.usado != null ? mb(almEst.usado) : "?") + " de " + (almEst.cuota != null ? mb(almEst.cuota) : "?") + ". Almacenamiento protegido: " + (almEst.protegido == null ? "sin dato" : almEst.protegido ? "sí" : "no") + "." }),
@@ -1826,7 +1866,7 @@ function renderGestor() {
       entradas.push({ e: { id: id, nombre: inst[id].nombre, region: inst[id].region, version: inst[id].version, archivos: inst[id].archivos.map(function (a) { return { tipo: a.tipo, bytes: a.bytes }; }) }, enCat: false });
     });
     var listaMapas = el("div", {});
-    var cuenta = el("p", { class: "mp-suave", style: "margin:4px 0 8px;" });
+    var cuenta = el("p", { class: "mp-suave", style: "margin:6px 0 0;" });
     var pintarLista = function () {
       var q = normBusqueda(busquedaMapas), n = 0;
       listaMapas.textContent = "";
@@ -1840,11 +1880,12 @@ function renderGestor() {
       if (!n) listaMapas.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa coincide con «" + busquedaMapas.trim() + "»." : "No hay mapas para mostrar." }));
       cuenta.textContent = q ? n + " de " + entradas.length + " mapas" : entradas.length + " mapas";
     };
-    var buscador = el("input", { type: "search", placeholder: "🔍 Buscar mapa por nombre, región o capa", autocomplete: "off", autocapitalize: "off", spellcheck: "false", style: "width:100%;box-sizing:border-box;padding:10px 12px;font-size:1rem;border:1px solid #bbb;border-radius:10px;margin:2px 0;" });
+    var buscador = el("input", { type: "search", placeholder: "Nombre, región, versión o capa…", autocomplete: "off", autocapitalize: "off", spellcheck: "false", class: "mp-busca-input" });
     buscador.value = busquedaMapas;
     buscador.addEventListener("input", function () { busquedaMapas = buscador.value; pintarLista(); });
-    cu.appendChild(buscador);
-    cu.appendChild(cuenta);
+    cajaBusca.appendChild(el("label", { class: "mp-busca-rot", texto: "🔍 Buscar en el catálogo de mapas" }));
+    cajaBusca.appendChild(buscador);
+    cajaBusca.appendChild(cuenta);
     cu.appendChild(listaMapas);
     pintarLista();
   } else if (vistaGestor === "capas") {

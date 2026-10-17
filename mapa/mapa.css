@@ -132,3 +132,9 @@
 #mp-bq-ic{position:relative; font-size:2.2rem; filter:grayscale(1) brightness(.7);}
 #mp-bq-ayuda{font-size:.82rem; color:#5f5f5f; max-width:260px;}
 #mp-pantalla{white-space:pre-line; line-height:1.15;}
+
+/* v2.58: buscador del catálogo de mapas, destacado y fijo arriba */
+.mp-busca{position:sticky; top:0; z-index:2; background:var(--card); border:2px solid var(--verde); border-radius:var(--radio); padding:10px 12px; margin:0 0 12px; box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.mp-busca-rot{display:block; font-weight:700; font-size:.95rem; color:var(--verde); margin:0 0 6px;}
+.mp-busca-input{width:100%; box-sizing:border-box; padding:12px 14px; font-size:1.05rem; border:1.5px solid var(--verde); border-radius:10px; background:var(--fondo,#fff); color:var(--texto);}
+.mp-busca-input:focus{outline:3px solid rgba(46,125,50,.35);}
