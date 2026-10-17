@@ -221,7 +221,9 @@ var ultimaSesionVista = null;
 var capasVis = leerJSON(LS_CAPAS, { sombra: true, curvas: true, anteriores: true });
 var online = navigator.onLine !== false;
 var map = null, mapaListo = false, ESTILO_BASE = [], estiloPromesa = null;
-var gps = { watch: null, fix: null, primera: true, quiere: false };
+/* v2.55: el punto de posición en vivo se enciende solo al abrir el mapa; solo queda apagado si lo apagas tú con el chip GPS (se recuerda) */
+var LS_GPS_APAGADO = "libretacampo_mapa_gps_apagado_v1";
+var gps = { watch: null, fix: null, primera: true, quiere: false, apagadoManual: leerJSON(LS_GPS_APAGADO, false) === true };
 var rumbo = { activo: false, h: null, ultimo: 0, libre: 0, sensor: false, recibido: false };   /* v2.44: modo "rumbo arriba" (el mapa gira según hacia dónde apuntas) */
 var panelAbiertos = {};   /* v2.44: sesiones desplegadas en "Mis puntos" */
 var grab = { rc: null, watch: null, timer: null, wake: null, sucio: false, ultimoGuardado: 0, ultimoLat: null, bloq: false, bqTimer: null, ultimoFixTs: 0, ultimaAcc: null, rearmadoTs: 0, rearmados: 0, ocultoTs: null, cortarSig: false, salidas: 0 };   /* v2.45: recorrido que se está grabando */
@@ -1014,11 +1016,12 @@ function gpsError(e) {
 function gpsEncender() {
   if (!navigator.geolocation) { LC.toast("Este navegador no tiene GPS"); return; }
   if (gps.watch != null) return;
-  gps.primera = true; gps.quiere = true;
+  gps.primera = true; gps.quiere = true; gps.apagadoManual = false; guardarJSON(LS_GPS_APAGADO, false);
   gps.watch = navigator.geolocation.watchPosition(gpsOk, gpsError, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
   var b = $("mp-gps"); if (b) b.classList.add("on");
   chipGps();
 }
+function gpsApagarManual() { gps.apagadoManual = true; guardarJSON(LS_GPS_APAGADO, true); gpsApagar(true); }
 function gpsApagar(olvidar) {
   if (gps.watch != null) { try { navigator.geolocation.clearWatch(gps.watch); } catch (e) {} gps.watch = null; }
   if (olvidar) { gps.quiere = false; gps.fix = null; if (map && mapaListo && map.getSource("gps")) map.getSource("gps").setData(geoGps()); }
@@ -1182,8 +1185,14 @@ function construirEstilo(sinMapas) {
   capas.push({ id: "resaltado-anillo", type: "circle", source: "resaltado",
     paint: { "circle-radius": 19, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": "#c9962c", "circle-stroke-width": 4 } });
   capas.push({ id: "gps-precision", type: "fill", source: "gps", filter: ["==", ["get", "tipo"], "precision"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.18 } });
+  capas.push({ id: "gps-precision-borde", type: "line", source: "gps", filter: ["==", ["get", "tipo"], "precision"], paint: { "line-color": ["get", "color"], "line-opacity": 0.55, "line-width": 1.5 } });
+  /* v2.55: halo + punto más grandes y con borde oscuro, para distinguirlos sobre cualquier fondo. El punto es la posición exacta del GPS. */
+  capas.push({ id: "gps-halo", type: "circle", source: "gps", filter: ["==", ["get", "tipo"], "punto"],
+    paint: { "circle-radius": 17, "circle-color": ["get", "color"], "circle-opacity": 0.28, "circle-blur": 0.4 } });
   capas.push({ id: "gps-punto", type: "circle", source: "gps", filter: ["==", ["get", "tipo"], "punto"],
-    paint: { "circle-radius": 8, "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 3 } });
+    paint: { "circle-radius": 9, "circle-color": ["get", "color"], "circle-stroke-color": "#ffffff", "circle-stroke-width": 3.5 } });
+  capas.push({ id: "gps-centro", type: "circle", source: "gps", filter: ["==", ["get", "tipo"], "punto"],
+    paint: { "circle-radius": 2.2, "circle-color": "#ffffff" } });
   estilo.layers = capas;
   return estilo;
 }
@@ -1315,7 +1324,7 @@ async function alMostrar() {
   chipGrab(); actualizarNorte();
   actualizarAviso(); chipMapa(); chipGps();
   if (nav) actualizarNavegacion();
-  if (gps.quiere && gps.watch == null) gpsEncender();
+  if (gps.watch == null && (gps.quiere || !gps.apagadoManual)) gpsEncender();   /* v2.55: posición en vivo siempre visible al abrir el mapa */
   if (pendienteVer) {
     var pv = pendienteVer; pendienteVer = null;
     gps.primera = false;   /* v2.43: el primer dato del GPS no debe llevar la vista a la posición actual: se queda en el punto consultado */
@@ -1688,6 +1697,9 @@ function abrirGestor(vista) {
 function cerrarGestor() { if (modal) modal.classList.remove("on"); }
 function gestorAbierto() { return !!(modal && modal.classList.contains("on")); }
 
+var busquedaMapas = "";
+function normBusqueda(t) { return String(t == null ? "" : t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim(); }
+
 function tarjetaMapa(entrada, enCatalogo) {
   var id = entrada.id, i = inst[id], cuerpo = [];
   cuerpo.push(el("h3", { texto: entrada.nombre }));
@@ -1805,12 +1817,36 @@ function renderGestor() {
       ])
     ]));
     if (!online) cu.appendChild(el("p", { class: "mp-suave", texto: "Sin conexión solo puedes usar o eliminar los mapas instalados." }));
-    var vistos = {};
-    if (cat) cat.mapas.forEach(function (e) { vistos[e.id] = 1; cu.appendChild(tarjetaMapa(e, true)); });
+    /* Buscador: filtra por nombre, región, versión o nombre de capa, sin tildes ni mayúsculas.
+       Solo se vuelve a dibujar la lista (no la caja), para no perder el foco del teclado al escribir. */
+    var entradas = [], vistos = {};
+    if (cat) cat.mapas.forEach(function (e) { vistos[e.id] = 1; entradas.push({ e: e, enCat: true }); });
     Object.keys(inst).forEach(function (id) {
       if (vistos[id]) return;
-      cu.appendChild(tarjetaMapa({ id: id, nombre: inst[id].nombre, region: inst[id].region, version: inst[id].version, archivos: inst[id].archivos.map(function (a) { return { tipo: a.tipo, bytes: a.bytes }; }) }, false));
+      entradas.push({ e: { id: id, nombre: inst[id].nombre, region: inst[id].region, version: inst[id].version, archivos: inst[id].archivos.map(function (a) { return { tipo: a.tipo, bytes: a.bytes }; }) }, enCat: false });
     });
+    var listaMapas = el("div", {});
+    var cuenta = el("p", { class: "mp-suave", style: "margin:4px 0 8px;" });
+    var pintarLista = function () {
+      var q = normBusqueda(busquedaMapas), n = 0;
+      listaMapas.textContent = "";
+      entradas.forEach(function (x) {
+        if (q) {
+          var pajar = normBusqueda([x.e.nombre, x.e.region, x.e.version, x.e.id].concat(capasDe(x.e).map(function (c) { return c.nombre || c.id; })).join(" "));
+          if (q.split(" ").some(function (t) { return t && pajar.indexOf(t) < 0; })) return;
+        }
+        n++; listaMapas.appendChild(tarjetaMapa(x.e, x.enCat));
+      });
+      if (!n) listaMapas.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa coincide con «" + busquedaMapas.trim() + "»." : "No hay mapas para mostrar." }));
+      cuenta.textContent = q ? n + " de " + entradas.length + " mapas" : entradas.length + " mapas";
+    };
+    var buscador = el("input", { type: "search", placeholder: "🔍 Buscar mapa por nombre, región o capa", autocomplete: "off", autocapitalize: "off", spellcheck: "false", style: "width:100%;box-sizing:border-box;padding:10px 12px;font-size:1rem;border:1px solid #bbb;border-radius:10px;margin:2px 0;" });
+    buscador.value = busquedaMapas;
+    buscador.addEventListener("input", function () { busquedaMapas = buscador.value; pintarLista(); });
+    cu.appendChild(buscador);
+    cu.appendChild(cuenta);
+    cu.appendChild(listaMapas);
+    pintarLista();
   } else if (vistaGestor === "capas") {
     var tieneRel = relieveNombres.length > 0 || mapasOrdenados().some(function (m) { return archivoTipo(m, "relieve"); });
     var chk = function (clave, texto, habil) {
@@ -1870,7 +1906,7 @@ function renderGestor() {
         else LC.toast("Este navegador no permite copiar");
       } }),
       el("button", { texto: "Prueba de fluidez (15 s)", onclick: pruebaFluidez }),
-      el("button", { texto: "Apagar GPS", onclick: function () { gpsApagar(true); } })
+      el("button", { texto: "Apagar GPS", onclick: function () { gpsApagarManual(); } })
     ]));
   }
   cu.scrollTop = sc;
@@ -1956,7 +1992,7 @@ function construirPantalla() {
     '<div id="mp-tarjeta"></div>' +
     '<button type="button" class="mp-btn" id="mp-guardar">📍 Guardar punto aquí</button>' +
     '</div>';
-  $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagar(true); };
+  $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagarManual(); };
   $("mp-centrar").onclick = function () { if (gps.fix && map) map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 16), duration: 400 }); };
   $("mp-puntos").onclick = alternarPanelPuntos;
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
