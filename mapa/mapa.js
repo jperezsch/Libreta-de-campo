@@ -1967,7 +1967,7 @@ function renderAsociado(s) {
   cont.textContent = "";
   if (!LISTO) { cont.appendChild(el("p", { class: "campo-ayuda", texto: "🗺️ El mapa no está disponible: faltan archivos de la carpeta de apoyo." })); return; }
   var campo = el("div", { class: "mp-asoc-caja" });
-  campo.appendChild(el("div", { class: "bloque-subtitulo", texto: "🗺️ Mapa asociado" }));
+  campo.appendChild(el("div", { class: "bloque-titulo", texto: "🗺️ Mapa asociado" }));
   var sel = el("select", { id: "mp-asoc-sel" });
   sel.appendChild(el("option", { value: "", texto: "Sin mapa" }));
   var ids = [], vistos = {};
