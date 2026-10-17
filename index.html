@@ -436,29 +436,35 @@ html[data-tema="noche"] .navbtn.on .ic{background:var(--verde);}
 .closebar button{background:none; border:none; color:var(--texto-sec); font-weight:700; font-size:.9rem; padding:11px 13px;}
 
 /* ---- Toast ---- */
-/* v2.59: cámara avanzada */
+/* v2.59 / v2.61: cámara avanzada */
 #visor-cam{position:fixed; inset:0; background:#000; z-index:70; flex-direction:column; color:#fff;}
 #cam-video{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; touch-action:none;}
 #cam-flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; transition:opacity .12s;}
 #cam-flash.on{opacity:.8;}
-.cam-top{position:absolute; top:0; left:0; right:0; display:flex; gap:8px; align-items:center; padding:max(10px,env(safe-area-inset-top)) 10px 10px; background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0));}
-.cam-top select{flex:1; min-width:0; background:rgba(0,0,0,.55); color:#fff; border:1px solid rgba(255,255,255,.4); border-radius:10px; padding:8px; font-size:.85rem;}
-.cam-btn{width:44px; height:44px; border-radius:50%; border:1px solid rgba(255,255,255,.45); background:rgba(0,0,0,.5); color:#fff; font-size:1.15rem; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; cursor:pointer;}
+.cam-top{position:absolute; top:0; left:0; right:0; display:flex; gap:8px; align-items:center; padding:max(10px,env(safe-area-inset-top)) 10px 10px;}
+.cam-espacio{flex:1;}
+.cam-btn{width:44px; height:44px; border-radius:50%; border:1px solid rgba(255,255,255,.45); background:rgba(0,0,0,.45); color:#fff; font-size:1.15rem; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; cursor:pointer;}
 .cam-btn.on{background:#c9962c; border-color:#c9962c;}
 .cam-hueco{visibility:hidden;}
-#cam-estado{position:absolute; top:max(62px,calc(env(safe-area-inset-top) + 52px)); left:0; right:0; text-align:center; font-size:.78rem; text-shadow:0 1px 3px #000; pointer-events:none;}
-.cam-bottom{position:absolute; bottom:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:14px 24px max(18px,env(safe-area-inset-bottom)); background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.55));}
+#cam-estado{position:absolute; top:max(62px,calc(env(safe-area-inset-top) + 52px)); left:0; right:0; text-align:center; font-size:.8rem; text-shadow:0 1px 3px #000, 0 0 6px #000; pointer-events:none;}
+.cam-bottom{position:absolute; bottom:0; left:0; right:0; display:flex; flex-direction:column; padding-bottom:max(10px,env(safe-area-inset-bottom));}
+#cam-panel{background:transparent; padding:6px 16px 2px; text-shadow:0 1px 3px #000, 0 0 6px #000;}
+#cam-barra{display:flex; gap:8px; overflow-x:auto; padding:6px 12px; -webkit-overflow-scrolling:touch; scrollbar-width:none;}
+#cam-barra::-webkit-scrollbar{display:none;}
+.cam-chip{flex:0 0 auto; background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.5); border-radius:18px; padding:9px 14px; font-size:.85rem; cursor:pointer; white-space:nowrap;}
+.cam-chip.on{background:#c9962c; border-color:#c9962c; color:#fff;}
+.cam-disparo-fila{display:flex; justify-content:space-between; align-items:center; padding:4px 28px 0;}
 #cam-disparo{width:72px; height:72px; border-radius:50%; border:5px solid #fff; background:rgba(255,255,255,.85); cursor:pointer;}
 #cam-disparo:active{background:#ddd;} #cam-disparo:disabled{opacity:.5;}
-#cam-panel{position:absolute; left:0; right:0; bottom:104px; max-height:48vh; overflow-y:auto; background:rgba(0,0,0,.78); padding:10px 14px; -webkit-overflow-scrolling:touch;}
-.cam-panel-top{display:flex; gap:8px; align-items:center; margin:0 0 6px;}
-.cam-panel-top select{flex:1; min-width:0; background:#222; color:#fff; border:1px solid #666; border-radius:8px; padding:8px; font-size:.82rem;}
-.cam-chip{background:#222; color:#fff; border:1px solid #888; border-radius:16px; padding:8px 12px; font-size:.82rem; cursor:pointer;}
-.cam-ctl{margin:8px 0;} .cam-ctl-fila{display:flex; justify-content:space-between; font-size:.85rem; margin-bottom:2px;}
-.cam-ctl input[type=range]{width:100%; accent-color:#c9962c;}
-.cam-ctl select{width:100%; background:#222; color:#fff; border:1px solid #666; border-radius:8px; padding:8px;}
-.cam-nada{font-size:.85rem; color:#ddd; margin:6px 0;}
-#cam-diag{position:absolute; left:8px; right:8px; top:max(84px,calc(env(safe-area-inset-top) + 74px)); bottom:104px; overflow:auto; background:rgba(0,0,0,.88); border-radius:10px; padding:10px;}
+.cam-ctl{margin:2px 0 6px;}
+.cam-ctl-fila{display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.88rem; margin-bottom:2px;}
+.cam-ctl-fila b{margin-left:auto;}
+.cam-ctl input[type=range]{width:100%; accent-color:#c9962c; background:transparent;}
+.cam-mini{background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.6); border-radius:12px; padding:3px 12px; font-size:.78rem; cursor:pointer;}
+.cam-opciones{display:flex; flex-wrap:wrap; gap:6px; padding-top:4px;}
+.cam-opc{background:rgba(0,0,0,.45); color:#fff; border:1px solid rgba(255,255,255,.5); border-radius:14px; padding:8px 12px; font-size:.82rem; cursor:pointer; text-shadow:none;}
+.cam-opc.on{background:#c9962c; border-color:#c9962c;}
+#cam-diag{position:absolute; left:8px; right:8px; top:max(84px,calc(env(safe-area-inset-top) + 74px)); bottom:150px; overflow:auto; background:rgba(0,0,0,.88); border-radius:10px; padding:10px;}
 #cam-diag pre{white-space:pre-wrap; word-break:break-word; font-size:.7rem; margin:0 0 8px; user-select:text;}
 #toast{position:fixed; bottom:84px; left:50%; transform:translateX(-50%) translateY(10px); background:#2b2b28; color:#fff; padding:12px 18px; border-radius:18px; font-size:.92rem; line-height:1.35; text-align:center; opacity:0; pointer-events:none; transition:all .25s; z-index:100; width:max-content; max-width:min(92vw,520px); white-space:normal; overflow-wrap:anywhere;}
 #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
@@ -739,7 +745,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <button type="button" class="btnfull btn-amber" style="margin:0;" id="btn-tomar-foto">📷 Tomar foto</button>
       <button type="button" class="btnfull btn-secondary" style="margin:0;" id="btn-galeria-foto">🖼 Seleccionar desde galería</button>
     </div>
-    <button type="button" class="btnfull btn-secondary" style="margin:8px 0 0;" id="btn-camara-avanzada">🎛 Cámara avanzada (zoom, lentes, exposición…)</button>
+    <button type="button" class="btnfull btn-secondary" style="margin:8px 0 0; display:none;" id="btn-camara-avanzada">🎛 Cámara avanzada (zoom, lentes, exposición…)</button>
     <button type="button" class="btnfull btn-secondary" style="margin:8px 0 0;" id="btn-grabar-video">🎥 Grabar video (se guarda en la carpeta del teléfono)</button>
     <input type="file" id="f-input-video" accept="video/*" capture="environment" style="display:none;">
     <div id="videos-lista"></div>
@@ -1073,7 +1079,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
   <div id="cam-flash"></div>
   <div class="cam-top">
     <button type="button" class="cam-btn" id="cam-cerrar" aria-label="Cerrar cámara">✕</button>
-    <select id="cam-lente" aria-label="Cámara"></select>
+    <span class="cam-espacio"></span>
     <button type="button" class="cam-btn" id="cam-linterna" aria-label="Linterna" style="display:none;">🔦</button>
     <button type="button" class="cam-btn" id="cam-info" aria-label="Diagnóstico">ⓘ</button>
   </div>
@@ -1082,14 +1088,14 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <pre id="cam-diag-txt"></pre>
     <button type="button" class="cam-chip" id="cam-diag-copiar">📋 Copiar diagnóstico</button>
   </div>
-  <div id="cam-panel" style="display:none;">
-    <div class="cam-panel-top"><select id="cam-res" aria-label="Resolución de la foto"></select><button type="button" class="cam-chip" id="cam-auto">↺ Todo automático</button></div>
-    <div id="cam-controles"></div>
-  </div>
   <div class="cam-bottom">
-    <button type="button" class="cam-btn" id="cam-ajustes" aria-label="Controles">🎛</button>
-    <button type="button" id="cam-disparo" aria-label="Tomar foto"></button>
-    <span class="cam-btn cam-hueco"></span>
+    <div id="cam-panel" style="display:none;"></div>
+    <div id="cam-barra"></div>
+    <div class="cam-disparo-fila">
+      <button type="button" class="cam-btn" id="cam-auto" aria-label="Todo automático" title="Todo automático">↺</button>
+      <button type="button" id="cam-disparo" aria-label="Tomar foto"></button>
+      <span class="cam-btn cam-hueco"></span>
+    </div>
   </div>
 </div>
 <div id="toast"></div>
@@ -3621,7 +3627,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-17 · v2.59";
+var APP_BUILD = "2026-10-17 · v2.61";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -7672,16 +7678,107 @@ function encolarArchivos(fileList){
 }
 document.getElementById("f-input-camara").addEventListener("change", function(e){ encolarArchivos(e.target.files); e.target.value=""; });
 document.getElementById("f-input-galeria").addEventListener("change", function(e){ encolarArchivos(e.target.files); e.target.value=""; });
-/* ---------------- v2.59: cámara avanzada (genérica) ----------------
-   Usa getUserMedia + ImageCapture y ofrece solo los controles que el teléfono declara en getCapabilities(). */
-var CAM = {stream:null, track:null, ic:null, caps:{}, fotoCaps:null, ajustes:{}, claves:[], devId:null, dispositivos:[], busy:false, zoomInput:null, abierta:false};
-function camSoportada(){ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext !== false); }
+/* ---------------- v2.59 / v2.61: cámara avanzada (genérica) ----------------
+   Usa getUserMedia + ImageCapture y ofrece solo los controles que el teléfono declara en getCapabilities().
+   Los controles se abren de a uno desde una barra inferior de botones. El tipo de lente se deduce de la distancia focal (EXIF) de una foto de prueba. */
+var CAM = {stream:null, track:null, ic:null, caps:{}, fotoCaps:null, ajustes:{}, claves:[], tocados:{}, devId:null, dispositivos:[], busy:false, abierta:false, grupo:null, grupos:[], lentes:{}, res:"", ident:false};
+var CAM_CTLS = [], camTimer = null;
 function cam$(id){ return document.getElementById(id); }
-function camLeerPref(){ try{ return localStorage.getItem("libretacampo_cam_dev") || null; }catch(e){ return null; } }
-function camGuardarPref(id){ try{ if(id) localStorage.setItem("libretacampo_cam_dev", id); }catch(e){} }
-function camEstado(t){ var e = cam$("cam-estado"); if(e){ e.textContent = t || ""; } }
+function camLS(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function camLSset(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function camSoportada(){ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext !== false); }
+/* El botón solo se muestra si el navegador sabe controlar la cámara (ImageCapture + controles avanzados). En Safari de iPhone no aparece. */
+function camDisponible(){
+  if(!camSoportada() || !window.ImageCapture) return false;
+  if(camLS("libretacampo_cam_sin") === "1") return false;
+  var sc = navigator.mediaDevices.getSupportedConstraints ? navigator.mediaDevices.getSupportedConstraints() : {};
+  return !!(sc.zoom || sc.exposureTime || sc.iso || sc.focusDistance || sc.exposureCompensation || sc.colorTemperature || sc.torch);
+}
+function camLeerPref(){ return camLS("libretacampo_cam_dev"); }
+function camGuardarPref(id){ if(id) camLSset("libretacampo_cam_dev", id); }
+function camCargarLentes(){ try{ CAM.lentes = JSON.parse(camLS("libretacampo_cam_lentes") || "{}") || {}; }catch(e){ CAM.lentes = {}; } }
+function camGuardarLentes(){ camLSset("libretacampo_cam_lentes", JSON.stringify(CAM.lentes)); }
+function camEstado(t){ var e = cam$("cam-estado"); if(e) e.textContent = t || ""; }
 function camRango(c){ return !!c && typeof c.min === "number" && typeof c.max === "number" && c.max > c.min; }
 function camObj(k, v){ var o = {}; o[k] = v; return o; }
+function camNum(v, dec){ return (+v).toFixed(dec == null ? 1 : dec).replace(/\.0+$/, "").replace(".", ","); }
+function camFmtExposicion(v){ var s = v / 10000; return s >= 1 ? camNum(s, 1) + " s" : "1/" + Math.round(1 / s) + " s"; }
+
+/* ---- EXIF: distancia focal de la foto de prueba ---- */
+function camLeerExif(buf){
+  try{
+    var v = new DataView(buf);
+    if(v.getUint16(0) !== 0xFFD8) return null;
+    var off = 2;
+    while(off + 4 < v.byteLength){
+      var marker = v.getUint16(off);
+      if(marker === 0xFFDA || marker < 0xFF00) break;
+      var len = v.getUint16(off + 2);
+      if(marker === 0xFFE1 && v.getUint32(off + 4) === 0x45786966){
+        var t = off + 10, le = v.getUint16(t) === 0x4949, out = {};
+        var u16 = function(o){ return v.getUint16(t + o, le); }, u32 = function(o){ return v.getUint32(t + o, le); };
+        var leerIfd = function(o){
+          var n = u16(o), exifPtr = 0;
+          for(var i = 0; i < n; i++){
+            var e = o + 2 + i * 12, tag = u16(e), tipo = u16(e + 2), val = e + 8;
+            if(tag === 0x8769) exifPtr = u32(val);
+            else if(tag === 0x920A && tipo === 5){ var p = u32(val), d = u32(p + 4); if(d) out.f = u32(p) / d; }
+            else if(tag === 0x920A && tipo === 12){ out.f = v.getFloat64(t + u32(val), le); }
+            else if(tag === 0xA405) out.eq = tipo === 3 ? u16(val) : u32(val);
+          }
+          return exifPtr;
+        };
+        var ptr = leerIfd(u32(4));
+        if(ptr) leerIfd(ptr);
+        return out;
+      }
+      off += 2 + len;
+    }
+  }catch(e){}
+  return null;
+}
+function camBuffer(blob){
+  if(blob.arrayBuffer) return blob.arrayBuffer();
+  return new Promise(function(res, rej){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.onerror = rej; r.readAsArrayBuffer(blob); });
+}
+function camEsTrasera(d){
+  var cp = d.getCapabilities ? d.getCapabilities() : null;
+  if(cp && cp.facingMode && cp.facingMode.length) return cp.facingMode[0] === "environment";
+  return /back|trasera|rear|environment/i.test(d.label || "");
+}
+function camMP(d){ var cp = d.getCapabilities ? d.getCapabilities() : null; return (cp && cp.width && cp.height) ? Math.round(cp.width.max * cp.height.max / 1e5) / 10 : null; }
+function camTipoPorEquiv(eq){
+  if(eq <= 18) return "Ultra gran angular";
+  if(eq <= 21) return "Gran angular";
+  if(eq <= 35) return "Principal";
+  if(eq <= 60) return "Tele corto";
+  if(eq <= 130) return "Teleobjetivo";
+  return "Teleobjetivo largo";
+}
+function camEtiquetasLentes(lista){
+  var traseras = lista.filter(camEsTrasera), focales = traseras.map(function(d){ var m = CAM.lentes[d.deviceId]; return m && m.f ? m.f : null; }).filter(function(x){ return x; });
+  var fMin = Math.min.apply(null, focales), fMax = Math.max.apply(null, focales);
+  var res = lista.map(function(d, i){
+    var m = CAM.lentes[d.deviceId] || {}, mp = camMP(d), tras = camEsTrasera(d), tipo, medida = "";
+    if(!tras) tipo = "Frontal";
+    else if(m.eq){ tipo = (mp && mp <= 5) ? "Macro (probable)" : camTipoPorEquiv(m.eq); medida = Math.round(m.eq) + " mm"; }
+    else if(mp && mp <= 5) tipo = "Macro (probable)";
+    else if(m.f && focales.length > 1 && fMax > fMin){ tipo = m.f === fMin ? "Más angular" : m.f === fMax ? "Más tele" : "Intermedia"; medida = "f " + camNum(m.f, 1) + " mm"; }
+    else tipo = "Trasera";
+    var partes = [tipo]; if(medida) partes.push(medida); if(mp) partes.push(camNum(mp, 1) + " MP");
+    return {d:d, txt:partes.join(" · "), tipo:tipo};
+  });
+  res.forEach(function(r, i){
+    if(res.filter(function(o){ return o.tipo === r.tipo; }).length > 1){ var num = (/(\d+)\s*,/.exec(r.d.label || "") || [])[1]; r.txt += " (cám. " + (num != null ? num : i + 1) + ")"; }
+  });
+  return res;
+}
+function camMejorLente(actual){
+  var tr = CAM.dispositivos.filter(function(d){ return camEsTrasera(d) && CAM.lentes[d.deviceId] && CAM.lentes[d.deviceId].eq; }), mejor = null, dif = 1e9;
+  tr.forEach(function(d){ var x = Math.abs(CAM.lentes[d.deviceId].eq - 24); if(x < dif){ dif = x; mejor = d.deviceId; } });
+  return camLeerPref() || mejor || actual;
+}
+
 function detenerCamara(){
   if(CAM.stream){ CAM.stream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} }); }
   CAM.stream = null; CAM.track = null; CAM.ic = null;
@@ -7697,14 +7794,16 @@ function camAplicar(cambios){
   var adv = CAM.claves.map(function(k){ return camObj(k, CAM.ajustes[k]); });
   return CAM.track.applyConstraints({advanced:adv}).catch(function(e){ camEstado("No se pudo aplicar el ajuste: " + (e && e.message || e)); });
 }
+function camLiberar(keys){
+  keys.forEach(function(k){ var i = CAM.claves.indexOf(k); if(i >= 0) CAM.claves.splice(i, 1); delete CAM.ajustes[k]; delete CAM.tocados[k]; });
+}
 function iniciarCamara(devId){
-  detenerCamara(); CAM.ajustes = {}; CAM.claves = [];
+  detenerCamara(); CAM.ajustes = {}; CAM.claves = []; CAM.tocados = {};
   function pedir(video){ return navigator.mediaDevices.getUserMedia({video:video, audio:false}); }
-  var base = devId ? {deviceId:{exact:devId}} : {facingMode:{ideal:"environment"}};
-  base.width = {ideal:1920}; base.height = {ideal:1080};
-  return pedir(base).catch(function(e){
-    if(devId) return pedir({facingMode:{ideal:"environment"}});
-    throw e;
+  function conTam(o){ o.width = {ideal:1920}; o.height = {ideal:1080}; return o; }
+  var primero = devId ? conTam({deviceId:{exact:devId}}) : conTam({facingMode:{exact:"environment"}});
+  return pedir(primero).catch(function(){
+    return pedir(conTam({facingMode:{ideal:"environment"}})).catch(function(){ return pedir({}); });
   }).then(function(stream){
     CAM.stream = stream; CAM.track = stream.getVideoTracks()[0];
     var v = cam$("cam-video"); v.srcObject = stream; var p = v.play(); if(p && p.catch) p.catch(function(){});
@@ -7717,95 +7816,201 @@ function iniciarCamara(devId){
     return navigator.mediaDevices.enumerateDevices().catch(function(){ return []; });
   }).then(function(devs){
     CAM.dispositivos = devs.filter(function(d){ return d.kind === "videoinput"; });
-    construirControlesCamara();
+    construirBarraCamara();
   });
 }
-function camNombreLente(d, i){
-  var l = d.label || ("Cámara " + (i + 1));
-  var trasera = /back|trasera|rear|environment/i.test(l), frontal = /front|frontal|user/i.test(l);
-  return l.replace(/^camera2?\s*/i, "Cámara ").replace(/,?\s*facing\s*(back|front)/i, "") + (trasera ? " (trasera)" : frontal ? " (frontal)" : "");
+/* Abre cada cámara trasera una vez, toma una foto pequeña y lee su distancia focal. El resultado se recuerda. */
+function medirLente(d){
+  detenerCamara();
+  var track = null;
+  return navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:d.deviceId}}, audio:false}).then(function(st){
+    track = st.getVideoTracks()[0];
+    var v = cam$("cam-video"); v.srcObject = st; var p = v.play(); if(p && p.catch) p.catch(function(){});
+    return new Promise(function(r){ setTimeout(r, 600); });
+  }).then(function(){
+    var ic = new ImageCapture(track);
+    return ic.takePhoto({imageWidth:640, imageHeight:480}).catch(function(){ return ic.takePhoto(); });
+  }).then(camBuffer).then(function(buf){
+    var ex = camLeerExif(buf) || {};
+    CAM.lentes[d.deviceId] = {eq:ex.eq || null, f:ex.f || null};
+  }).catch(function(){ CAM.lentes[d.deviceId] = {eq:null, f:null}; })
+  .then(function(){ if(track){ try{ track.stop(); }catch(e){} } var v = cam$("cam-video"); if(v) v.srcObject = null; });
 }
-function camFmtExposicion(v){ var s = v / 10000; return s >= 1 ? s.toFixed(1) + " s" : "1/" + Math.round(1 / s) + " s"; }
-function camNum(v, dec){ return (+v).toFixed(dec == null ? 1 : dec).replace(/\.0+$/, ""); }
-function camCtlBase(rot){
+function identificarSiHaceFalta(){
+  var traseras = CAM.dispositivos.filter(camEsTrasera), faltan = traseras.filter(function(d){ return !CAM.lentes[d.deviceId]; });
+  if(traseras.length < 2 || !faltan.length || !window.ImageCapture) return Promise.resolve();
+  var actual = CAM.devId, p = Promise.resolve(), i = 0;
+  CAM.ident = true;
+  faltan.forEach(function(d){
+    p = p.then(function(){
+      if(!CAM.abierta) return;
+      i++; camEstado("Identificando lentes (" + i + " de " + faltan.length + ")…");
+      return medirLente(d);
+    });
+  });
+  return p.then(function(){
+    CAM.ident = false; camGuardarLentes();
+    if(!CAM.abierta) return;
+    return iniciarCamara(camMejorLente(actual));
+  });
+}
+
+/* ---- controles: de a uno, desde la barra inferior ---- */
+function camSlider(panel, rot, key, cap, fmt, o){
+  o = o || {};
   var w = document.createElement("div"); w.className = "cam-ctl";
-  var l = document.createElement("div"); l.className = "cam-ctl-fila";
+  var fila = document.createElement("div"); fila.className = "cam-ctl-fila";
   var a = document.createElement("span"); a.textContent = rot;
-  var b = document.createElement("b"); l.appendChild(a); l.appendChild(b); w.appendChild(l);
-  return {w:w, valor:b};
-}
-function camSlider(panel, rot, key, cap, fmt, extra){
-  var c = camCtlBase(rot), inp = document.createElement("input");
-  inp.type = "range"; inp.min = cap.min; inp.max = cap.max;
-  inp.step = (cap.step && cap.step > 0) ? cap.step : (cap.max - cap.min) / 100;
-  var cur = (CAM.track.getSettings() || {})[key];
-  inp.value = (cur != null) ? cur : cap.min;
-  c.valor.textContent = (cur != null) ? fmt(cur) : "auto";
+  var b = document.createElement("b");
+  fila.appendChild(a); fila.appendChild(b);
+  if(o.auto){
+    var bt = document.createElement("button"); bt.type = "button"; bt.className = "cam-mini"; bt.textContent = "Auto";
+    bt.addEventListener("click", function(){
+      camLiberar(o.auto.liberar); camAplicar(o.auto.aplicar);
+      CAM_CTLS.forEach(function(c){ if(o.auto.liberar.indexOf(c.key) >= 0) c.tocado = false; });
+      camEstado(rot + ": automático"); camRefrescarValores(true);
+    });
+    fila.appendChild(bt);
+  }
+  w.appendChild(fila);
+  var inp = document.createElement("input");
+  // ISO y obturación usan escala logarítmica: los valores útiles quedan repartidos a lo largo del control
+  var usaLog = !!o.log && cap.min > 0;
+  var ctl = {key:key, inp:inp, valor:b, fmt:fmt, cap:cap, tocado:!!CAM.tocados[key]};
+  inp.type = "range";
+  if(usaLog){ inp.min = 0; inp.max = 1000; inp.step = 1; } else { inp.min = cap.min; inp.max = cap.max; inp.step = (cap.step && cap.step > 0) ? cap.step : (cap.max - cap.min) / 100; }
+  ctl.aValor = function(t){
+    if(!usaLog) return +t;
+    var v = cap.min * Math.pow(cap.max / cap.min, t / 1000);
+    return cap.step ? parseFloat((Math.round(v / cap.step) * cap.step).toFixed(4)) : v;
+  };
+  ctl.aPos = function(v){ return usaLog ? 1000 * Math.log(Math.max(v, cap.min) / cap.min) / Math.log(cap.max / cap.min) : v; };
+  ctl.mostrar = function(v){ inp.value = ctl.aPos(v); b.textContent = fmt(v) + (ctl.tocado ? "" : " (auto)"); };
+  var cur = CAM.ajustes[key] != null ? CAM.ajustes[key] : (CAM.track.getSettings() || {})[key];
+  if(cur != null && cur >= cap.min) ctl.mostrar(cur); else { inp.value = ctl.aPos(cap.min); b.textContent = "auto"; }
+  if(key === "zoom") ctl.tocado = true;   // el zoom no tiene modo automático
   inp.addEventListener("input", function(){
-    var v = +inp.value, cambios = {};
-    if(extra) Object.keys(extra).forEach(function(k){ cambios[k] = extra[k]; });
-    cambios[key] = v; c.valor.textContent = fmt(v); camAplicar(cambios);
+    var v = ctl.aValor(inp.value), cambios = {};
+    ctl.tocado = true; CAM.tocados[key] = true;
+    if(o.extra) Object.keys(o.extra).forEach(function(k){ cambios[k] = o.extra[k]; });
+    cambios[key] = v; b.textContent = fmt(v); camAplicar(cambios);
   });
-  c.w.appendChild(inp); panel.appendChild(c.w);
-  return inp;
+  w.appendChild(inp); panel.appendChild(w);
+  CAM_CTLS.push(ctl);
+  return ctl;
 }
 function camSelect(panel, rot, key, valores, etiquetas){
-  var c = camCtlBase(rot), sel = document.createElement("select");
-  valores.forEach(function(v){ var o = document.createElement("option"); o.value = v; o.textContent = (etiquetas && etiquetas[v]) || v; sel.appendChild(o); });
-  var cur = (CAM.track.getSettings() || {})[key]; if(cur != null && valores.indexOf(cur) >= 0) sel.value = cur;
-  c.valor.textContent = "";
-  sel.addEventListener("change", function(){ camAplicar(camObj(key, sel.value)); });
-  c.w.appendChild(sel); panel.appendChild(c.w);
-  return sel;
-}
-function construirControlesCamara(){
-  var panel = cam$("cam-controles"); panel.textContent = ""; CAM.zoomInput = null;
-  var caps = CAM.caps || {}, n = 0;
-  // lentes
-  var lentes = CAM.dispositivos.slice().sort(function(a, b){ return (/back|trasera|rear|environment/i.test(b.label) ? 1 : 0) - (/back|trasera|rear|environment/i.test(a.label) ? 1 : 0); });
-  var selL = cam$("cam-lente");
-  selL.textContent = "";
-  lentes.forEach(function(d, i){ var o = document.createElement("option"); o.value = d.deviceId; o.textContent = camNombreLente(d, i); selL.appendChild(o); });
-  if(CAM.devId) selL.value = CAM.devId;
-  selL.style.display = lentes.length > 1 ? "" : "none";
-  // linterna
-  var bt = cam$("cam-linterna"); bt.style.display = caps.torch ? "" : "none"; bt.classList.remove("on");
-  // zoom
-  if(camRango(caps.zoom)){ CAM.zoomInput = camSlider(panel, "Zoom", "zoom", caps.zoom, function(v){ return camNum(v, 1) + "×"; }); n++; }
-  // enfoque
-  if(caps.focusMode && caps.focusMode.length > 1){ camSelect(panel, "Enfoque", "focusMode", caps.focusMode, {continuous:"automático continuo", "single-shot":"un disparo", manual:"manual", none:"fijo"}); n++; }
-  if(camRango(caps.focusDistance)){ camSlider(panel, "Distancia de enfoque", "focusDistance", caps.focusDistance, function(v){ return camNum(v, 2) + " m"; }, caps.focusMode && caps.focusMode.indexOf("manual") >= 0 ? {focusMode:"manual"} : null); n++; }
-  // exposición
-  if(caps.exposureMode && caps.exposureMode.length > 1){ camSelect(panel, "Exposición", "exposureMode", caps.exposureMode, {continuous:"automática", manual:"manual", "single-shot":"un disparo", none:"fija"}); n++; }
-  var man = caps.exposureMode && caps.exposureMode.indexOf("manual") >= 0 ? {exposureMode:"manual"} : null;
-  if(camRango(caps.exposureTime)){ camSlider(panel, "Velocidad de obturación", "exposureTime", caps.exposureTime, camFmtExposicion, man); n++; }
-  if(camRango(caps.iso)){ camSlider(panel, "ISO", "iso", caps.iso, function(v){ return Math.round(v); }, man); n++; }
-  if(camRango(caps.exposureCompensation)){ camSlider(panel, "Compensación de exposición", "exposureCompensation", caps.exposureCompensation, function(v){ return (v > 0 ? "+" : "") + camNum(v, 1) + " EV"; }); n++; }
-  // balance de blancos
-  if(caps.whiteBalanceMode && caps.whiteBalanceMode.length > 1){ camSelect(panel, "Balance de blancos", "whiteBalanceMode", caps.whiteBalanceMode, {continuous:"automático", manual:"manual", "single-shot":"un disparo", none:"fijo"}); n++; }
-  if(camRango(caps.colorTemperature)){ camSlider(panel, "Temperatura de color", "colorTemperature", caps.colorTemperature, function(v){ return Math.round(v) + " K"; }, caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf("manual") >= 0 ? {whiteBalanceMode:"manual"} : null); n++; }
-  // imagen
-  [["brightness", "Brillo"], ["contrast", "Contraste"], ["saturation", "Saturación"], ["sharpness", "Nitidez"]].forEach(function(p){
-    if(camRango(caps[p[0]])){ camSlider(panel, p[1], p[0], caps[p[0]], function(v){ return camNum(v, 0); }); n++; }
+  var w = document.createElement("div"); w.className = "cam-ctl";
+  var fila = document.createElement("div"); fila.className = "cam-ctl-fila";
+  var a = document.createElement("span"); a.textContent = rot; fila.appendChild(a); w.appendChild(fila);
+  var cont = document.createElement("div"); cont.className = "cam-opciones";
+  var cur = CAM.ajustes[key] != null ? CAM.ajustes[key] : (CAM.track.getSettings() || {})[key];
+  valores.forEach(function(v){
+    var bt = document.createElement("button"); bt.type = "button"; bt.className = "cam-opc" + (v === cur ? " on" : "");
+    bt.textContent = (etiquetas && etiquetas[v]) || v;
+    bt.addEventListener("click", function(){ Array.prototype.forEach.call(cont.children, function(x){ x.classList.remove("on"); }); bt.classList.add("on"); camAplicar(camObj(key, v)); });
+    cont.appendChild(bt);
   });
-  // resolución de la foto
-  var selR = cam$("cam-res"), pc = CAM.fotoCaps;
-  selR.textContent = "";
-  if(pc && camRango(pc.imageWidth) && camRango(pc.imageHeight)){
-    var W = pc.imageWidth.max, H = pc.imageHeight.max;
-    [[1, "Máxima"], [0.5, "Media"], [0.25, "Baja"]].forEach(function(f){
-      var w = Math.max(pc.imageWidth.min, Math.round(W * f[0])), h = Math.max(pc.imageHeight.min, Math.round(H * f[0]));
-      if(f[0] < 1 && selR.options.length && selR.options[selR.options.length - 1].value === w + "x" + h) return;
-      var o = document.createElement("option"); o.value = w + "x" + h; o.textContent = f[1] + " (" + w + "×" + h + ", " + Math.round(w * h / 1e5) / 10 + " MP)"; selR.appendChild(o);
-    });
-    selR.style.display = "";
-  } else selR.style.display = "none";
-  if(!n){
-    var p = document.createElement("p"); p.className = "cam-nada";
-    p.textContent = "Este teléfono no declara controles ajustables para la cámara (solo vista previa y disparo). Revisa ⓘ Diagnóstico.";
-    panel.appendChild(p);
+  w.appendChild(cont); panel.appendChild(w);
+}
+function camRefrescarValores(forzar){
+  if(!CAM.track || !CAM.abierta) return;
+  var st = CAM.track.getSettings() || {};
+  CAM_CTLS.forEach(function(ctl){
+    if((ctl.tocado && !forzar) || ctl.key === "zoom") return;
+    if(ctl.tocado) return;
+    var v = st[ctl.key];
+    if(v != null && v >= ctl.cap.min && v <= ctl.cap.max) ctl.mostrar(v);
+  });
+}
+function camGrupos(){
+  var caps = CAM.caps || {}, g = [];
+  var man = caps.exposureMode && caps.exposureMode.indexOf("manual") >= 0 ? {exposureMode:"manual"} : null;
+  var autoExp = caps.exposureMode && caps.exposureMode.indexOf("continuous") >= 0 ? {liberar:["exposureTime", "iso"], aplicar:{exposureMode:"continuous"}} : null;
+  if(CAM.dispositivos.length > 1) g.push({id:"lente", t:"📷 Lente", build:camConstruirLentes});
+  if(camRango(caps.zoom)) g.push({id:"zoom", t:"🔍 Zoom", build:function(p){ camSlider(p, "Zoom", "zoom", caps.zoom, function(v){ return camNum(v, 1) + "×"; }); }});
+  if(camRango(caps.exposureTime)) g.push({id:"obt", t:"⏱ Obturación", build:function(p){ camSlider(p, "Velocidad de obturación", "exposureTime", caps.exposureTime, camFmtExposicion, {extra:man, log:true, auto:autoExp}); }});
+  if(camRango(caps.iso)) g.push({id:"iso", t:"ISO", build:function(p){ camSlider(p, "ISO", "iso", caps.iso, function(v){ return Math.round(v); }, {extra:man, log:true, auto:autoExp}); }});
+  if(camRango(caps.exposureCompensation)) g.push({id:"ev", t:"☀ Exposición", build:function(p){ camSlider(p, "Compensación de exposición", "exposureCompensation", caps.exposureCompensation, function(v){ return (v > 0 ? "+" : "") + camNum(v, 1) + " EV"; }); }});
+  if(camRango(caps.focusDistance)){
+    var autoF = caps.focusMode && caps.focusMode.indexOf("continuous") >= 0 ? {liberar:["focusDistance"], aplicar:{focusMode:"continuous"}} : null;
+    g.push({id:"foco", t:"🎯 Enfoque", build:function(p){ camSlider(p, "Distancia de enfoque", "focusDistance", caps.focusDistance, function(v){ return camNum(v, 2) + " m"; }, {extra:caps.focusMode && caps.focusMode.indexOf("manual") >= 0 ? {focusMode:"manual"} : null, auto:autoF}); }});
+  } else if(caps.focusMode && caps.focusMode.length > 1){
+    g.push({id:"foco", t:"🎯 Enfoque", build:function(p){ camSelect(p, "Modo de enfoque", "focusMode", caps.focusMode, {continuous:"Automático", "single-shot":"Un disparo", manual:"Manual", none:"Fijo"}); }});
   }
-  camEstado(n + (n === 1 ? " control disponible" : " controles disponibles"));
+  if(camRango(caps.colorTemperature)){
+    var autoB = caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf("continuous") >= 0 ? {liberar:["colorTemperature"], aplicar:{whiteBalanceMode:"continuous"}} : null;
+    g.push({id:"bb", t:"🌡 Balance", build:function(p){ camSlider(p, "Temperatura de color", "colorTemperature", caps.colorTemperature, function(v){ return Math.round(v) + " K"; }, {extra:caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf("manual") >= 0 ? {whiteBalanceMode:"manual"} : null, auto:autoB}); }});
+  } else if(caps.whiteBalanceMode && caps.whiteBalanceMode.length > 1){
+    g.push({id:"bb", t:"🌡 Balance", build:function(p){ camSelect(p, "Balance de blancos", "whiteBalanceMode", caps.whiteBalanceMode, {continuous:"Automático", manual:"Manual", "single-shot":"Un disparo", none:"Fijo"}); }});
+  }
+  [["brightness", "Brillo"], ["contrast", "Contraste"], ["saturation", "Saturación"], ["sharpness", "Nitidez"]].forEach(function(q){
+    if(camRango(caps[q[0]])) g.push({id:q[0], t:q[1], build:function(p){ camSlider(p, q[1], q[0], caps[q[0]], function(v){ return camNum(v, 0); }); }});
+  });
+  var pc = CAM.fotoCaps;
+  if(pc && camRango(pc.imageWidth) && camRango(pc.imageHeight)) g.push({id:"res", t:"🖼 Resolución", build:camConstruirResolucion});
+  return g;
+}
+function camOpcionesResolucion(){
+  var pc = CAM.fotoCaps, out = [];
+  if(!(pc && camRango(pc.imageWidth) && camRango(pc.imageHeight))) return out;
+  var W = pc.imageWidth.max, H = pc.imageHeight.max;
+  [[1, "Máxima"], [0.5, "Media"], [0.25, "Baja"]].forEach(function(f){
+    var w = Math.max(pc.imageWidth.min, Math.round(W * f[0])), h = Math.max(pc.imageHeight.min, Math.round(H * f[0])), val = w + "x" + h;
+    if(out.some(function(o){ return o.val === val; })) return;
+    out.push({val:val, txt:f[1] + " · " + w + "×" + h + " (" + camNum(w * h / 1e6, 1) + " MP)"});
+  });
+  return out;
+}
+function camConstruirResolucion(p){
+  var w = document.createElement("div"); w.className = "cam-ctl";
+  var fila = document.createElement("div"); fila.className = "cam-ctl-fila"; fila.innerHTML = "<span>Resolución de la foto</span>"; w.appendChild(fila);
+  var cont = document.createElement("div"); cont.className = "cam-opciones";
+  var ops = camOpcionesResolucion(); if(!CAM.res || !ops.some(function(o){ return o.val === CAM.res; })) CAM.res = ops.length ? ops[0].val : "";
+  ops.forEach(function(o){
+    var bt = document.createElement("button"); bt.type = "button"; bt.className = "cam-opc" + (o.val === CAM.res ? " on" : ""); bt.textContent = o.txt;
+    bt.addEventListener("click", function(){ CAM.res = o.val; Array.prototype.forEach.call(cont.children, function(x){ x.classList.remove("on"); }); bt.classList.add("on"); });
+    cont.appendChild(bt);
+  });
+  w.appendChild(cont); p.appendChild(w);
+}
+function camConstruirLentes(p){
+  var w = document.createElement("div"); w.className = "cam-ctl";
+  var fila = document.createElement("div"); fila.className = "cam-ctl-fila"; fila.innerHTML = "<span>Lente</span>"; w.appendChild(fila);
+  var cont = document.createElement("div"); cont.className = "cam-opciones";
+  var lista = CAM.dispositivos.slice().sort(function(a, b){ return (camEsTrasera(b) ? 1 : 0) - (camEsTrasera(a) ? 1 : 0); });
+  camEtiquetasLentes(lista).forEach(function(r){
+    var bt = document.createElement("button"); bt.type = "button"; bt.className = "cam-opc" + (r.d.deviceId === CAM.devId ? " on" : ""); bt.textContent = r.txt;
+    bt.addEventListener("click", function(){
+      camGuardarPref(r.d.deviceId); camEstado("Cambiando de lente…");
+      iniciarCamara(r.d.deviceId).then(function(){ mostrarGrupo("lente", true); }).catch(function(){ toast("No se pudo abrir esa cámara", 3500); });
+    });
+    cont.appendChild(bt);
+  });
+  w.appendChild(cont); p.appendChild(w);
+}
+function mostrarGrupo(id, mantener){
+  var panel = cam$("cam-panel");
+  if(CAM.grupo === id && !mantener){ CAM.grupo = null; panel.style.display = "none"; panel.textContent = ""; marcarChips(); return; }
+  CAM.grupo = id; panel.textContent = ""; CAM_CTLS = [];
+  var g = CAM.grupos.filter(function(x){ return x.id === id; })[0];
+  if(!g){ panel.style.display = "none"; return; }
+  g.build(panel); panel.style.display = "block";
+  cam$("cam-diag").style.display = "none";
+  marcarChips();
+}
+function marcarChips(){ Array.prototype.forEach.call(cam$("cam-barra").children, function(b){ b.classList.toggle("on", b.getAttribute("data-g") === CAM.grupo); }); }
+function construirBarraCamara(){
+  var barra = cam$("cam-barra"); barra.textContent = "";
+  CAM.grupos = camGrupos();
+  CAM.grupo = null; cam$("cam-panel").style.display = "none"; cam$("cam-panel").textContent = ""; CAM_CTLS = [];
+  CAM.grupos.forEach(function(g){
+    var b = document.createElement("button"); b.type = "button"; b.className = "cam-chip"; b.setAttribute("data-g", g.id); b.textContent = g.t;
+    b.addEventListener("click", function(){ mostrarGrupo(g.id); });
+    barra.appendChild(b);
+  });
+  var tl = cam$("cam-linterna"); tl.style.display = CAM.caps.torch ? "" : "none"; tl.classList.remove("on");
+  camEstado(CAM.grupos.length ? "" : "Este teléfono no declara controles ajustables");
 }
 function camTodoAuto(){
   var caps = CAM.caps || {}, c = {};
@@ -7813,8 +8018,11 @@ function camTodoAuto(){
   if(caps.focusMode && caps.focusMode.indexOf("continuous") >= 0) c.focusMode = "continuous";
   if(caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf("continuous") >= 0) c.whiteBalanceMode = "continuous";
   if(camRango(caps.exposureCompensation)) c.exposureCompensation = 0;
-  CAM.ajustes = {}; CAM.claves = [];
-  (CAM.track ? CAM.track.applyConstraints({advanced:Object.keys(c).map(function(k){ return camObj(k, c[k]); })}) : Promise.resolve()).catch(function(){}).then(function(){ construirControlesCamara(); camEstado("Controles en automático"); });
+  CAM.ajustes = {}; CAM.claves = []; CAM.tocados = {};
+  (CAM.track ? CAM.track.applyConstraints({advanced:Object.keys(c).map(function(k){ return camObj(k, c[k]); })}) : Promise.resolve()).catch(function(){}).then(function(){
+    if(CAM.grupo) mostrarGrupo(CAM.grupo, true);
+    camEstado("Todo en automático");
+  });
 }
 function camCuadro(){
   return new Promise(function(res){
@@ -7825,10 +8033,10 @@ function camCuadro(){
   });
 }
 function camDisparar(){
-  if(CAM.busy || !CAM.track) return;
+  if(CAM.busy || !CAM.track || CAM.ident) return;
   CAM.busy = true; cam$("cam-disparo").disabled = true;
-  var opts = {}, res = cam$("cam-res");
-  if(res && res.style.display !== "none" && res.value){ var p = res.value.split("x"); opts.imageWidth = +p[0]; opts.imageHeight = +p[1]; }
+  var opts = {};
+  if(CAM.res){ var p = CAM.res.split("x"); opts.imageWidth = +p[0]; opts.imageHeight = +p[1]; }
   var pr = (CAM.ic && CAM.ic.takePhoto) ? CAM.ic.takePhoto(opts).catch(function(){ return CAM.ic.takePhoto().catch(function(){ return camCuadro(); }); }) : camCuadro();
   pr.then(function(blob){
     if(!blob) throw new Error("sin imagen");
@@ -7846,9 +8054,11 @@ function camDiagnostico(){
   L.push("Contexto seguro: " + (window.isSecureContext !== false) + " · ImageCapture: " + !!window.ImageCapture + " · pantalla " + screen.width + "×" + screen.height + " ×" + (window.devicePixelRatio || 1));
   L.push("");
   L.push("Cámaras que informa el navegador (" + CAM.dispositivos.length + "):");
+  var et = camEtiquetasLentes(CAM.dispositivos);
   CAM.dispositivos.forEach(function(d, i){
-    var cp = d.getCapabilities ? d.getCapabilities() : null;
-    L.push((i + 1) + ". " + (d.label || "(sin nombre)") + " · id " + String(d.deviceId).slice(0, 8) + (d.deviceId === CAM.devId ? " · ACTIVA" : ""));
+    var cp = d.getCapabilities ? d.getCapabilities() : null, m = CAM.lentes[d.deviceId];
+    L.push((i + 1) + ". " + (d.label || "(sin nombre)") + " · id " + String(d.deviceId).slice(0, 8) + (d.deviceId === CAM.devId ? " · ACTIVA" : "") + " · lo que se muestra: " + et[i].txt);
+    if(m) L.push("   EXIF de la foto de prueba: focal " + (m.f != null ? camNum(m.f, 2) + " mm" : "no informada") + ", equivalente 35 mm " + (m.eq != null ? m.eq + " mm" : "no informado"));
     if(cp) L.push("   " + JSON.stringify(cp));
   });
   L.push("");
@@ -7859,56 +8069,65 @@ function camDiagnostico(){
 }
 function abrirVisorCamara(){
   if(!camSoportada()){ cam$("f-input-camara").click(); return; }
+  camCargarLentes();
   var ov = cam$("visor-cam"); ov.style.display = "flex"; CAM.abierta = true;
-  cam$("cam-diag").style.display = "none"; cam$("cam-panel").style.display = "none";
+  clearInterval(camTimer); camTimer = setInterval(function(){ camRefrescarValores(); }, 700);
+  cam$("cam-diag").style.display = "none";
   camEstado("Abriendo cámara…");
-  iniciarCamara(camLeerPref()).catch(function(e){
+  iniciarCamara(camLeerPref()).then(function(){
+    if(!CAM.grupos.length && CAM.dispositivos.length <= 1 && !CAM.caps.torch){
+      // el teléfono no ofrece nada que ajustar: se usa la cámara nativa y el botón deja de mostrarse
+      camLSset("libretacampo_cam_sin", "1"); cam$("btn-camara-avanzada").style.display = "none";
+      cerrarVisorCamara(); toast("Este teléfono no permite ajustes avanzados de cámara. Se usa la cámara normal.", 4500);
+      cam$("f-input-camara").click(); return;
+    }
+    return identificarSiHaceFalta();
+  }).catch(function(e){
     cerrarVisorCamara();
     toast("No se pudo abrir la cámara (" + ((e && e.name) || "error") + "). Se usa la cámara del teléfono.", 4500);
     cam$("f-input-camara").click();
   });
 }
 function cerrarVisorCamara(){
-  CAM.abierta = false; detenerCamara();
+  CAM.abierta = false; CAM.ident = false; clearInterval(camTimer); detenerCamara();
   cam$("visor-cam").style.display = "none";
 }
 (function instalarVisorCamara(){
   var bt = cam$("btn-camara-avanzada");
-  if(!camSoportada()){ bt.style.display = "none"; return; }
+  if(!camDisponible()){ bt.style.display = "none"; return; }
+  bt.style.display = "";
   bt.addEventListener("click", abrirVisorCamara);
   cam$("cam-cerrar").addEventListener("click", cerrarVisorCamara);
   cam$("cam-disparo").addEventListener("click", camDisparar);
-  cam$("cam-ajustes").addEventListener("click", function(){ var p = cam$("cam-panel"); p.style.display = p.style.display === "none" ? "block" : "none"; cam$("cam-diag").style.display = "none"; });
   cam$("cam-auto").addEventListener("click", camTodoAuto);
   cam$("cam-info").addEventListener("click", function(){
     var d = cam$("cam-diag"), abrir = d.style.display === "none";
     d.style.display = abrir ? "block" : "none";
-    if(abrir){ cam$("cam-diag-txt").textContent = camDiagnostico(); cam$("cam-panel").style.display = "none"; }
+    if(abrir){ cam$("cam-diag-txt").textContent = camDiagnostico(); cam$("cam-panel").style.display = "none"; CAM.grupo = null; marcarChips(); }
   });
   cam$("cam-diag-copiar").addEventListener("click", function(){
     var t = cam$("cam-diag-txt").textContent;
     if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){ toast("Diagnóstico copiado", 2500); }, function(){ toast("No se pudo copiar: selecciona el texto a mano", 4000); });
     else toast("No se pudo copiar: selecciona el texto a mano", 4000);
   });
-  cam$("cam-lente").addEventListener("change", function(){
-    var id = this.value; camGuardarPref(id); camEstado("Cambiando de cámara…");
-    iniciarCamara(id).catch(function(){ toast("No se pudo abrir esa cámara", 3500); });
-  });
   cam$("cam-linterna").addEventListener("click", function(){
     var on = !this.classList.contains("on"); this.classList.toggle("on", on);
     camAplicar({torch:on});
   });
-  // pellizco para zoom
+  // pellizco para zoom (funciona con cualquier panel abierto)
   var v = cam$("cam-video"), d0 = 0, z0 = 1, pendiente = false;
   function dist(t){ return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
-  v.addEventListener("touchstart", function(e){ if(e.touches.length === 2 && CAM.zoomInput){ d0 = dist(e.touches); z0 = +CAM.zoomInput.value; } }, {passive:true});
+  v.addEventListener("touchstart", function(e){
+    if(e.touches.length === 2 && camRango(CAM.caps.zoom)){ d0 = dist(e.touches); z0 = CAM.ajustes.zoom != null ? CAM.ajustes.zoom : ((CAM.track && CAM.track.getSettings().zoom) || 1); }
+  }, {passive:true});
   v.addEventListener("touchmove", function(e){
-    if(e.touches.length !== 2 || !CAM.zoomInput || !d0 || pendiente) return;
+    if(e.touches.length !== 2 || !d0 || pendiente || !camRango(CAM.caps.zoom)) return;
     pendiente = true; var f = dist(e.touches) / d0;
     requestAnimationFrame(function(){
-      pendiente = false; var inp = CAM.zoomInput; if(!inp) return;
-      var z = Math.min(+inp.max, Math.max(+inp.min, z0 * f));
-      inp.value = z; inp.dispatchEvent(new Event("input"));
+      pendiente = false;
+      var z = Math.min(CAM.caps.zoom.max, Math.max(CAM.caps.zoom.min, z0 * f));
+      camAplicar({zoom:z}); camEstado("Zoom " + camNum(z, 1) + "×");
+      CAM_CTLS.forEach(function(c){ if(c.key === "zoom") c.mostrar(z); });
     });
   }, {passive:true});
   document.addEventListener("visibilitychange", function(){
