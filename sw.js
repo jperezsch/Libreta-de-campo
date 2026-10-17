@@ -3,7 +3,7 @@
 // Así los cambios nuevos se ven de inmediato en cuanto hay internet.
 // Mapa opcional: los paquetes .pmtiles y las descargas con cache "no-store" (catálogo, mapas) NO pasan por aquí.
 // Las cachés se comparten entre todas las apps del dominio, por eso solo se borran las propias (prefijo "libreta-campo-").
-var CACHE_NAME = "libreta-campo-v18";
+var CACHE_NAME = "libreta-campo-v21";
 var ARCHIVOS = [
   "./",
   "./index.html",
@@ -40,7 +40,10 @@ self.addEventListener("fetch", function(evt){
       return resp;
     }).catch(function(){
       return caches.match(evt.request).then(function(cached){
-        return cached || caches.match("./index.html");
+        if(cached) return cached;
+        // v2.56: solo las navegaciones caen a index.html; un script o estilo que falta no debe recibir una página HTML
+        if(evt.request.mode === "navigate") return caches.match("./index.html");
+        return new Response("", {status: 504, statusText: "Sin conexión y sin copia guardada"});
       });
     })
   );

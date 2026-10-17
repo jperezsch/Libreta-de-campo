@@ -229,12 +229,17 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .narr-foto-tit{color:#fff; font-size:.88rem; font-weight:800; padding:10px 14px 0; text-align:center;}
 .narr-foto-ver{display:block; width:calc(100% - 28px); margin:0 14px 14px; padding:11px; border-radius:10px; border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.14); color:#fff; font-size:.9rem; font-weight:700; cursor:pointer;}
 .narr-foto-ver.solo-x{width:46px; height:46px; padding:0; border-radius:50%; margin:0 auto 14px; font-size:1.2rem; line-height:1;}
-.narr-foto-zoom{position:absolute; left:10px; top:10px; background:rgba(0,0,0,.5); color:#fff; font-size:.72rem; padding:3px 9px; border-radius:10px; display:none;}
+.narr-foto-zoom{position:absolute; right:10px; bottom:10px; background:rgba(0,0,0,.5); color:#fff; font-size:.72rem; padding:3px 9px; border-radius:10px; display:none;}
 .narr-foto-nav{position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,.45); color:#fff; border:none; width:42px; height:42px; border-radius:50%; font-size:1.6rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;}
 .narr-foto-nav.prev{left:10px;}
 .narr-foto-nav.next{right:10px;}
 .narr-foto-nav:active{background:rgba(0,0,0,.7);}
-.narr-foto-contador{position:absolute; top:10px; right:12px; background:rgba(0,0,0,.5); color:#fff; font-size:.72rem; padding:3px 9px; border-radius:10px;}
+.narr-foto-contador{position:absolute; top:8px; left:8px; background:rgba(0,0,0,.5); color:#fff; font-size:.72rem; padding:3px 9px; border-radius:10px;}
+.narr-foto-x{position:absolute; top:6px; right:6px; z-index:4; width:30px; height:30px; padding:0; border-radius:50%; border:none; background:rgba(0,0,0,.5); color:#fff; font-size:.95rem; font-weight:800; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+.narr-foto-x:active{background:rgba(0,0,0,.75);}
+.narr-foto-hd{position:absolute; left:8px; bottom:8px; z-index:4; display:none; align-items:center; gap:5px; padding:5px 10px; border-radius:14px; border:1px solid rgba(255,255,255,.6); background:rgba(0,0,0,.55); color:#fff; font-size:.74rem; font-weight:800; cursor:pointer;}
+.narr-foto-hd.no-hallada{border-color:#f0a8a0; color:#ffd7d2;}
+.narr-foto-hd:active{background:rgba(0,0,0,.8);}
 .narr-foto-cap{color:#fff; font-size:.85rem; padding:12px 14px; text-align:center;}
 .version-info{font-size:.75rem; color:var(--texto-sec); text-align:center; margin:8px 0 4px;}
 .empty .ic{font-size:2.8rem; margin-bottom:10px;}
@@ -807,9 +812,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
         <option value="formaldehido">Formaldehído</option>
         <option value="congelado">Congelado</option>
         <option value="glicerina">Glicerina</option>
-        <option value="vivo_liberado">Vivo / liberado</option>
-        <option value="fotografiado_sin_coleccion">Fotografiado (sin colecta)</option>
-        <option value="muerto_hallado_sin_coleccion">Muerto / hallado (sin colecta)</option>
+        <option value="vivo">Vivo</option>
         <option value="otro">Otro</option>
       </select>
     </div>
@@ -1019,6 +1022,8 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
       <img id="narr-foto-img">
       <button type="button" class="narr-foto-nav prev" id="narr-foto-prev" style="display:none;">‹</button>
       <button type="button" class="narr-foto-nav next" id="narr-foto-next" style="display:none;">›</button>
+      <button type="button" class="narr-foto-x" id="narr-foto-x" aria-label="Cerrar">✕</button>
+      <button type="button" class="narr-foto-hd" id="narr-foto-hd" aria-label="Esta imagen tiene copia HD en la carpeta local. Toca para ir a la carpeta">📁 HD en carpeta</button>
       <div class="narr-foto-contador" id="narr-foto-contador" style="display:none;"></div>
       <div class="narr-foto-zoom" id="narr-foto-zoom"></div>
     </div>
@@ -3567,7 +3572,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-16 · v2.54";
+var APP_BUILD = "2026-10-17 · v2.57";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -3728,6 +3733,61 @@ function nombreSesionMostrar(s){
 // Fecha y hora LOCALES del teléfono. toISOString() entrega la fecha en UTC: en Chile (3 a 4 horas detrás de UTC)
 // eso adelanta un día la fecha de todo lo registrado entre las 20:00/21:00 y la medianoche.
 function fechaLocalISO(d){ d = d || new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1,2)+"-"+pad(d.getDate(),2); }
+/* v2.55: nombres de descarga con la sesión y la fecha: <Sesión>_<tipo>_<AAAA-MM-DD>_<HHmm>.<ext>
+   Ejemplo: Rucamanque_01_respaldo_2026-10-17_1037.zip. Con varias sesiones: 3_sesiones_respaldo_... La hora evita que dos descargas
+   del mismo día se pisen, y ordenar por nombre agrupa por sesión y, dentro de cada una, por fecha. */
+function marcaFechaHora(d){ d = d || new Date(); return fechaLocalISO(d)+"_"+pad(d.getHours(),2)+pad(d.getMinutes(),2); }
+function limpiarParaNombre(t, max){
+  return String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0, max||40).replace(/_+$/,"");
+}
+function nombreCortoSesion(ses){
+  return limpiarParaNombre(ses && (ses.proyecto || ses.prefijo), 40) || "sesion";
+}
+function sufijoSesionesDe(registros){
+  var ids = [], vistos = {};
+  (registros||[]).forEach(function(r){ if(!vistos[r.sesionId]){ vistos[r.sesionId] = 1; ids.push(r.sesionId); } });
+  if(ids.length === 1) return nombreCortoSesion(sesionPorId(ids[0]));
+  return ids.length ? ids.length+"_sesiones" : "sin_sesion";
+}
+/* Nombre de la subcarpeta de la sesión en la carpeta local: el mismo que usan Fotos/ y Videos/, para que todo lo de una sesión se llame igual */
+function carpetaDeSesion(ses){ return sanitizarNombreArchivo(ses ? nombreSesionMostrar(ses) : "sesion"); }
+/* v2.57: estructura de la carpeta local por sesión.
+   <carpeta>/<AAAA-MM-DD_Sesión>/ { _sesion.json, Fotos/, Videos/, Respaldos/, DarwinCore/, Mediciones/, Libreta/ }
+   <carpeta>/_Varias_sesiones/<tipo>/ para lo que cruza varias sesiones.
+   El nombre de la carpeta de cada sesión se fija la primera vez que se usa (ses.carpetaLocal) y no cambia aunque se renombre la sesión. */
+var CARPETA_VARIAS = "_Varias_sesiones", CARPETA_SIN_SESION = "_Sin_sesion";
+function carpetaLocalDeSesion(ses){
+  if(!ses) return CARPETA_SIN_SESION;
+  if(ses.carpetaLocal) return ses.carpetaLocal;
+  var nombre = limpiarParaNombre(ses.proyecto || ses.prefijo, 50);
+  if(!nombre) return "Sesion_sin_nombre";   // provisoria: no se fija hasta que la sesión tenga nombre
+  var fecha = fechaLocalISO(ses.creada ? new Date(ses.creada) : new Date());
+  var base = fecha + "_" + nombre, cand = base, n = 2, usados = {};
+  state.sesiones.forEach(function(x){ if(x.id !== ses.id && x.carpetaLocal) usados[x.carpetaLocal.toLowerCase()] = 1; });
+  while(usados[cand.toLowerCase()]){ cand = base + "-" + n; n++; }
+  ses.carpetaLocal = cand;
+  if(state.sesiones.indexOf(ses) >= 0) guardarListaSesiones();
+  return cand;
+}
+function destinoRespaldos(idsSesion){
+  var ids = [];
+  (idsSesion||[]).forEach(function(i){ if(i && ids.indexOf(i) < 0) ids.push(i); });
+  if(ids.length === 1){ var ses = sesionPorId(ids[0]); if(ses) return carpetaLocalDeSesion(ses); }
+  return CARPETA_VARIAS;
+}
+function sesionDeCarpetaLocal(nombre){
+  for(var i=0;i<state.sesiones.length;i++) if(state.sesiones[i].carpetaLocal === nombre) return state.sesiones[i];
+  return null;
+}
+// Marcador dentro de la carpeta de la sesión: permite reconocerla aunque se mueva o se renombre
+function escribirMarcadorSesion(dir, ses){
+  if(!dir || !ses || !ses.carpetaLocal) return Promise.resolve();
+  var info = {app:"Libreta de Campo", sesionId:ses.id, nombre:ses.proyecto||"", prefijo:ses.prefijo||"", creada:ses.creada||"", carpeta:ses.carpetaLocal, actualizado:new Date().toISOString()};
+  return escribirEnCarpeta(dir, ses.carpetaLocal, "_sesion.json", new Blob([JSON.stringify(info, null, 2)], {type:"application/json"})).catch(function(){});
+}
+function nombreDescarga(sufijoSesion, tipo, ext){
+  return sufijoSesion+"_"+tipo+"_"+marcaFechaHora()+"."+ext;
+}
 function horaLocalHM(d){ d = d || new Date(); return pad(d.getHours(),2)+":"+pad(d.getMinutes(),2); }
 function fechaSesion(s){ return s.fechaIni || fechaLocalISO(new Date(s.creada)); }
 function uid(){ return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -3763,8 +3823,32 @@ function formatearNotasHtml(textoOriginal){
 }
 
 /* ---------------- Persistencia ---------------- */
+/* v2.56: uso aproximado de localStorage (la cuota típica es de unos 5 millones de caracteres) y almacenamiento protegido */
+var LS_CUOTA_CARS = 5000000, avisoCuotaMostrado = false, almacenamientoProtegido = null;
+function usoLocalStorage(){
+  var n = 0;
+  try{ for(var i=0;i<localStorage.length;i++){ var k = localStorage.key(i); n += k.length + (localStorage.getItem(k)||"").length; } }catch(e){}
+  return {cars:n, pct:Math.round(n/LS_CUOTA_CARS*100)};
+}
+function pedirAlmacenamientoProtegido(){
+  try{
+    if(!navigator.storage || !navigator.storage.persist) return Promise.resolve(null);
+    return navigator.storage.persisted().then(function(ya){
+      if(ya) return true;
+      return navigator.storage.persist();
+    }).then(function(ok){ almacenamientoProtegido = !!ok; return almacenamientoProtegido; }).catch(function(){ return null; });
+  }catch(e){ return Promise.resolve(null); }
+}
+pedirAlmacenamientoProtegido();   // v2.56: pide que el navegador no borre los datos de la app si falta espacio
 function setLS(key, value){
-  try{ localStorage.setItem(key, value); return true; }
+  try{
+    localStorage.setItem(key, value);
+    if(!avisoCuotaMostrado && key === LSK.reg){
+      var u = usoLocalStorage();
+      if(u.pct >= 70){ avisoCuotaMostrado = true; setTimeout(function(){ toast("⚠️ El almacenamiento de la app va en "+u.pct+"%. Exporta un respaldo (.zip) y considera archivar sesiones antiguas.", 6500); }, 1200); }
+    }
+    return true;
+  }
   catch(e){
     toast("⚠️ Almacenamiento local lleno. Exporta un respaldo (.json) y libera espacio.", 5000);
     return false;
@@ -3841,7 +3925,7 @@ function cargar(){
 function guardarListaSesiones(){ return setLS(LSK.sesiones, JSON.stringify(state.sesiones)); }
 function guardarSesion(){ guardarBorradorSesion(); return guardarListaSesiones(); }
 function guardarConfig(){ return setLS(LSK.cfg, JSON.stringify(state.config)); }
-function guardarRegistros(){ return setLS(LSK.reg, JSON.stringify(state.registros)); }
+function guardarRegistros(){ TABLA_FOTOS_EXPORT = null; return setLS(LSK.reg, JSON.stringify(state.registros)); }
 function guardarRecorridos(){ return setLS(LSK.rec, JSON.stringify(state.recorridos)); }
 function guardarDraft(){ if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
 
@@ -4856,8 +4940,10 @@ function construirIntroSesionHtml(s){
 var CONSERVACION_LABELS = {
   seco:"Seco", etanol70:"Etanol 70%", etanol96:"Etanol 96%", etanol_absoluto:"Etanol absoluto",
   formaldehido:"Formaldehído", congelado:"Congelado", glicerina:"Glicerina",
-  vivo_liberado:"Vivo / liberado", fotografiado_sin_coleccion:"Fotografiado (sin colecta)",
-  muerto_hallado_sin_coleccion:"Muerto / hallado (sin colecta)", otro:"Otro"
+  vivo:"Vivo", otro:"Otro",
+  /* valores antiguos (ya no se ofrecen en el formulario; se leen para registros previos) */
+  vivo_liberado:"Vivo", fotografiado_sin_coleccion:"Fotografiado (sin colecta)",
+  muerto_hallado_sin_coleccion:"Muerto / hallado (sin colecta)"
 };
 function etiquetaConservacion(codigo){ return CONSERVACION_LABELS[codigo] || codigo; }
 function textoEntradaNarrativa(r){
@@ -4969,14 +5055,19 @@ function mostrarFotoNarrativaEnIndice(){
   var btnReg = document.getElementById("narr-foto-ver-reg");
   // v2.54: desde la vista Consulta el botón es solo una X que cierra el visor
   var enConsulta = state.currentView === "consulta";
-  btnReg.style.display = (f.regId || enConsulta) ? "block" : "none";
-  btnReg.classList.toggle("solo-x", enConsulta);
-  btnReg.textContent = enConsulta ? "✕" : "📄 Ver datos de este registro";
-  btnReg.setAttribute("aria-label", enConsulta ? "Cerrar" : "Ver datos de este registro");
+  // v2.55: la X de cierre pasó a la esquina superior derecha de la imagen (#narr-foto-x); abajo solo queda "Ver datos" fuera de Consulta
+  btnReg.style.display = (f.regId && !enConsulta) ? "block" : "none";
+  btnReg.classList.remove("solo-x");
+  btnReg.textContent = "📄 Ver datos de este registro";
+  btnReg.setAttribute("aria-label", "Ver datos de este registro");
   liberarOriginalVisor();
   var btnOrig = document.getElementById("narr-foto-orig");
   btnOrig.style.display = rutaOriginalCarpeta(f) ? "block" : "none";
   btnOrig.textContent = "🖼️ Ver original (carpeta)";
+  var tagHD = document.getElementById("narr-foto-hd"), rutaHD = rutaOriginalCarpeta(f);
+  tagHD.style.display = rutaHD ? "flex" : "none";
+  tagHD.classList.remove("no-hallada"); tagHD.textContent = "📁 HD en carpeta";
+  if(rutaHD) comprobarOriginalSinPermiso(f, rutaHD, tagHD);
   var multiple = narrFotosActuales.length > 1;
   document.getElementById("narr-foto-prev").style.display = multiple ? "flex" : "none";
   document.getElementById("narr-foto-next").style.display = multiple ? "flex" : "none";
@@ -5059,10 +5150,32 @@ document.getElementById("narr-foto-orig").addEventListener("click", function(e){
     toast("No se encontró el original en la carpeta: "+ruta, 5000);
   });
 });
+document.getElementById("narr-foto-x").addEventListener("click", function(e){
+  e.stopPropagation();
+  document.getElementById("modal-narr-foto").classList.remove("on"); liberarOriginalVisor();
+});
+/* v2.56: si el permiso de la carpeta ya está concedido (no se pide ninguno nuevo), se comprueba que el archivo siga existiendo; si no está, la etiqueta lo indica */
+function comprobarOriginalSinPermiso(f, ruta, tag){
+  carpetaHandleGuardado().then(function(h){
+    if(!h || !h.queryPermission) return;
+    return h.queryPermission({mode:"readwrite"}).then(function(p){
+      if(p !== "granted") return;
+      return archivoDeCarpeta(h, ruta).then(function(){}, function(){
+        if(f === narrFotosActuales[narrFotoIndiceActual]){ tag.classList.add("no-hallada"); tag.textContent = "⚠️ HD no encontrada"; }
+      });
+    });
+  }).catch(function(){});
+}
+/* Etiqueta HD: abre el explorador de la carpeta local directamente en la subcarpeta donde está el original */
+document.getElementById("narr-foto-hd").addEventListener("click", function(e){
+  e.stopPropagation();
+  var f = narrFotosActuales[narrFotoIndiceActual], ruta = rutaOriginalCarpeta(f);
+  if(!ruta) return;
+  abrirExploradorEn(ruta);
+});
 document.getElementById("narr-foto-ver-reg").addEventListener("click", function(e){
   e.stopPropagation();
   var f = narrFotosActuales[narrFotoIndiceActual];
-  if(this.classList.contains("solo-x")){ document.getElementById("modal-narr-foto").classList.remove("on"); liberarOriginalVisor(); return; }
   if(!f || !f.regId) return;
   document.getElementById("modal-narr-foto").classList.remove("on");
   verRegistroExistente(f.regId);
@@ -5082,7 +5195,7 @@ document.getElementById("narr-foto-ver-reg").addEventListener("click", function(
     limitarZoomNarr(); aplicarZoomNarr();
   }
   wrap.addEventListener("pointerdown", function(e){
-    if(e.target.closest && e.target.closest(".narr-foto-nav")) return;
+    if(e.target.closest && e.target.closest(".narr-foto-nav, .narr-foto-x, .narr-foto-hd")) return;
     punteros[e.pointerId] = {x:e.clientX, y:e.clientY};
     try{ wrap.setPointerCapture(e.pointerId); }catch(err){}
     var l = lista();
@@ -5297,11 +5410,11 @@ function exportarLibretaHTML(lista){
     var blob = new Blob([html], {type:"text/html"});
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    var nomHtml = "LibretaDeCampo_"+((s&&s.prefijo)||"registro")+".html";
+    var nomHtml = nombreDescarga(sufijoSesionesDe(lista), "libreta", "html");
     a.href = url; a.download = nomHtml;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    copiarARespaldos("Libreta", nomHtml, blob);
+    copiarARespaldos("Libreta", nomHtml, blob, destinoRespaldos(lista.map(function(r){ return r.sesionId; })));
     toast("✅ Libreta exportada");
   });
 }
@@ -5338,7 +5451,7 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
       if(!dataURL) return;
       var conExif = incrustarExif(dataURL, comentarioConEnlaceHD(item.foto), item.registro.lat, item.registro.lon, item.registro.altitud);
       var base64 = conExif.split(",")[1];
-      var filename = nombreUnico(sanitizarNombreArchivo(item.registro.codigo || item.registro.id)+"__"+sanitizarNombreFoto(item.foto.nombre)+".jpg");
+      var filename = nombreFotoExport(item.registro, item.foto);
       carpetaFotos.file(filename, base64, {base64:true});
     }).catch(function(){});
   });
@@ -5385,11 +5498,11 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
   generarPaqueteZip(sel.idsSesiones, sel.idsSueltos).then(function(blob){
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    var nomZip = "LibretaDeCampo_"+sel.sufijo+"_"+fechaLocalISO()+".zip";
+    var nomZip = nombreDescarga(sel.sufijo, "respaldo", "zip");
     a.href = url; a.download = nomZip;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    copiarARespaldos("Respaldos", nomZip, blob);
+    copiarARespaldos("Respaldos", nomZip, blob, destinoRespaldos(sel.idsCarpeta));
     btn.disabled = false; btn.textContent = "📦 Registros (.zip)";
     toast("✅ Paquete .zip listo — puedes compartirlo por WhatsApp como documento");
   }).catch(function(err){
@@ -5486,7 +5599,16 @@ function cargarDraftEnFormulario(){
   document.getElementById("f-notas").value = d.notas;
   document.getElementById("f-nota-titulo").value = d.notaTitulo || "";
   document.getElementById("f-nind").value = d.nind || "";
-  document.getElementById("f-condicion").value = d.condicion || "";
+  (function(){
+    var sel = document.getElementById("f-condicion"), v = d.condicion || "";
+    if(v === "vivo_liberado") v = "vivo";
+    /* Registros antiguos con valores ya retirados: se muestra el valor existente para no perderlo al guardar */
+    Array.prototype.slice.call(sel.options).forEach(function(o){ if(o.getAttribute("data-legacy")) sel.removeChild(o); });
+    if(v && !Array.prototype.some.call(sel.options, function(o){ return o.value === v; })){
+      var o = document.createElement("option"); o.value = v; o.textContent = etiquetaConservacion(v) + " (antiguo)"; o.setAttribute("data-legacy","1"); sel.appendChild(o);
+    }
+    sel.value = v;
+  })();
   document.getElementById("f-tejido").checked = !!d.tejidoConservado;
   document.getElementById("f-taxon-libre").value = d.taxonLibre || "";
   poblarOpcionesMetodo(d.tipo);
@@ -6381,19 +6503,30 @@ document.getElementById("btn-guardar").addEventListener("click", function(e){
     toast("✏️ Ahora puedes editar este registro");
   }
 }, true);
-function eliminarRegistroPorId(id){
+/* v2.56: al borrar un registro también se borran sus fotos y videos de la base de la app (antes quedaban huérfanos en IndexedDB)
+   y sus copias originales (HD) de la carpeta local. El permiso de la carpeta se pide antes de la confirmación, mientras sigue vigente el toque. */
+function eliminarRegistroPorId(id, despues){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
-  if(!r) return null;
-  if(!confirm("¿Borrar el registro "+(r.codigo||r.notaTitulo||"sin identificar")+"? Esta acción no se puede deshacer.")) return null;
-  state.registros = state.registros.filter(function(x){return x.id!==id;});
-  guardarRegistros();
-  return r;
+  if(!r) return;
+  var rutas = archivosLocalesDeRegistros([r]);
+  var dirP = (rutas.length && soportaCarpeta()) ? carpetaConPermiso() : Promise.resolve(null);
+  dirP.then(function(dir){
+    var extra = rutas.length ? (dir ? "\n\nTambién se borrará"+(rutas.length===1?" 1 archivo original (HD)":"n "+rutas.length+" archivos originales (HD)")+" de la carpeta local." : "\n\n⚠️ "+(rutas.length===1?"1 archivo original (HD) quedará":rutas.length+" archivos originales (HD) quedarán")+" en la carpeta local: no hay acceso a ella ahora (se verán como «sin registro en la app» en «Explorar carpeta»).") : "";
+    if(!confirm("¿Borrar el registro "+(r.codigo||r.notaTitulo||"sin identificar")+"? Esta acción no se puede deshacer."+extra)) return;
+    state.registros = state.registros.filter(function(x){return x.id!==id;});
+    guardarRegistros();
+    (r.fotos || []).concat(r.videos || []).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); });
+    if(rutas.length) borrarArchivosDeCarpeta(dir, rutas).then(function(res){
+      if(res.fallidos || res.sinPermiso) setTimeout(function(){ toast("⚠️ "+(res.fallidos+res.sinPermiso)+" original(es) quedaron en la carpeta local (sin registro en la app)", 5500); }, 2200);
+    });
+    if(despues) despues(r);
+  });
 }
 function borrarRegistroExistente(id){
-  var r = eliminarRegistroPorId(id);
-  if(!r) return;
-  toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
-  renderLista();
+  eliminarRegistroPorId(id, function(r){
+    toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
+    renderLista();
+  });
 }
 
 /* ---------------- Bloque específico según tipo ---------------- */
@@ -7300,11 +7433,15 @@ function escribirEnCarpeta(dir, subcarpeta, nombre, blob){
    Estructura: Fotos/<sesión>/, Videos/<sesión>/, Respaldos/ (paquetes .zip y respaldo unificado .json), DarwinCore/ (.xlsx y .csv),
    Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html). La descarga normal sigue ocurriendo; esto es una copia adicional. */
 var SUBCARPETAS_RESPALDO = ["Fotos","Videos","Respaldos","DarwinCore","Mediciones","Libreta"];
-function copiarARespaldos(subcarpeta, nombre, blob){
+function copiarARespaldos(tipo, nombre, blob, destino){
+  // v2.57: <carpeta de la sesión>/<tipo>/ o _Varias_sesiones/<tipo>/
+  var subcarpeta = (destino || CARPETA_VARIAS) + "/" + tipo;
   if(copiaCfg().modo !== "carpeta" || !soportaCarpeta()) return Promise.resolve(false);
   return carpetaConPermiso().then(function(dir){
     if(!dir){ setTimeout(function(){ toast("⚠️ No se pudo copiar el respaldo a la carpeta: elígela de nuevo en Config", 5000); }, 1500); return false; }
     return escribirEnCarpeta(dir, subcarpeta, nombre, blob).then(function(){
+      return escribirMarcadorSesion(dir, sesionDeCarpetaLocal(destino));
+    }).then(function(){
       setTimeout(function(){ toast("📁 Copia guardada en "+subcarpeta+"/"+nombre, 4200); }, 1500);
       return true;
     });
@@ -7336,8 +7473,9 @@ function volcarOriginalesPendientes(){
       var seq = Promise.resolve();
       regs.forEach(function(r){
         var ses = sesionPorId(r.sesionId);
-        var carpetaSes = sanitizarNombreArchivo(ses ? nombreSesionMostrar(ses) : "sesion");
-        var carpetaFoto = "Fotos/" + carpetaSes, carpetaVideo = "Videos/" + carpetaSes;
+        var carpetaSes = carpetaDeSesion(ses);
+        var raizSes = ses ? carpetaLocalDeSesion(ses) : CARPETA_SIN_SESION;   // v2.57: <sesión>/Fotos y <sesión>/Videos
+        var carpetaFoto = raizSes + "/Fotos", carpetaVideo = raizSes + "/Videos";
         var base = baseNombreRegistro(r), kVideo = 0;
         elementosArchivables(r).forEach(function(e){
           if(e.tipo === "video") kVideo++;
@@ -7349,7 +7487,7 @@ function volcarOriginalesPendientes(){
               if(cfg.modo === "carpeta"){
                 if(!dir){ res.pend++; return; }
                 var subDest = e.tipo === "video" ? carpetaVideo : carpetaFoto;
-                return escribirEnCarpeta(dir, subDest, nombre, o.blob).then(function(){ e.it.copiaLocal = subDest + "/" + nombre; return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
+                return escribirEnCarpeta(dir, subDest, nombre, o.blob).then(function(){ e.it.copiaLocal = subDest + "/" + nombre; return escribirMarcadorSesion(dir, ses); }).then(function(){ return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
                   .catch(function(){ res.fallo++; });
               }
               return descargarBlob(o.blob, carpetaSes + "__" + nombre).then(function(){ e.it.copiaLocal = "Descargas/" + carpetaSes + "__" + nombre; return borrarOriginal(e.it.id).then(function(){ res.ok++; }); })
@@ -7431,7 +7569,8 @@ function renderConfigCopia(){
       '<span class="campo-ayuda">El navegador solo informa el nombre de la carpeta, no su ruta completa. Escríbela aquí como referencia para encontrarla desde el administrador de archivos.</span></div>'+
     '<div class="campo-ayuda" id="cc-estructura" style="display:none;"></div>'+
     '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
-    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en una subcarpeta por sesión. Los videos no se incluyen en el .zip.</div>';
+    '<button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="display:none;">🗂 Reorganizar la carpeta por sesión…</button>'+
+    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en la carpeta de su sesión. Los videos no se incluyen en el .zip.</div>';
   document.getElementById("cc-modo").value = cfg.modo;
   document.getElementById("cc-tam").value = cfg.tam;
   function estado(){
@@ -7440,7 +7579,8 @@ function renderConfigCopia(){
     document.getElementById("cc-ruta-wrap").style.display = c.modo === "carpeta" ? "block" : "none";
     var est = document.getElementById("cc-estructura");
     est.style.display = c.modo === "carpeta" ? "block" : "none";
-    est.textContent = "Dentro de la carpeta se crean: Fotos/ y Videos/ (una subcarpeta por sesión), Respaldos/ (paquetes .zip y respaldo unificado .json), DarwinCore/ (.xlsx y .csv), Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html). Cada descarga se guarda además en la carpeta.";
+    est.textContent = "Cada sesión tiene su propia carpeta, AAAA-MM-DD_Sesión, con Fotos/, Videos/, Respaldos/ (paquetes .zip), DarwinCore/ (.xlsx y .csv), Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html), más un marcador _sesion.json. Lo que reúne varias sesiones va en _Varias_sesiones/. Cada descarga se guarda además en la carpeta.";
+    document.getElementById("cc-reorganizar").style.display = c.modo === "carpeta" ? "block" : "none";
     Promise.all([carpetaHandleGuardado(), idsOriginalesPendientes()]).then(function(v){
       var h = v[0], ids = v[1], set = {}; ids.forEach(function(i){ set[i] = 1; });
       var nPend = 0;
@@ -7460,6 +7600,7 @@ function renderConfigCopia(){
   document.getElementById("cc-ruta").value = cfg.ruta || "";
   document.getElementById("cc-ruta").addEventListener("change", function(){ var c = copiaCfg(); c.ruta = this.value.trim(); guardarCopiaCfg(c); estado(); });
   document.getElementById("cc-elegir").addEventListener("click", function(){ elegirCarpetaCopia().then(estado); });
+  document.getElementById("cc-reorganizar").addEventListener("click", function(){ reorganizarCarpeta(); });
   document.getElementById("cc-pendientes").addEventListener("click", function(){
     volcarOriginalesPendientes().then(function(r){
       toast(r.ok ? ("📁 "+r.ok+" archivo(s) copiado(s)"+((r.pend||r.fallo)?(" · quedan "+(r.pend+r.fallo)):"")) : "No se pudo copiar ahora: revisa la carpeta elegida", 4200);
@@ -7935,7 +8076,233 @@ function borradorVacio(d){
   if(d.obsInicio || d.obsTermino) return false;
   return true;
 }
+/* v2.55: al borrar una sesión también se borran, de la carpeta local, las copias originales (HD) de sus fotos y videos.
+   Se elimina cada archivo por su ruta guardada (copiaLocal) y luego las subcarpetas de la sesión si quedaron vacías.
+   Devuelve {borrados, noEncontrados, fallidos, sinPermiso}. Las copias en "Descargas/" no se pueden borrar desde la app. */
+function archivosLocalesDeRegistros(regs){
+  var rutas = [], vistas = {};
+  regs.forEach(function(r){ (r.fotos||[]).concat(r.videos||[]).forEach(function(f){
+    var c = f && f.copiaLocal ? String(f.copiaLocal) : "";
+    if(c && !/^Descargas\//.test(c) && !vistas[c]){ vistas[c] = 1; rutas.push(c); }
+  }); });
+  return rutas;
+}
+function borrarArchivosDeCarpeta(dir, rutas){
+  var res = {borrados:0, noEncontrados:0, fallidos:0, sinPermiso:0};
+  if(!rutas.length) return Promise.resolve(res);
+  if(!dir){ res.sinPermiso = rutas.length; return Promise.resolve(res); }
+  var padres = {}, seq = Promise.resolve();
+  function dirDe(partes){
+    var p = Promise.resolve(dir);
+    partes.forEach(function(n){ p = p.then(function(d){ return d.getDirectoryHandle(n); }); });
+    return p;
+  }
+  rutas.forEach(function(ruta){
+    var partes = ruta.split("/").filter(function(x){ return x; }), nombre = partes.pop();
+    padres[partes.join("/")] = partes.slice();
+    seq = seq.then(function(){
+      return dirDe(partes).then(function(d){ return d.removeEntry(nombre).then(function(){ res.borrados++; }); })
+        .catch(function(e){ if(e && e.name === "NotFoundError") res.noEncontrados++; else res.fallidos++; });
+    });
+  });
+  // v2.57: sube desde la carpeta más profunda quitando las que quedaron vacías. La carpeta de la sesión también se quita si solo queda su marcador _sesion.json.
+  return seq.then(function(){
+    var s2 = Promise.resolve();
+    Object.keys(padres).forEach(function(k){
+      var partes = padres[k];
+      for(var i = partes.length; i >= 1; i--){
+        (function(i){
+          s2 = s2.then(function(){ return dirDe(partes.slice(0, i-1)).then(function(padre){ return quitarCarpetaSiVacia(padre, partes[i-1], i === 1); }).catch(function(){}); });
+        })(i);
+      }
+    });
+    return s2;
+  }).then(function(){ return res; });
+}
+function quitarCarpetaSiVacia(padre, nombre, esRaiz){
+  return padre.getDirectoryHandle(nombre).then(function(h){
+    var it = h.values(), otros = 0;
+    function leer(){
+      return it.next().then(function(r){
+        if(r.done) return;
+        if(!(esRaiz && r.value.kind === "file" && r.value.name === "_sesion.json")) otros++;
+        return leer();
+      });
+    }
+    return leer().then(function(){ if(otros === 0) return padre.removeEntry(nombre, {recursive:true}); });
+  }).catch(function(){});
+}
+/* v2.57: reorganiza una carpeta hecha con la estructura anterior (Fotos/<sesión>, Respaldos/<sesión>, etc.) a una carpeta por sesión.
+   Copia, verifica el tamaño y recién entonces borra el origen. Los archivos que la app no reconoce se dejan donde están. */
+var TIPOS_RESPALDO_ANTIGUOS = ["Respaldos","DarwinCore","Mediciones","Libreta"];
+function listarEntradas(dirH){
+  var out = [], it = dirH.values();
+  function leer(){ return it.next().then(function(r){ if(r.done) return out; out.push(r.value); return leer(); }); }
+  return leer();
+}
+function candidatosAntiguosDeSesion(ses){
+  var c = [carpetaDeSesion(ses), nombreCortoSesion(ses), limpiarParaNombre(ses.prefijo || ses.proyecto, 40), sanitizarNombreArchivo(ses.prefijo || ses.proyecto)];
+  var u = [];
+  c.forEach(function(x){ x = String(x||"").toLowerCase(); if(x && x !== "sesion" && x !== "foto" && u.indexOf(x) < 0) u.push(x); });
+  return u;
+}
+function sesionPorNombreAntiguo(nombre, esArchivo){
+  var n = String(nombre||"").toLowerCase(), hallada = [];
+  state.sesiones.forEach(function(s){
+    var ok = candidatosAntiguosDeSesion(s).some(function(c){ return esArchivo ? (n.indexOf(c + "_") === 0) : (n === c); });
+    if(ok) hallada.push(s);
+  });
+  return hallada.length === 1 ? hallada[0] : null;
+}
+function subDirDe(dir, partes){
+  var p = Promise.resolve(dir);
+  partes.forEach(function(n){ p = p.then(function(d){ return d.getDirectoryHandle(n); }); });
+  return p;
+}
+function existeArchivo(dir, carpeta, nombre){
+  return archivoDeCarpeta(dir, carpeta + "/" + nombre).then(function(f){ return f; }).catch(function(){ return null; });
+}
+/* Mueve un archivo. Devuelve la ruta nueva. Si el origen ya no existe pero el destino sí, solo corrige la ruta. */
+function moverArchivoEnCarpeta(dir, origen, destCarpeta){
+  var partes = origen.split("/"), nombre = partes.pop(), carpOrigen = partes.join("/");
+  return existeArchivo(dir, carpOrigen, nombre).then(function(fo){
+    if(!fo) return existeArchivo(dir, destCarpeta, nombre).then(function(fd){ return fd ? destCarpeta + "/" + nombre : null; });
+    function intentar(nom, k){
+      return existeArchivo(dir, destCarpeta, nom).then(function(fd){
+        if(fd && fd.size === fo.size){ return {nom:nom, yaEsta:true}; }
+        if(fd){
+          var m = /^(.*?)(\.[^.]*)?$/.exec(nombre);
+          return intentar(m[1] + "_" + (k+1) + (m[2]||""), k+1);
+        }
+        return {nom:nom, yaEsta:false};
+      });
+    }
+    return intentar(nombre, 1).then(function(r){
+      if(r.yaEsta) return r;
+      return escribirEnCarpeta(dir, destCarpeta, r.nom, fo).then(function(){
+        return existeArchivo(dir, destCarpeta, r.nom).then(function(ch){
+          if(!ch || ch.size !== fo.size) throw new Error("verificación");
+          return r;
+        });
+      });
+    }).then(function(r){
+      return subDirDe(dir, partes).then(function(d){ return d.removeEntry(nombre); }).then(function(){ return destCarpeta + "/" + r.nom; });
+    });
+  });
+}
+function planReorganizacion(dir){
+  var items = [], usadas = {};
+  // (a) fotos y videos con registro
+  state.registros.forEach(function(r){
+    (r.fotos || []).concat(r.videos || []).forEach(function(f){
+      var m = f && f.copiaLocal && /^(Fotos|Videos)\/([^\/]+)\/(.+)$/.exec(f.copiaLocal);
+      if(!m) return;
+      var ses = sesionPorId(r.sesionId);
+      if(!ses) return;
+      usadas[f.copiaLocal] = 1;
+      items.push({origen:f.copiaLocal, destCarpeta:carpetaLocalDeSesion(ses) + "/" + m[1], ses:ses, ref:f});
+    });
+  });
+  // (b) respaldos antiguos
+  var p = Promise.resolve();
+  TIPOS_RESPALDO_ANTIGUOS.forEach(function(tipo){
+    p = p.then(function(){
+      return dir.getDirectoryHandle(tipo).then(function(th){
+        return listarEntradas(th).then(function(ents){
+          var q = Promise.resolve();
+          ents.forEach(function(e){
+            if(e.kind === "file"){
+              var ses = sesionPorNombreAntiguo(e.name, true);
+              items.push({origen:tipo + "/" + e.name, destCarpeta:(ses ? carpetaLocalDeSesion(ses) : CARPETA_VARIAS) + "/" + tipo, ses:ses, ref:null});
+            } else {
+              var sesD = sesionPorNombreAntiguo(e.name, false);
+              q = q.then(function(){
+                return listarEntradas(e).then(function(sub){
+                  sub.forEach(function(g){
+                    if(g.kind !== "file") return;
+                    items.push({origen:tipo + "/" + e.name + "/" + g.name, destCarpeta:(sesD ? carpetaLocalDeSesion(sesD) : CARPETA_VARIAS) + "/" + tipo, ses:sesD, ref:null});
+                  });
+                });
+              });
+            }
+          });
+          return q;
+        });
+      }).catch(function(){});
+    });
+  });
+  return p.then(function(){ return items; });
+}
+var reorganizando = false;
+function reorganizarCarpeta(){
+  if(reorganizando) return;
+  if(!soportaCarpeta()){ toast("Este navegador no permite trabajar con la carpeta", 4000); return; }
+  carpetaConPermiso().then(function(dir){
+    if(!dir){ toast("⚠️ No hay acceso a la carpeta: elígela de nuevo en Config", 5000); return; }
+    toast("🔎 Revisando la carpeta…", 2500);
+    return planReorganizacion(dir).then(function(items){
+      if(!items.length){ toast("La carpeta ya está ordenada: no hay nada que mover", 4500); return; }
+      var nMed = items.filter(function(i){ return i.ref; }).length, nRes = items.length - nMed;
+      var nVarias = items.filter(function(i){ return !i.ses && !i.ref; }).length;
+      var msg = "Se moverán " + items.length + " archivos a una carpeta por sesión (AAAA-MM-DD_Sesión):\n\n" +
+        "• " + nMed + " fotos y videos originales\n" +
+        "• " + nRes + " respaldos y planillas" + (nVarias ? " (" + nVarias + " sin sesión identificable irán a " + CARPETA_VARIAS + ")" : "") + "\n\n" +
+        "Cada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Las rutas de los registros se actualizan. Los archivos que la app no reconoce no se tocan.\n\n" +
+        "Conviene no cerrar la app mientras dura. ¿Continuar?";
+      if(!confirm(msg)) return;
+      reorganizando = true;
+      var res = {movidos:0, fallidos:0, ausentes:0}, tocadas = {}, hechos = 0;
+      var seq = Promise.resolve();
+      items.forEach(function(it){
+        seq = seq.then(function(){
+          return moverArchivoEnCarpeta(dir, it.origen, it.destCarpeta).then(function(nueva){
+            if(nueva === null){ res.ausentes++; }
+            else { res.movidos++; if(it.ref) it.ref.copiaLocal = nueva; if(it.ses) tocadas[it.ses.id] = it.ses; }
+          }).catch(function(){ res.fallidos++; }).then(function(){
+            hechos++;
+            if(hechos % 20 === 0){ guardarRegistros(); toast("🗂 Moviendo… " + hechos + " de " + items.length, 1500); }
+          });
+        });
+      });
+      return seq.then(function(){
+        guardarRegistros();
+        var m = Promise.resolve();
+        Object.keys(tocadas).forEach(function(id){ m = m.then(function(){ return escribirMarcadorSesion(dir, tocadas[id]); }); });
+        // quitar carpetas antiguas que quedaron vacías
+        TIPOS_RESPALDO_ANTIGUOS.concat(["Fotos","Videos"]).forEach(function(tipo){
+          m = m.then(function(){
+            return dir.getDirectoryHandle(tipo).then(function(th){
+              return listarEntradas(th).then(function(ents){
+                var q = Promise.resolve();
+                ents.forEach(function(e){ if(e.kind === "directory") q = q.then(function(){ return quitarCarpetaSiVacia(th, e.name, false); }); });
+                return q;
+              });
+            }).then(function(){ return quitarCarpetaSiVacia(dir, tipo, false); }).catch(function(){});
+          });
+        });
+        return m;
+      }).then(function(){
+        reorganizando = false;
+        var t = "✅ Carpeta reorganizada: " + res.movidos + " archivos movidos";
+        if(res.ausentes) t += ", " + res.ausentes + " no se encontraron";
+        if(res.fallidos) t += ", " + res.fallidos + " con error (se pueden reintentar)";
+        toast(t, 7000);
+        try{ renderConfigCopia(); }catch(e){}
+      });
+    });
+  }).catch(function(){ reorganizando = false; toast("⚠️ No se pudo reorganizar la carpeta", 5000); });
+}
 function eliminarSesionConRegistros(id){
+  var s = sesionPorId(id);
+  if(!s) return;
+  var draftDeSesion0 = !!(state.draft && !state.draft._viendo && state.draft.sesionId===id);
+  if(draftDeSesion0 && !borradorVacio(state.draft)){ toast("No se puede borrar: hay un registro sin guardar en curso, con datos, asociado a esta sesión. Guárdalo o descártalo primero."); return; }
+  // El permiso de la carpeta se pide ahora, mientras sigue vigente el toque del usuario (antes de los cuadros de confirmación)
+  var rutasLocales = archivosLocalesDeRegistros(state.registros.filter(function(r){ return r.sesionId===id; }));
+  var dirP = (rutasLocales.length && soportaCarpeta()) ? carpetaConPermiso() : Promise.resolve(null);
+  dirP.then(function(dir){ eliminarSesionConRegistrosPaso2(id, dir, rutasLocales); });
+}
+function eliminarSesionConRegistrosPaso2(id, dirCarpeta, rutasLocales){
   var s = sesionPorId(id);
   if(!s) return;
   var regs = state.registros.filter(function(r){ return r.sesionId===id; });
@@ -7946,6 +8313,7 @@ function eliminarSesionConRegistros(id){
   var nombre = nombreSesionMostrar(s);
   var eraActiva = (id === state.sesionActivaId);
   var msg1 = '¿Borrar la sesión "'+nombre+'" junto con sus '+regs.length+(regs.length===1?' registro':' registros')+(nFotos?(' y '+nFotos+(nFotos===1?' foto':' fotos')):'')+(nRecs?(' y '+nRecs+(nRecs===1?' recorrido grabado':' recorridos grabados')):'')+'?\n\n'+
+    (rutasLocales.length ? (dirCarpeta ? '\n\nTambién se borrarán de la carpeta local '+rutasLocales.length+(rutasLocales.length===1?' archivo original (HD)':' archivos originales (HD)')+' de esta sesión.' : '\n\n⚠️ '+rutasLocales.length+(rutasLocales.length===1?' archivo original (HD) quedará':' archivos originales (HD) quedarán')+' en la carpeta local: no hay acceso a ella ahora. Podrás reconocerlos en «Explorar carpeta», marcados como «sin registro en la app».') : '')+
     'Esta acción NO se puede deshacer. Si aún no lo hiciste, exporta antes el paquete .zip de esta sesión.'+
     (eraActiva ? '\n\nEs la sesión activa: te quedarás sin sesión activa hasta que guardes una nueva o reactives otra.' : '')+
     (draftDeSesion ? '\n\nEl registro en curso, que todavía está vacío, también se descartará.' : '');
@@ -7964,6 +8332,15 @@ function eliminarSesionConRegistros(id){
   if(!state.sesiones.length && !state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); state.sesionEnPantallaId = state.sesionBorrador.id; }
   toast('Sesión "'+nombre+'" borrada con sus '+regs.length+(regs.length===1?' registro':' registros')+(eraActiva ? '. Ya no hay sesión activa: guarda una nueva o reactiva otra' : ''), eraActiva ? 5200 : 3500);
   renderExportar();
+  if(rutasLocales.length){
+    borrarArchivosDeCarpeta(dirCarpeta, rutasLocales).then(function(r){
+      var m = [];
+      if(r.borrados) m.push("🗑 "+r.borrados+(r.borrados===1?" original borrado":" originales borrados")+" de la carpeta local");
+      if(r.noEncontrados) m.push(r.noEncontrados+" ya no estaban en la carpeta");
+      if(r.fallidos || r.sinPermiso) m.push("⚠️ "+(r.fallidos+r.sinPermiso)+" quedaron en la carpeta (sin registro en la app)");
+      if(m.length) setTimeout(function(){ toast(m.join(" · "), 6500); }, 3800);
+    });
+  }
 }
 function eliminarSesionVacia(id){
   var s = sesionPorId(id);
@@ -8190,13 +8567,15 @@ function seleccionExportar(){
   var sufijo;
   if(!extra.length){
     var elegidas = idsSes.map(sesionPorId).filter(Boolean);
-    sufijo = elegidas.length===1 ? sanitizarNombreArchivo(elegidas[0].prefijo||elegidas[0].proyecto||"sesion") : elegidas.length+"_sesiones";
+    sufijo = elegidas.length===1 ? nombreCortoSesion(elegidas[0]) : elegidas.length+"_sesiones";
   } else if(!idsSes.length){
     sufijo = "registros_sueltos_"+extra.length;
   } else {
     sufijo = idsSes.length+(idsSes.length===1?"_sesion":"_sesiones")+"_y_"+extra.length+(extra.length===1?"_suelto":"_sueltos");
   }
-  return {idsSesiones:idsSes, idsSueltos:extra, registros:registros, sufijo:sufijo, vacia:(!idsSes.length && !extra.length)};
+  var idsCarpeta = idsSes.slice();
+  registros.forEach(function(r){ if(idsCarpeta.indexOf(r.sesionId) < 0) idsCarpeta.push(r.sesionId); });
+  return {idsSesiones:idsSes, idsSueltos:extra, registros:registros, sufijo:sufijo, idsCarpeta:idsCarpeta, vacia:(!idsSes.length && !extra.length)};
 }
 function actualizarResumenSueltos(){
   var box = document.getElementById("exp-sueltos-resumen"); if(!box) return;
@@ -8316,10 +8695,10 @@ function ligarEventosPanelGestion(container){
   }
 }
 function borrarRegistroDesdeGestion(id){
-  var r = eliminarRegistroPorId(id);
-  if(!r) return;
-  toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
-  renderExportar();
+  eliminarRegistroPorId(id, function(r){
+    toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
+    renderExportar();
+  });
 }
 function moverRegistrosSeleccionados(sesionOrigenId){
   var panel = document.querySelector('.sesion-exportar-card[data-sesion="'+sesionOrigenId+'"] .gestion-panel');
@@ -8397,6 +8776,23 @@ function filaSesionExport(s){
 function nombreArchivoFotoExport(codigo, nombreFoto){
   return sanitizarNombreArchivo(codigo)+"__"+sanitizarNombreFoto(nombreFoto)+".jpg";
 }
+/* v2.56 (H15): el nombre de cada foto se decide una sola vez para TODOS los registros, en orden fijo, y lo usan el .zip (fotos/),
+   la columna imagenes y associatedMedia. Si dos fotos darían el mismo nombre, la segunda lleva _2, _3… en los tres lugares.
+   La tabla se vuelve a armar cuando cambian los registros (guardarRegistros la invalida). */
+var TABLA_FOTOS_EXPORT = null;
+function tablaNombresFotos(){
+  if(TABLA_FOTOS_EXPORT) return TABLA_FOTOS_EXPORT;
+  var usados = {}, t = {};
+  state.registros.forEach(function(r){
+    (r.fotos||[]).forEach(function(f){
+      var base = nombreArchivoFotoExport(r.codigo || r.id, f.nombre), nom = base, n = 2;
+      while(usados[nom]){ nom = base.replace(/\.jpg$/,"") + "_" + n + ".jpg"; n++; }
+      usados[nom] = true; t[f.id] = nom;
+    });
+  });
+  TABLA_FOTOS_EXPORT = t; return t;
+}
+function nombreFotoExport(r, f){ return tablaNombresFotos()[f.id] || nombreArchivoFotoExport(r.codigo || r.id, f.nombre); }
 function ordenarFotosConPortadaPrimero(r){
   var fotos = (r.fotos||[]).slice();
   if(!r.fotoPortadaId) return fotos;
@@ -8419,10 +8815,10 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride){
   fila.localidad = localidadExportar(r, s); fila.localidadVerbatim = localidadVerbatimExportar(r, s); fila.estacion = r.estacion||"";
   fila.lat = r.lat||""; fila.lng = r.lon||""; fila.fechaColecta = r.fecha||""; fila.colector = r.colector||"";
   fila.fechaIngreso=""; fila.procedencia=""; fila.destino=""; fila.ubicacionColeccion=""; fila.privacidad="";
-  fila.conservacion = r.tipo==="coleccion" ? (r.condicion||"") : "";
+  fila.conservacion = r.tipo==="coleccion" ? condicionExportar(r) : "";
   fila.preparacion=""; fila.observaciones = r.notas||"";
   var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
-  fila.imagenes = fotosOrdenadas.map(function(f){ return nombreArchivoFotoExport(r.codigo || r.id, f.nombre); }).join("|");
+  fila.imagenes = fotosOrdenadas.map(function(f){ return nombreFotoExport(r, f); }).join("|");
   fila.fotoEstado = fotosOrdenadas.map(function(f){ return (f.comentario||"").replace(/\|/g,"/"); }).join("|");
   fila.inaturalistUrl=""; fila.fichaEspecimenUrl="";
   fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
@@ -8471,11 +8867,14 @@ var COLS_DWC = [
   "sampleSizeValue","sampleSizeUnit","preparations","occurrenceRemarks",
   "associatedMedia","references","institutionCode"
 ];
-function basisOfRecordDwC(tipo){
-  if(tipo==="coleccion") return "PreservedSpecimen";
-  if(tipo==="observacion") return "HumanObservation";
+function basisOfRecordDwC(r){
+  if(r.tipo==="coleccion") return condicionExportar(r)==="vivo" ? "LivingSpecimen" : "PreservedSpecimen";   // v2.56: un ejemplar vivo no es PreservedSpecimen
+  if(r.tipo==="observacion") return "HumanObservation";
   return "";
 }
+/* v2.56: valor de conservación que se exporta. "vivo_liberado" (v2.55 y anteriores) se exporta como "vivo".
+   Los otros dos valores retirados del formulario (fotografiado y muerto sin colecta) se exportan tal como se guardaron. */
+function condicionExportar(r){ var v = r.condicion || ""; return v === "vivo_liberado" ? "vivo" : v; }
 function eventDateDwC(r){
   if(!r.fecha) return "";
   var inicio = r.fecha + (r.hora ? ("T"+r.hora) : "");
@@ -8501,7 +8900,7 @@ function filaDarwinCore(r, s, taxonOverride, individuosOverride){
   var metodo = r.tipo==="coleccion" ? (r.metodo||"") : (r.tipo==="observacion" ? (r.metodo||"") : "");
   var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
   return {
-    basisOfRecord: basisOfRecordDwC(r.tipo),
+    basisOfRecord: basisOfRecordDwC(r),
     fieldNumber: r.codigo||"",
     scientificName: taxonOverride!=null ? taxonOverride : (r.taxonLibre||""),
     phylum:"", class:"", order:"", family:"", genus:"",
@@ -8518,9 +8917,9 @@ function filaDarwinCore(r, s, taxonOverride, individuosOverride){
     samplingProtocol: metodo,
     sampleSizeValue: muestra.valor,
     sampleSizeUnit: muestra.unidad,
-    preparations: r.tipo==="coleccion" ? (r.condicion||"") : "",
+    preparations: r.tipo==="coleccion" ? (condicionExportar(r)==="vivo" ? "" : condicionExportar(r)) : "",
     occurrenceRemarks: r.notas||"",
-    associatedMedia: fotosOrdenadas.map(function(f){ return nombreArchivoFotoExport(r.codigo, f.nombre); }).join("|"),
+    associatedMedia: fotosOrdenadas.map(function(f){ return nombreFotoExport(r, f); }).join("|"),
     references: r.inaturalistUrl||"",
     institutionCode: s.institucion||""
   };
@@ -8553,7 +8952,7 @@ function prepararDescargaDwc(){
   if(sel.vacia){ toast("Marca al menos una sesión o un registro para descargar"); return null; }
   var filas = construirFilasDarwinCore(sel.registros);
   if(filas.length===0){ toast("Lo seleccionado no tiene registros de Recolección ni de Observación"); return null; }
-  return {filas:filas, sufijo:sel.sufijo};
+  return {filas:filas, sufijo:sel.sufijo, idsCarpeta:sel.idsCarpeta};
 }
 function descargarDwcCsv(d){
   // BOM UTF-8 al inicio: es lo que permite a Excel de Windows reconocer las tildes. Otras versiones de Excel
@@ -8562,11 +8961,11 @@ function descargarDwcCsv(d){
   var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
-  var nomCsv = "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".csv";
+  var nomCsv = nombreDescarga(d.sufijo, "DarwinCore", "csv");
   a.href = url; a.download = nomCsv;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  copiarARespaldos("DarwinCore", nomCsv, blob);
+  copiarARespaldos("DarwinCore", nomCsv, blob, destinoRespaldos(d.idsCarpeta));
   toast("✅ Darwin Core (.csv) descargado — "+d.filas.length+" fila(s)");
 }
 document.getElementById("btn-descargar-dwc").addEventListener("click", function(){ var d = prepararDescargaDwc(); if(d) descargarDwcCsv(d); });
@@ -8587,9 +8986,9 @@ function descargarDwcXlsx(d){
   ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:aoa.length-1, c:COLS_DWC.length-1}})};
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "DarwinCore");
-  var nomDwcX = "LibretaDeCampo_DarwinCore_"+d.sufijo+"_"+fechaLocalISO()+".xlsx";
+  var nomDwcX = nombreDescarga(d.sufijo, "DarwinCore", "xlsx");
   XLSX.writeFile(wb, nomDwcX);
-  copiarARespaldos("DarwinCore", nomDwcX, blobXlsx(wb));
+  copiarARespaldos("DarwinCore", nomDwcX, blobXlsx(wb), destinoRespaldos(d.idsCarpeta));
   toast("✅ Darwin Core (.xlsx) descargado — "+d.filas.length+" fila(s)");
 }
 document.getElementById("btn-descargar-dwc-xlsx").addEventListener("click", function(){ var d = prepararDescargaDwc(); if(d) descargarDwcXlsx(d); });
@@ -8657,9 +9056,9 @@ function exportarMedicionXlsx(registrosMed){
   wsInfo['!cols'] = [{wch:100}];
   XLSX.utils.book_append_sheet(wb, wsInfo, "Instrucciones");
 
-  var nombreArchivo = "LibretaDeCampo_Medicion_"+fechaLocalISO()+".xlsx";
+  var nombreArchivo = nombreDescarga(sufijoSesionesDe(registrosMed), "Medicion", "xlsx");
   XLSX.writeFile(wb, nombreArchivo);
-  copiarARespaldos("Mediciones", nombreArchivo, blobXlsx(wb));
+  copiarARespaldos("Mediciones", nombreArchivo, blobXlsx(wb), destinoRespaldos(registrosMed.map(function(r){ return r.sesionId; })));
   toast("✅ Planilla de Medición generada — "+filas.length+" individuo(s)");
 }
 document.getElementById("btn-export-xlsx-medicion").addEventListener("click", function(){
@@ -8770,8 +9169,33 @@ document.getElementById("btn-explorar-carpeta").addEventListener("click", functi
     });
   });
 });
+// Abre el explorador en la subcarpeta de un archivo ("Fotos/Sesión/JPS-001_foto1.jpg"). Si la ruta ya no existe, queda en la carpeta raíz.
+function abrirExploradorEn(rutaArchivo){
+  if(!soportaCarpeta()){ toast("Este navegador no permite explorar carpetas. Usa Chrome en Android", 5000); return; }
+  carpetaConPermiso().then(function(dir){
+    if(!dir){ toast("Sin permiso para leer la carpeta. Vuelve a elegirla en Config", 5000); return; }
+    var partes = String(rutaArchivo||"").split("/").filter(function(x){ return x; }); partes.pop();
+    var pila = [dir], nombres = [dir.name], p = Promise.resolve();
+    partes.forEach(function(n){
+      p = p.then(function(){ return pila[pila.length-1].getDirectoryHandle(n).then(function(h){ pila.push(h); nombres.push(n); }); });
+    });
+    return p.catch(function(){ toast("No se encontró la subcarpeta; se abre la carpeta principal", 4200); }).then(function(){
+      carpNav.pila = pila; carpNav.nombres = nombres;
+      document.getElementById("modal-carpeta").classList.add("on");
+      listarCarpetaActual();
+    });
+  });
+}
+// Rutas de fotos/videos que sí tienen registro en la app (para marcar las que quedaron sin registro)
+function rutasConRegistro(){
+  var m = {};
+  state.registros.forEach(function(r){ (r.fotos||[]).concat(r.videos||[]).forEach(function(f){ if(f && f.copiaLocal) m[String(f.copiaLocal)] = 1; }); });
+  return m;
+}
 function listarCarpetaActual(){
   var dir = carpNav.pila[carpNav.pila.length-1], lista = document.getElementById("carp-lista");
+  var rutaActual = carpNav.nombres.slice(1).join("/"), conReg = rutasConRegistro();
+  var enMedios = /^(Fotos|Videos)(\/|$)/.test(rutaActual) || /^[^\/]+\/(Fotos|Videos)(\/|$)/.test(rutaActual);
   document.getElementById("carp-ruta").textContent = "📁 " + carpNav.nombres.join(" / ");
   lista.innerHTML = '<div class="campo-ayuda">Leyendo…</div>';
   var carpetas = [], archivos = [];
@@ -8811,6 +9235,11 @@ function listarCarpetaActual(){
             toast("Respaldo cargado: revisa la lista de «Respaldo e importación» antes de importar", 5000);
           }).catch(function(){ toast("No se pudo leer el archivo"); });
         });
+      }
+      var esMedio = /\.(jpe?g|png|webp|heic|heif|mp4|mov|webm|3gp)$/i.test(h.name);
+      if(!extra && enMedios && esMedio && !conReg[rutaActual + "/" + h.name]){
+        extra = document.createElement("span"); extra.textContent = "⚠️ sin registro en la app";
+        extra.style.cssText = "margin-left:auto; font-size:.72rem; font-weight:700; color:var(--rojo); white-space:nowrap;";
       }
       fila(/\.(jpe?g|png|webp|heic|heif)$/i.test(h.name) ? "🖼️" : /\.(mp4|mov|webm|3gp)$/i.test(h.name) ? "🎥" : "📄", h.name, extra).addEventListener("click", function(){ abrirArchivoDeCarpeta(h); });
     });
@@ -8876,10 +9305,10 @@ document.getElementById("btn-descargar-unificado").addEventListener("click", fun
   if(combinado.recorridos.length) data.recorridos = combinado.recorridos;
   var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   var url = URL.createObjectURL(blob); var a = document.createElement("a");
-  var nomUni = "LibretaDeCampo_respaldo_unificado_"+fechaLocalISO()+".json";
+  var nomUni = nombreDescarga("todas_las_sesiones", "respaldo_unificado", "json");
   a.href=url; a.download=nomUni;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  copiarARespaldos("Respaldos", nomUni, blob);
+  copiarARespaldos("Respaldos", nomUni, blob, CARPETA_VARIAS);
   toast("Respaldo unificado descargado");
 });
 
@@ -9053,6 +9482,13 @@ function renderConfigMapa(){
 /* ---------------- Config ---------------- */
 function renderConfig(){
   document.getElementById("version-info").textContent = "Versión cargada: " + APP_BUILD;
+  (function(){
+    var u = usoLocalStorage();
+    var el = document.getElementById("version-info");
+    pedirAlmacenamientoProtegido().then(function(ok){
+      el.textContent = "Versión cargada: " + APP_BUILD + " · Datos en uso: " + u.pct + "% del espacio de registros · Almacenamiento protegido: " + (ok == null ? "sin dato" : ok ? "sí" : "no (el navegador podría borrarlo si falta espacio)");
+    });
+  })();
   renderConfigCopia();
   renderConfigMapa();
 }
