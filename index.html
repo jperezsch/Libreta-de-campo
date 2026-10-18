@@ -503,6 +503,20 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 .chip-sug{-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; touch-action:manipulation;}
 .sug-fila{display:flex; align-items:center; gap:8px; padding:4px 0 4px 2px; border-bottom:1px solid var(--borde);}
 .sug-fila span{flex:1; min-width:0; overflow-wrap:anywhere;}
+/* v2.65: sugerencias propias y aprendidas */
+.sug-agregar{display:flex; gap:8px; margin:6px 0 8px;}
+.sug-agregar input{flex:1; min-width:0;}
+.sug-agregar button{flex:0 0 auto; padding:0 16px; border-radius:12px; border:0; background:var(--verde); color:#fff; font-weight:700; cursor:pointer; min-height:44px;}
+.sug-tabs{margin:10px 0 6px;}
+.sug-tabs .muestra-tab{padding:8px 4px; font-size:.82rem;}
+.sug-fila.propia span.sug-txt{font-weight:700;}
+.sug-fila span.sug-badge{flex:0 0 auto; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:20px; background:var(--verde-cl); color:var(--verde-osc);}
+.sug-fila span.sug-badge.apr{background:var(--borde); color:var(--texto-sec);}
+.sug-ico{flex:0 0 auto; width:40px; height:40px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:1rem; cursor:pointer; padding:0;}
+.sug-ico[disabled]{opacity:.3; cursor:default;}
+.sug-ico.sug-x{color:#c0392b;}
+.sug-pegar summary{font-size:.85rem; color:var(--texto-sec); cursor:pointer; padding:6px 0;}
+.sug-pegar textarea{width:100%; min-height:90px; box-sizing:border-box; border-radius:12px; border:1.5px solid var(--borde); padding:10px; background:var(--card); color:var(--texto); font-size:.9rem; font-family:inherit;}
 .sug-x{flex:0 0 auto; width:44px; height:44px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); color:#c0392b; font-size:1.1rem; cursor:pointer;}
 .chip-sug.quitando{background:#c0392b; border-color:#c0392b; color:#fff;}
 .chip-sug.on{background:var(--verde); border-color:var(--verde); color:#fff; font-weight:700;}
@@ -1034,7 +1048,7 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
     <div class="version-info" id="version-info">Comprobando versión...</div>
     <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
     <details class="cfg-bloque" id="cfg-gestion-mapas"><summary>Gestión de mapas</summary><div class="cfg-bloque-cuerpo" id="config-mapa"></div></details>
-    <details class="cfg-bloque" id="cfg-sugerencias"><summary>Sugerencias guardadas</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
+    <details class="cfg-bloque" id="cfg-sugerencias"><summary>Sugerencias de los campos</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
     <details class="cfg-bloque" id="cfg-datos"><summary>Datos</summary><div class="cfg-bloque-cuerpo">
       <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
     </div></details>
@@ -3698,7 +3712,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-18 · v2.64";
+var APP_BUILD = "2026-10-18 · v2.65";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -4151,26 +4165,118 @@ function comprimirImagen(file, maxDim, calidad, marca){
 }
 
 /* ---------------- Historial de valores: sugerencias basadas en datos anteriores ---------------- */
+/* v2.65: sugerencias PROPIAS (las precarga Jorge, en el orden que define) y APRENDIDAS (las que la app detecta al guardar).
+   Las propias van siempre primero y nunca se pierden. Clave: libretacampo_sug_propias_v1 = {campo: [texto, ...]}. */
+var LS_SUG_PROPIAS = "libretacampo_sug_propias_v1";
+function sugPropias(){
+  try{ var o = JSON.parse(localStorage.getItem(LS_SUG_PROPIAS) || "{}"); return (o && typeof o === "object" && !Array.isArray(o)) ? o : {}; }catch(e){ return {}; }
+}
+function guardarSugPropias(o){ try{ localStorage.setItem(LS_SUG_PROPIAS, JSON.stringify(o)); }catch(e){} }
+function limpiarTextoSug(t){ return String(t == null ? "" : t).replace(/\s+/g, " ").trim(); }
+function propiasDeCampo(campo){ var a = sugPropias()[campo]; return Array.isArray(a) ? a.slice() : []; }
+function esSugPropia(campo, texto){
+  var k = normalizarTextoComparar(texto);
+  return !!k && propiasDeCampo(campo).some(function(p){ return normalizarTextoComparar(p) === k; });
+}
+function agregarSugPropia(campo, texto){
+  var t = limpiarTextoSug(texto); if(!t) return "vacia";
+  if(esSugPropia(campo, t)) return "existe";
+  var o = sugPropias(); if(!Array.isArray(o[campo])) o[campo] = [];
+  o[campo].push(t); guardarSugPropias(o);
+  // si estaba oculta entre las aprendidas, se vuelve a mostrar
+  var oc = sugOcultas(), k = normalizarTextoComparar(t);
+  if(oc[campo] && oc[campo][k]){ delete oc[campo][k]; try{ localStorage.setItem("libretacampo_sug_ocultas", JSON.stringify(oc)); }catch(e){} }
+  return "agregada";
+}
+function quitarSugPropiaPorTexto(campo, texto){
+  var o = sugPropias(), k = normalizarTextoComparar(texto);
+  if(!Array.isArray(o[campo])) return;
+  o[campo] = o[campo].filter(function(p){ return normalizarTextoComparar(p) !== k; });
+  guardarSugPropias(o);
+}
+function renombrarSugPropia(campo, i, nuevo){
+  var t = limpiarTextoSug(nuevo); if(!t) return "vacia";
+  var o = sugPropias(); if(!Array.isArray(o[campo]) || i < 0 || i >= o[campo].length) return "nada";
+  var k = normalizarTextoComparar(t);
+  if(o[campo].some(function(p, j){ return j !== i && normalizarTextoComparar(p) === k; })) return "existe";
+  o[campo][i] = t; guardarSugPropias(o); return "ok";
+}
+function moverSugPropia(campo, i, delta){
+  var o = sugPropias(), a = o[campo]; if(!Array.isArray(a)) return;
+  var j = i + delta; if(i < 0 || j < 0 || i >= a.length || j >= a.length) return;
+  var x = a[i]; a[i] = a[j]; a[j] = x; guardarSugPropias(o);
+}
+// propias primero y luego las aprendidas que no estén repetidas (se acepta lista de textos o de objetos con .texto)
+function fusionarSugerencias(campo, otros){
+  var vistos = {}, out = [];
+  propiasDeCampo(campo).forEach(function(p){ var k = normalizarTextoComparar(p); if(k && !vistos[k]){ vistos[k] = 1; out.push(p); } });
+  (otros || []).forEach(function(v){ var t = (v && v.texto != null) ? v.texto : v; var k = normalizarTextoComparar(t); if(k && !vistos[k]){ vistos[k] = 1; out.push(t); } });
+  return out;
+}
+function fusionarUsados(campo, usados){
+  var vistos = {}, out = [];
+  propiasDeCampo(campo).forEach(function(p){ var k = normalizarTextoComparar(p); if(k && !vistos[k]){ vistos[k] = 1; out.push({texto:p, n:0, enSesion:false, ultimo:0, propia:true}); } });
+  (usados || []).forEach(function(v){ var k = normalizarTextoComparar(v.texto); if(k && !vistos[k]){ vistos[k] = 1; out.push(v); } });
+  return out;
+}
+/* Aprender al guardar: al salir de un campo el valor queda pendiente y recién se agrega a la lista al guardar el registro o la sesión
+   (así no quedan textos a medio escribir ni erratas abandonadas). */
+var CAMPOS_APRENDER_SESION = ["objetivo","participantes","institucion","prefijo","clima"];
+var pendAprender = {};
+function pendienteAprender(campo, valor){ if(valor) pendAprender[campo] = valor; else delete pendAprender[campo]; }
+function aprenderPendientes(grupo){
+  Object.keys(pendAprender).forEach(function(campo){
+    var esSes = CAMPOS_APRENDER_SESION.indexOf(campo) >= 0;
+    if((grupo === "sesion") !== esSes) return;
+    recordarValor(campo, pendAprender[campo]); delete pendAprender[campo];
+  });
+}
+function limpiarPendientesAprender(grupo){
+  Object.keys(pendAprender).forEach(function(campo){
+    var esSes = CAMPOS_APRENDER_SESION.indexOf(campo) >= 0;
+    if((grupo === "sesion") === esSes) delete pendAprender[campo];
+  });
+}
+function aprenderDeRegistro(r){
+  if(!r) return;
+  var met = METODOS_COLECCION;
+  recordarValor("taxonLibre", (r.taxonLibre || "").trim());
+  recordarValor("referencia", (r.referencia || "").trim());
+  if(r.tipo === "medicion") recordarValor("especieMedida", (r.especieMedida || "").trim());
+  (r.especies || []).forEach(function(e){ if(e && e.nombre) recordarValor("especieObservada", String(e.nombre).trim()); });
+  if(r.tipo === "coleccion"){
+    if(r.metodo && met.indexOf(r.metodo) < 0) recordarValor("metodoOtro", r.metodo.trim());
+    (r.componentes || []).forEach(function(c){
+      if(!c) return;
+      recordarValor("taxonLibre", (c.taxon || "").trim());
+      recordarValor("referencia", (c.referencia || "").trim());
+      if(c.metodo && met.indexOf(c.metodo) < 0) recordarValor("metodoOtro", c.metodo.trim());
+    });
+  }
+  aprenderPendientes("registro");
+}
+
 function recordarValor(campo, valor){
   if(!valor) return;
+  if(esSugPropia(campo, valor)) return;   // las propias mandan: no se repiten como aprendidas
   if(!state.historial[campo]) state.historial[campo] = [];
   var arr = state.historial[campo];
   var idx = arr.indexOf(valor);
   if(idx>=0) arr.splice(idx,1);
   arr.unshift(valor);
-  if(arr.length>15) arr.length = 15;
+  if(arr.length>40) arr.length = 40;
   setLS(LSK.hist, JSON.stringify(state.historial));
 }
 function poblarSugerencias(datalistId, campo){
   var dl = document.getElementById(datalistId);
   if(!dl) return;
-  var arr = state.historial[campo] || [];
+  var arr = fusionarSugerencias(campo, state.historial[campo] || []);
   dl.innerHTML = arr.map(function(v){ return '<option value="'+escapeHtml(v)+'">'; }).join("");
 }
 function ligarSugerencia(inputId, datalistId, campo){
   var el = document.getElementById(inputId);
   if(!el) return;
-  el.addEventListener("blur", function(){ recordarValor(campo, el.value.trim()); poblarSugerencias(datalistId, campo); });
+  el.addEventListener("blur", function(){ pendienteAprender(campo, el.value.trim()); poblarSugerencias(datalistId, campo); });
 }
 function poblarTodasLasSugerenciasSesion(){
   [["ss-objetivo","dl-ss-objetivo"],["ss-participantes","dl-ss-participantes"],
@@ -4481,7 +4587,8 @@ function valoresZonaSesiones(){
 function poblarSugerenciasZona(){
   var dl = document.getElementById("dl-ss-zona"); if(!dl) return;
   var vistos = {}, textos = [];
-  valoresZonaSesiones().forEach(function(x){ vistos[normalizarTextoComparar(x.texto)] = 1; textos.push(x.texto); });
+  propiasDeCampo("zona").forEach(function(v){ var k = normalizarTextoComparar(v); if(k && !vistos[k]){ vistos[k] = 1; textos.push(v); } });
+  valoresZonaSesiones().forEach(function(x){ var k = normalizarTextoComparar(x.texto); if(!vistos[k]){ vistos[k] = 1; textos.push(x.texto); } });
   (state.historial.zona || []).forEach(function(v){ var k = normalizarTextoComparar(v); if(k && !vistos[k]){ vistos[k] = 1; textos.push(v); } });
   dl.innerHTML = textos.map(function(v){ return '<option value="'+escapeHtml(v)+'">'; }).join("");
 }
@@ -4665,6 +4772,7 @@ document.getElementById("btn-guardar-sesion").addEventListener("click", function
       if(!confirm('Ya existe otra sesión llamada "'+nombreActual+'" (del '+fechaDup+'). ¿Guardar igual con este mismo nombre?')) return;
     }
   }
+  aprenderPendientes("sesion");
   if(s.borrador) activarSesionNueva(s); else guardarSesion();
   state.sesionEditando = false;
   renderSesion();
@@ -5766,6 +5874,7 @@ function iniciarNuevoRegistro(){
 }
 function cargarDraftEnFormulario(){
   if(!state.draft) return;
+  limpiarPendientesAprender("registro");
   var d = state.draft;
   document.getElementById("aviso-tipo-bloqueado").style.display = "none";
   document.getElementById("f-codigo").value = d.codigo;
@@ -6125,9 +6234,9 @@ document.getElementById("comp-agregar").addEventListener("click", function(){
   });
   lista.addEventListener("focusout", function(e){
     var t = e.target;
-    if(t.classList.contains("comp-taxon")){ recordarValor("taxonLibre", t.value.trim()); poblarSugerencias("dl-taxon", "taxonLibre"); }
-    else if(t.classList.contains("comp-met-otro")){ recordarValor("metodoOtro", t.value.trim()); poblarSugerencias("dl-metodo-otro", "metodoOtro"); }
-    else if(t.classList.contains("comp-ref")){ recordarValor("referencia", t.value.trim()); poblarSugerencias("dl-referencia", "referencia"); }
+    if(t.classList.contains("comp-taxon")){ pendienteAprender("taxonLibre", t.value.trim()); poblarSugerencias("dl-taxon", "taxonLibre"); }
+    else if(t.classList.contains("comp-met-otro")){ pendienteAprender("metodoOtro", t.value.trim()); poblarSugerencias("dl-metodo-otro", "metodoOtro"); }
+    else if(t.classList.contains("comp-ref")){ pendienteAprender("referencia", t.value.trim()); poblarSugerencias("dl-referencia", "referencia"); }
   });
   lista.addEventListener("click", function(e){
     var x = e.target.closest ? e.target.closest(".comp-x") : null;
@@ -8833,7 +8942,7 @@ function poblarSugerenciasLocalidadEstacion(){
   var sid = state.draft ? state.draft.sesionId : state.sesionActivaId;
   var excl = state.draft ? state.draft.id : null;
   CAMPOS_LOC_EST.forEach(function(c){
-    var vals = valoresUsadosCampo(c.campo, sid, excl);
+    var vals = fusionarUsados(c.campo, valoresUsadosCampo(c.campo, sid, excl));
     document.getElementById(c.lista).innerHTML = vals.map(function(v){ return '<option value="'+escapeHtml(v.texto)+'">'; }).join("");
     var actual = normalizarTextoComparar(document.getElementById(c.input).value);
     var ant = valorAnteriorCampo(c.campo, sid, excl), kAnt = normalizarTextoComparar(ant);
@@ -8861,7 +8970,7 @@ function canonizarCampoLocEst(c){
   var v = el.value.trim();
   if(v){
     var k = normalizarTextoComparar(v), hallado = null;
-    valoresUsadosCampo(c.campo, null, state.draft ? state.draft.id : null).forEach(function(x){
+    fusionarUsados(c.campo, valoresUsadosCampo(c.campo, null, state.draft ? state.draft.id : null)).forEach(function(x){
       if(!hallado && normalizarTextoComparar(x.texto) === k) hallado = x.texto;
     });
     if(hallado && hallado !== v){ v = hallado; toast("Se usó «"+hallado+"», ya registrada"); }
@@ -8896,7 +9005,7 @@ CAMPOS_LOC_EST.forEach(function(c){
       var txt = b.dataset.val;
       setTimeout(function(){
         if(confirm("¿Quitar «"+txt+"» de las sugerencias de "+c.etiqueta+"?\n\nLos registros que ya usan este texto no se modifican.")){
-          ocultarSugerencia(c.campo, txt); poblarSugerenciasLocalidadEstacion(); toast("Sugerencia quitada");
+          quitarSugPropiaPorTexto(c.campo, txt); ocultarSugerencia(c.campo, txt); poblarSugerenciasLocalidadEstacion(); toast("Sugerencia quitada");
         } else b.classList.remove("quitando");
         setTimeout(function(){ largo = false; }, 400);
       }, 30);
@@ -8938,13 +9047,19 @@ function sugerenciasDeCampo(c){
 }
 function quitarSugerenciaCampo(c, texto){
   var k = normalizarTextoComparar(texto);
+  quitarSugPropiaPorTexto(c.campo, texto);
   if(state.historial[c.campo]){
     state.historial[c.campo] = state.historial[c.campo].filter(function(v){ return normalizarTextoComparar(v) !== k; });
     setLS(LSK.hist, JSON.stringify(state.historial));
   }
   if(c.tipo === "zona" || c.tipo === "reg") ocultarSugerencia(c.campo, texto);   // salen de sesiones o registros: se ocultan sin modificarlos
 }
-function vaciarSugerenciasCampo(c){ sugerenciasDeCampo(c).forEach(function(t){ quitarSugerenciaCampo(c, t); }); }
+// aprendidas = lo que la app detectó y no está entre las propias
+function aprendidasDeCampo(c){
+  var propias = {}; propiasDeCampo(c.campo).forEach(function(p){ propias[normalizarTextoComparar(p)] = 1; });
+  return sugerenciasDeCampo(c).filter(function(t){ return !propias[normalizarTextoComparar(t)]; });
+}
+function vaciarAprendidasCampo(c){ aprendidasDeCampo(c).forEach(function(t){ quitarSugerenciaCampo(c, t); }); }
 function repoblarListasSugerencias(){
   try{
     poblarSugerenciasZona(); poblarSugerenciasLocalidadEstacion();
@@ -8953,31 +9068,83 @@ function repoblarListasSugerencias(){
      ["dl-esp-nombre","especieObservada"],["dl-metodo-otro","metodoOtro"],["dl-metodo-med-otro","metodoMedOtro"],["dl-localidad-individuo","zona"]].forEach(function(p){ poblarSugerencias(p[0], p[1]); });
   }catch(e){}
 }
-var sugCampoElegido = "zona";
+var sugCampoElegido = "zona", sugFiltro = "todas";
 function renderConfigSugerencias(){
   var box = document.getElementById("config-sugerencias"); if(!box) return;
   var c = CAMPOS_SUGERENCIAS.filter(function(x){ return x.campo === sugCampoElegido; })[0] || CAMPOS_SUGERENCIAS[0];
-  var lista = sugerenciasDeCampo(c);
+  var propias = propiasDeCampo(c.campo), aprendidas = aprendidasDeCampo(c);
   var opciones = CAMPOS_SUGERENCIAS.map(function(x){
-    return '<option value="'+x.campo+'"'+(x.campo === c.campo ? ' selected' : '')+'>'+escapeHtml(x.etiqueta)+' ('+sugerenciasDeCampo(x).length+')</option>';
+    return '<option value="'+x.campo+'"'+(x.campo === c.campo ? ' selected' : '')+'>'+escapeHtml(x.etiqueta)+' ('+propiasDeCampo(x.campo).length+' propias · '+aprendidasDeCampo(x).length+' aprendidas)</option>';
   }).join("");
-  box.innerHTML = '<div class="campo-ayuda" style="margin:0 0 8px;">Son las palabras que la app ofrece sobre el teclado al escribir en cada campo. Quitarlas no modifica tus registros ni tus sesiones.</div>'+
+  var filas = "";
+  if(sugFiltro !== "aprendidas") propias.forEach(function(t, i){
+    filas += '<div class="sug-fila propia"><span class="sug-txt">'+escapeHtml(t)+'</span><span class="sug-badge">propia</span>'+
+      '<button type="button" class="sug-ico" data-acc="sube" data-i="'+i+'" aria-label="Subir"'+(i === 0 ? ' disabled' : '')+'>▲</button>'+
+      '<button type="button" class="sug-ico" data-acc="baja" data-i="'+i+'" aria-label="Bajar"'+(i === propias.length-1 ? ' disabled' : '')+'>▼</button>'+
+      '<button type="button" class="sug-ico" data-acc="edita" data-i="'+i+'" aria-label="Editar">✎</button>'+
+      '<button type="button" class="sug-ico sug-x" data-acc="quita-p" data-i="'+i+'" aria-label="Quitar">✕</button></div>';
+  });
+  if(sugFiltro !== "propias") aprendidas.forEach(function(t, i){
+    filas += '<div class="sug-fila"><span class="sug-txt">'+escapeHtml(t)+'</span><span class="sug-badge apr">aprendida</span>'+
+      '<button type="button" class="sug-ico" data-acc="promueve" data-i="'+i+'" aria-label="Hacer propia" title="Hacer propia">★</button>'+
+      '<button type="button" class="sug-ico sug-x" data-acc="quita-a" data-i="'+i+'" aria-label="Quitar">✕</button></div>';
+  });
+  function tab(v, txt){ return '<button type="button" class="muestra-tab'+(sugFiltro === v ? ' on' : '')+'" data-f="'+v+'">'+txt+'</button>'; }
+  box.innerHTML =
+    '<div class="comp-titulo" style="margin:0 0 6px;">Sugerencias por campo <button type="button" class="ayuda-q" data-ayuda="ayuda-sugerencias" aria-label="Ayuda sobre las sugerencias" aria-expanded="false">?</button></div>'+
+    '<div class="ayuda-txt" id="ayuda-sugerencias">Son las palabras que la app ofrece sobre el teclado al escribir en cada campo. Las <b>propias</b> las creas tú y salen siempre primero, en el orden que definas. Las <b>aprendidas</b> se agregan solas al guardar un registro o una sesión (★ las convierte en propias). Quitar o renombrar no modifica tus registros ni tus sesiones.</div>'+
     '<div class="field"><label>Campo</label><select id="sug-campo">'+opciones+'</select></div>'+
-    (lista.length
-      ? '<div id="sug-lista">'+lista.map(function(t, i){ return '<div class="sug-fila"><span>'+escapeHtml(t)+'</span><button type="button" class="sug-x" data-i="'+i+'" aria-label="Quitar">✕</button></div>'; }).join("")+'</div>'+
-        '<button type="button" class="btnfull btn-secondary" id="sug-vaciar" style="margin-top:10px;">🗑 Quitar las '+lista.length+' sugerencias de este campo</button>'
-      : '<div class="campo-ayuda">Este campo no tiene sugerencias guardadas.</div>');
+    '<div class="sug-agregar"><input type="text" id="sug-nuevo" spellcheck="true" placeholder="Nueva sugerencia para «'+escapeHtml(c.etiqueta)+'»" autocomplete="off"><button type="button" id="sug-agregar">Agregar</button></div>'+
+    '<details class="sug-pegar"><summary>Pegar varias a la vez (una por línea)</summary><textarea id="sug-pegar-txt" spellcheck="true" placeholder="Una sugerencia por línea"></textarea>'+
+      '<button type="button" class="btnfull btn-secondary" id="sug-pegar-ok" style="margin-top:8px;">Agregar todas</button></details>'+
+    '<div class="muestra-tabs sug-tabs" id="sug-tabs">'+tab("todas","Todas ("+(propias.length+aprendidas.length)+")")+tab("propias","Propias ("+propias.length+")")+tab("aprendidas","Aprendidas ("+aprendidas.length+")")+'</div>'+
+    (filas ? '<div id="sug-lista">'+filas+'</div>' : '<div class="campo-ayuda">'+(sugFiltro === "aprendidas" ? 'Este campo no tiene sugerencias aprendidas.' : (sugFiltro === "propias" ? 'Aún no has creado sugerencias propias para este campo.' : 'Este campo no tiene sugerencias todavía.'))+'</div>')+
+    (aprendidas.length && sugFiltro !== "propias" ? '<button type="button" class="btnfull btn-secondary" id="sug-vaciar" style="margin-top:10px;">🗑 Quitar las '+aprendidas.length+' aprendidas de este campo</button>' : '');
+  function refrescar(){ repoblarListasSugerencias(); renderConfigSugerencias(); }
   document.getElementById("sug-campo").addEventListener("change", function(){ sugCampoElegido = this.value; renderConfigSugerencias(); });
-  Array.prototype.forEach.call(box.querySelectorAll(".sug-x"), function(b){
+  Array.prototype.forEach.call(box.querySelectorAll("#sug-tabs .muestra-tab"), function(b){
+    b.addEventListener("click", function(){ sugFiltro = b.getAttribute("data-f"); renderConfigSugerencias(); });
+  });
+  function agregarUna(){
+    var inp = document.getElementById("sug-nuevo"), r = agregarSugPropia(c.campo, inp.value);
+    if(r === "vacia"){ inp.focus(); return; }
+    if(r === "existe") toast("Ya está entre las propias", 2500);
+    else toast("Sugerencia agregada");
+    refrescar();
+    var n = document.getElementById("sug-nuevo"); if(n) n.focus();
+  }
+  document.getElementById("sug-agregar").addEventListener("click", agregarUna);
+  document.getElementById("sug-nuevo").addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); agregarUna(); } });
+  document.getElementById("sug-pegar-ok").addEventListener("click", function(){
+    var lineas = document.getElementById("sug-pegar-txt").value.split(/\r?\n/), nuevas = 0, repetidas = 0;
+    lineas.forEach(function(l){ var r = agregarSugPropia(c.campo, l); if(r === "agregada") nuevas++; else if(r === "existe") repetidas++; });
+    toast(nuevas + (nuevas === 1 ? " sugerencia agregada" : " sugerencias agregadas") + (repetidas ? " · " + repetidas + " ya estaban" : ""), 3500);
+    refrescar();
+  });
+  Array.prototype.forEach.call(box.querySelectorAll(".sug-ico"), function(b){
     b.addEventListener("click", function(){
-      var txt = lista[+b.getAttribute("data-i")];
-      quitarSugerenciaCampo(c, txt); repoblarListasSugerencias(); renderConfigSugerencias();
+      var acc = b.getAttribute("data-acc"), i = +b.getAttribute("data-i");
+      if(acc === "sube"){ moverSugPropia(c.campo, i, -1); refrescar(); }
+      else if(acc === "baja"){ moverSugPropia(c.campo, i, 1); refrescar(); }
+      else if(acc === "edita"){
+        var nuevo = prompt("Editar la sugerencia (no modifica registros ya guardados):", propias[i]);
+        if(nuevo === null) return;
+        var r = renombrarSugPropia(c.campo, i, nuevo);
+        if(r === "existe") toast("Ya existe otra sugerencia igual", 3000);
+        refrescar();
+      }
+      else if(acc === "quita-p"){
+        if(!confirm("¿Quitar «"+propias[i]+"» de las sugerencias de «"+c.etiqueta+"»?\n\nNo se modifican registros ni sesiones.")) return;
+        quitarSugerenciaCampo(c, propias[i]); refrescar();
+      }
+      else if(acc === "promueve"){ agregarSugPropia(c.campo, aprendidas[i]); toast("Ahora es una sugerencia propia"); refrescar(); }
+      else if(acc === "quita-a"){ quitarSugerenciaCampo(c, aprendidas[i]); refrescar(); }
     });
   });
   var v = document.getElementById("sug-vaciar");
   if(v) v.addEventListener("click", function(){
-    if(!confirm("¿Quitar las "+lista.length+" sugerencias de «"+c.etiqueta+"»?\n\nNo se modifican registros ni sesiones.")) return;
-    vaciarSugerenciasCampo(c); repoblarListasSugerencias(); renderConfigSugerencias(); toast("Sugerencias quitadas");
+    if(!confirm("¿Quitar las "+aprendidas.length+" sugerencias aprendidas de «"+c.etiqueta+"»?\n\nLas propias se conservan. No se modifican registros ni sesiones.")) return;
+    vaciarAprendidasCampo(c); refrescar(); toast("Sugerencias quitadas");
   });
 }
 (function(){
@@ -9058,6 +9225,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   if(r.tipo !== "coleccion" || !r.compuesta){ delete r.compuesta; delete r.componentes; }
   if(!editando && (r.tipo==="nota" || r.tipo==="medicion")) r.habitat = "";
   if(r.especies) r.especies = r.especies.filter(function(e){ return (parseInt(e.cantidad,10)||0) > 0; });
+  aprenderDeRegistro(r);
   if(editando){
     var idx = state.registros.findIndex(function(x){ return x.id===r.id; });
     if(idx>=0) state.registros[idx] = r; else state.registros.push(r);
