@@ -546,12 +546,25 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
 /* v2.64: filtro de la vista Consultando (por sesión y solo sin transcribir) */
 .cons-filtros{display:flex; flex-direction:column; gap:8px; margin:0 0 12px;}
 .cons-filtros select{width:100%; padding:11px 12px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.9rem;}
-.cons-filtro-pend{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--borde); border-radius:12px; background:var(--card); font-size:.9rem; cursor:pointer;}
+.cons-filtro-pend{margin-top:10px; display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--borde); border-radius:12px; background:var(--card); font-size:.9rem; cursor:pointer;}
 .cons-filtro-pend input{width:22px; height:22px; flex:none;}
 .cons-filtro-pend.on{background:var(--verde-cl); border-color:var(--verde); color:var(--verde-osc); font-weight:700;}
 /* v2.64: muestra mixta (varios taxones en un mismo evento de muestreo) */
 #comp-wrap{margin-top:12px; padding:10px 10px 4px; border:1.5px dashed var(--verde); border-radius:12px;}
-.comp-titulo{font-weight:800; font-size:.9rem; color:var(--verde-osc); margin:0 0 4px;}
+.comp-titulo{font-weight:800; font-size:.9rem; color:var(--verde-osc); margin:0 0 4px; display:flex; align-items:center; gap:8px;}
+/* botón (?) que despliega un texto de ayuda */
+.ayuda-q{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; border:1.5px solid var(--texto-sec); background:transparent; color:var(--texto-sec); font-size:.75rem; font-weight:800; line-height:1; padding:0; cursor:pointer; flex:none; text-transform:none; letter-spacing:0;}
+.ayuda-q.on{background:var(--texto-sec); color:var(--card);}
+.ayuda-txt{display:none; font-size:.82rem; color:var(--nota-txt); background:var(--nota-bg); border:1px dashed var(--nota-borde); border-radius:10px; padding:10px 12px; margin:0 0 10px; line-height:1.5;}
+.ayuda-txt.on{display:block;}
+/* pestañas Muestra simple / Muestra mixta */
+.muestra-tabs{display:flex; gap:0; margin:8px 0 12px; border:1.5px solid var(--verde); border-radius:12px; overflow:hidden;}
+.muestra-tab{flex:1 1 50%; padding:10px 6px; border:0; background:var(--card); color:var(--verde-osc); font-size:.88rem; font-weight:700; line-height:1.25; cursor:pointer;}
+.muestra-tab small{display:block; font-size:.72rem; font-weight:600; opacity:.85;}
+.muestra-tab + .muestra-tab{border-left:1.5px solid var(--verde);}
+.muestra-tab.on{background:var(--verde); color:#fff;}
+/* campo bloqueado (N° individuos en muestra mixta) */
+input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); color:var(--texto-sec); border-style:dashed; cursor:not-allowed; opacity:.8; pointer-events:none; -webkit-user-select:none; user-select:none;}
 .comp-fila{border:1.5px solid var(--borde); border-radius:12px; padding:10px; margin:10px 0; background:var(--card);}
 .comp-fila .field{margin-bottom:8px;}
 .comp-cab{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:.85rem; color:var(--texto-sec);}
@@ -870,9 +883,13 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     </div>
 
     <div id="identificacion-individual" class="bloque">
-    <div class="section-title"><span class="n">🔎</span>Identificación</div>
-    <div class="nota">Nombre preliminar más inclusivo posible. Registra detalles o aclaraciones en <b style="display:inline; font-size:inherit; text-transform:none; letter-spacing:0; margin:0;">Observaciones y notas</b>.</div>
-    <div class="switch-row" id="comp-switch-row"><div>Muestra mixta (múltiples taxones)<span>Un solo evento de muestreo con varios taxones</span></div><input type="checkbox" id="f-compuesta"></div>
+    <div class="section-title"><span class="n">🔎</span>Identificación <button type="button" class="ayuda-q" data-ayuda="ayuda-identificacion" aria-label="Ayuda sobre Identificación" aria-expanded="false">?</button></div>
+    <div class="ayuda-txt" id="ayuda-identificacion">Nombre preliminar más inclusivo posible. Registra detalles o aclaraciones en <b style="display:inline; font-size:inherit; text-transform:none; letter-spacing:0; margin:0;">Observaciones y notas</b>.</div>
+    <div class="muestra-tabs" id="muestra-tabs" role="tablist">
+      <button type="button" class="muestra-tab on" role="tab" data-mixta="0" aria-selected="true">Muestra simple<small>(único taxón)</small></button>
+      <button type="button" class="muestra-tab" role="tab" data-mixta="1" aria-selected="false">Muestra mixta<small>(múltiples taxones)</small></button>
+    </div>
+    <input type="checkbox" id="f-compuesta" style="display:none" tabindex="-1" aria-hidden="true">
     <div class="field"><label id="label-taxon-libre">Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field"><label id="label-nind">N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label id="label-condicion">Condición / conservación</label>
@@ -891,11 +908,11 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     </div>
     <div class="switch-row" id="tejido-switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
     <div id="comp-wrap" style="display:none;">
-      <div class="comp-titulo">🧪 Taxones de la muestra</div>
-      <div class="campo-ayuda" style="margin:0 0 6px;">Todos comparten el mismo número de campo, punto, fecha y hora. En «Detalle» puedes darle a un taxón otra conservación u otro microhábitat; si no, usa los de la muestra.</div>
+      <div class="comp-titulo">🧪 Taxones de la muestra <button type="button" class="ayuda-q" data-ayuda="ayuda-taxones" aria-label="Ayuda sobre los taxones de la muestra" aria-expanded="false">?</button></div>
+      <div class="ayuda-txt" id="ayuda-taxones">Todos comparten el mismo número de campo, punto, fecha y hora. En «Detalle» puedes darle a un taxón otra conservación, otro microhábitat u otro método de recolección; si lo dejas vacío, usa los de la muestra.</div>
+      <div class="comp-resumen" id="comp-resumen"></div>
       <div id="comp-lista"></div>
       <button type="button" class="btnfull btn-secondary" id="comp-agregar">➕ Agregar taxón</button>
-      <div class="comp-resumen" id="comp-resumen"></div>
     </div>
     </div>
 
@@ -1033,7 +1050,6 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
   <div class="pad">
     <div class="cons-filtros" id="cons-filtros">
       <select id="cons-filtro-sesion" aria-label="Filtrar por sesión"></select>
-      <label class="cons-filtro-pend" id="cons-filtro-pend-lab"><input type="checkbox" id="cons-filtro-pend"><span id="cons-filtro-pend-txt">✍️ Solo los que faltan por transcribir</span></label>
     </div>
     <div class="cons-fila-opciones">
       <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Pantalla encendida</span></label>
@@ -1041,6 +1057,7 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     </div>
     <div class="narr-entrada" id="consulta-tarjeta"></div>
     <label class="consulta-opcion" style="margin-top:12px;"><input type="checkbox" id="consulta-transcrito"><span>✍️ Ya transcrito en libreta física</span></label>
+    <label class="cons-filtro-pend" id="cons-filtro-pend-lab"><input type="checkbox" id="cons-filtro-pend"><span id="cons-filtro-pend-txt">✍️ Solo los que faltan por transcribir</span></label>
     <div id="consulta-espacio" style="height:calc(190px + env(safe-area-inset-bottom, 0px));"></div>
   </div>
   <div class="savebar on" id="consulta-actions">
@@ -4833,6 +4850,7 @@ function htmlComponentesRegistro(r){
     var det = [];
     if(c.condicion) det.push(etiquetaConservacion(c.condicion));
     if(c.referencia) det.push("microhábitat: " + c.referencia);
+    if(c.metodo) det.push("método: " + c.metodo);
     if(c.tejido) det.push("🧬 tejido");
     var n = parseInt(c.nind, 10);
     return '<li>' + escapeHtml(c.taxon || "(sin nombre)") + (n > 0 ? (' <b>— ' + n + (n==1 ? ' ejemplar' : ' ejemplares') + '</b>') : '') +
@@ -5959,7 +5977,7 @@ function sincronizarDraftDesdeFormulario(){
 });
 document.getElementById("f-tejido").addEventListener("change", sincronizarDraftDesdeFormulario);
 /* ---------------- v2.64: formulario de muestra mixta ---------------- */
-function nuevoComponente(){ return {id:uid(), taxon:"", nind:"", condicion:"", referencia:"", tejido:false}; }
+function nuevoComponente(){ return {id:uid(), taxon:"", nind:"", condicion:"", referencia:"", metodo:"", tejido:false}; }
 function leerComponentesDOM(){
   return Array.prototype.map.call(document.querySelectorAll("#comp-lista .comp-fila"), function(f){
     return {
@@ -5968,9 +5986,16 @@ function leerComponentesDOM(){
       nind: f.querySelector(".comp-nind").value,
       condicion: f.querySelector(".comp-cond").value,
       referencia: f.querySelector(".comp-ref").value.trim(),
+      metodo: valorSelectOtro(f.querySelector(".comp-met"), f.querySelector(".comp-met-otro")),
       tejido: f.querySelector(".comp-tejido").checked
     };
   });
+}
+function opcionesMetodoComp(valor){
+  var enLista = !valor || METODOS_COLECCION.indexOf(valor) >= 0;
+  return '<option value="">Igual que la muestra</option>' +
+    METODOS_COLECCION.map(function(m){ return '<option'+(m===valor ? ' selected' : '')+'>'+escapeHtml(m)+'</option>'; }).join("") +
+    '<option value="__otro__"'+(enLista ? '' : ' selected')+'>Otro (especificar)</option>';
 }
 function opcionesCondicionComp(valor){
   var sel = document.getElementById("f-condicion");
@@ -5985,15 +6010,18 @@ function opcionesCondicionComp(valor){
   return html;
 }
 function htmlComponente(c, i){
-  var abierto = (c.condicion || c.referencia) ? ' open' : '';
+  var abierto = (c.condicion || c.referencia || c.metodo) ? ' open' : '';
+  var metOtro = !!c.metodo && METODOS_COLECCION.indexOf(c.metodo) < 0;
   return '<div class="comp-fila" data-cid="'+escapeHtml(c.id || "")+'">'+
     '<div class="comp-cab"><b class="comp-num">Taxón '+(i+1)+'</b><button type="button" class="comp-x" aria-label="Quitar este taxón">✕</button></div>'+
     '<div class="field"><input type="text" class="comp-taxon" spellcheck="true" list="dl-taxon" placeholder="Nombre del taxón" value="'+escapeHtml(c.taxon || "")+'"></div>'+
     '<div class="row2"><div class="field"><label>N° individuos</label><input type="number" class="comp-nind" min="0" value="'+escapeHtml(c.nind != null ? String(c.nind) : "")+'"></div>'+
     '<label class="comp-tejido-lab"><input type="checkbox" class="comp-tejido"'+(c.tejido ? ' checked' : '')+'> 🧬 Tejido</label></div>'+
-    '<details class="comp-detalle"'+abierto+'><summary>Detalle: conservación y microhábitat</summary>'+
+    '<details class="comp-detalle"'+abierto+'><summary>Detalle: conservación, microhábitat y método</summary>'+
       '<div class="field"><label>Condición / conservación</label><select class="comp-cond">'+opcionesCondicionComp(c.condicion || "")+'</select></div>'+
       '<div class="field"><label>Microhábitat</label><input type="text" class="comp-ref" spellcheck="true" list="dl-referencia" placeholder="Igual que la muestra" value="'+escapeHtml(c.referencia || "")+'"></div>'+
+      '<div class="field"><label>Método de recolección</label><select class="comp-met">'+opcionesMetodoComp(c.metodo || "")+'</select>'+
+      '<input type="text" class="comp-met-otro" spellcheck="true" list="dl-metodo-otro" placeholder="Especifica el método" style="'+(metOtro ? '' : 'display:none; ')+'margin-top:7px;" value="'+escapeHtml(metOtro ? c.metodo : "")+'"></div>'+
     '</details></div>';
 }
 function actualizarResumenComp(){
@@ -6008,10 +6036,17 @@ function actualizarResumenComp(){
 }
 function aplicarModoCompuesta(){
   var on = document.getElementById("f-compuesta").checked;
+  Array.prototype.forEach.call(document.querySelectorAll("#muestra-tabs .muestra-tab"), function(b){
+    var activa = (b.getAttribute("data-mixta")==="1") === on;
+    b.classList.toggle("on", activa); b.setAttribute("aria-selected", activa ? "true" : "false");
+  });
+  var ni = document.getElementById("f-nind");
+  ni.classList.toggle("campo-bloqueado", on);
+  ni.tabIndex = on ? -1 : 0;
   document.getElementById("comp-wrap").style.display = on ? "block" : "none";
   document.getElementById("tejido-switch-row").style.display = on ? "none" : "";
-  document.getElementById("f-nind").readOnly = on;
-  document.getElementById("label-nind").textContent = on ? "N° individuos (suma de los taxones)" : "N° individuos";
+  ni.readOnly = on;
+  document.getElementById("label-nind").textContent = on ? "🔒 N° individuos (suma de los taxones)" : "N° individuos";
   document.getElementById("label-taxon-libre").textContent = on ? "Nombre general de la muestra (taxón más inclusivo)" : "Taxón / descripción";
   document.getElementById("label-condicion").textContent = on ? "Condición / conservación de la muestra" : "Condición / conservación";
   if(on) actualizarResumenComp();
@@ -6037,18 +6072,36 @@ document.getElementById("f-compuesta").addEventListener("change", function(){
       if((tax || n) && confirm("¿Usar «"+(tax || "sin nombre")+"»"+(n ? " ("+n+" individuos)" : "")+" como primer taxón de la lista?\n\nAceptar: queda como primer taxón y el campo Taxón pasa a ser el nombre general de la muestra (puedes cambiarlo).\nCancelar: la lista parte vacía.")){
         d.componentes.push({id:uid(), taxon:tax, nind:n, condicion:"", referencia:"", tejido:document.getElementById("f-tejido").checked});
       }
-      while(d.componentes.length < 2) d.componentes.push(nuevoComponente());
+      if(d.componentes.length < 1) d.componentes.push(nuevoComponente());
     }
   } else {
     var llenos = leerComponentesDOM().filter(function(c){ return c.taxon || c.nind; });
     if(llenos.length && !confirm("Se quitará la lista de "+llenos.length+(llenos.length===1 ? " taxón" : " taxones")+" de esta muestra. El campo Taxón y la suma de individuos se conservan.\n\n¿Continuar?")){
-      this.checked = true; return;
+      this.checked = true; aplicarModoCompuesta(); return;
     }
     d.compuesta = false; d.componentes = [];
     document.getElementById("f-tejido").checked = llenos.some(function(c){ return c.tejido; });
   }
   renderComponentes();
   sincronizarDraftDesdeFormulario();
+});
+Array.prototype.forEach.call(document.querySelectorAll("#muestra-tabs .muestra-tab"), function(b){
+  b.addEventListener("click", function(){
+    var cb = document.getElementById("f-compuesta");
+    var quiere = b.getAttribute("data-mixta")==="1";
+    if(cb.checked === quiere) return;
+    cb.checked = quiere;
+    cb.dispatchEvent(new Event("change", {bubbles:true}));
+  });
+});
+// (?) que despliegan textos de ayuda
+document.addEventListener("click", function(e){
+  var q = e.target.closest ? e.target.closest(".ayuda-q") : null;
+  if(!q) return;
+  var t = document.getElementById(q.getAttribute("data-ayuda"));
+  if(!t) return;
+  var abre = !t.classList.contains("on");
+  t.classList.toggle("on", abre); q.classList.toggle("on", abre); q.setAttribute("aria-expanded", abre ? "true" : "false");
 });
 document.getElementById("comp-agregar").addEventListener("click", function(){
   var d = state.draft; if(!d) return;
@@ -6063,10 +6116,17 @@ document.getElementById("comp-agregar").addEventListener("click", function(){
 (function(){
   var lista = document.getElementById("comp-lista");
   lista.addEventListener("input", function(){ sincronizarDraftDesdeFormulario(); });
-  lista.addEventListener("change", function(){ sincronizarDraftDesdeFormulario(); });
+  lista.addEventListener("change", function(e){
+    if(e.target.classList && e.target.classList.contains("comp-met")){
+      var o = e.target.parentNode.querySelector(".comp-met-otro");
+      if(o){ o.style.display = e.target.value==="__otro__" ? "block" : "none"; if(e.target.value==="__otro__") o.focus(); }
+    }
+    sincronizarDraftDesdeFormulario();
+  });
   lista.addEventListener("focusout", function(e){
     var t = e.target;
     if(t.classList.contains("comp-taxon")){ recordarValor("taxonLibre", t.value.trim()); poblarSugerencias("dl-taxon", "taxonLibre"); }
+    else if(t.classList.contains("comp-met-otro")){ recordarValor("metodoOtro", t.value.trim()); poblarSugerencias("dl-metodo-otro", "metodoOtro"); }
     else if(t.classList.contains("comp-ref")){ recordarValor("referencia", t.value.trim()); poblarSugerencias("dl-referencia", "referencia"); }
   });
   lista.addEventListener("click", function(e){
@@ -6266,7 +6326,7 @@ function bindSelectOtro(selectId, otroId){
 }
 bindSelectOtro("f-metodo","f-metodo-otro");
 function valorSelectOtro(selectId, otroId){
-  var sel = document.getElementById(selectId), otro = document.getElementById(otroId);
+  var sel = typeof selectId==="string" ? document.getElementById(selectId) : selectId, otro = typeof otroId==="string" ? document.getElementById(otroId) : otroId;
   return sel.value==="__otro__" ? otro.value.trim() : sel.value;
 }
 function setSelectOtro(selectId, otroId, valor){
@@ -6836,7 +6896,7 @@ function navegarConsulta(delta){
   var xInicioSwipe = null, yInicioSwipe = null;
   pantalla.addEventListener("touchstart", function(e){
     xInicioSwipe = e.touches[0].clientX; yInicioSwipe = e.touches[0].clientY;
-    if(e.target.closest && e.target.closest("#cons-filtros")) xInicioSwipe = null;   // v2.64: tocar el filtro no cambia de registro
+    if(e.target.closest && (e.target.closest("#cons-filtros") || e.target.closest("#cons-filtro-pend-lab"))) xInicioSwipe = null;   // v2.64: tocar el filtro no cambia de registro
   }, {passive:true});
   pantalla.addEventListener("touchend", function(e){
     if(xInicioSwipe==null) return;
@@ -9795,7 +9855,7 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride, comp){
   fila.fotoEstado = fotosOrdenadas.map(function(f){ return (f.comentario||"").replace(/\|/g,"/"); }).join("|");
   fila.inaturalistUrl=""; fila.fichaEspecimenUrl="";
   fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
-  fila.metodo_captura = r.tipo==="coleccion" ? (r.metodo||"") : "";
+  fila.metodo_captura = r.tipo==="coleccion" ? ((comp && comp.metodo) || r.metodo || "") : "";
   fila.habitat_recoleccion = r.tipo==="coleccion" ? (r.habitat||"") : "";
   fila.microhabitat_recoleccion = r.tipo==="coleccion" ? ((comp && comp.referencia) || r.referencia || "") : "";
   fila.tejido_conservado = r.tipo==="coleccion" ? ((comp ? comp.tejido : r.tejidoConservado) ? "Sí" : "No") : "";
@@ -9872,7 +9932,7 @@ function muestraTamanoDwC(r){
 function filaDarwinCore(r, s, taxonOverride, individuosOverride, comp){
   var muestra = muestraTamanoDwC(r);
   var habitat = r.tipo==="coleccion" ? (r.habitat||"") : (r.tipo==="observacion" ? (r.habitat||"") : "");
-  var metodo = r.tipo==="coleccion" ? (r.metodo||"") : (r.tipo==="observacion" ? (r.metodo||"") : "");
+  var metodo = r.tipo==="coleccion" ? ((comp && comp.metodo) || r.metodo || "") : (r.tipo==="observacion" ? (r.metodo||"") : "");
   var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
   return {
     basisOfRecord: basisOfRecordDwC(r, comp),
