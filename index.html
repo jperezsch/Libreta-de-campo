@@ -505,12 +505,14 @@ html[data-tema="noche"] .stat .n{color:var(--verde);}
 .sug-fila span{flex:1; min-width:0; overflow-wrap:anywhere;}
 /* v2.65: sugerencias propias y aprendidas */
 .sug-agregar{display:flex; gap:8px; margin:6px 0 8px;}
-.sug-agregar input{flex:1; min-width:0;}
+.sug-agregar input{flex:1; min-width:0; border:1.5px solid var(--borde); border-radius:12px; padding:10px 12px; font-size:.95rem;}
 .sug-agregar button{flex:0 0 auto; padding:0 16px; border-radius:12px; border:0; background:var(--verde); color:#fff; font-weight:700; cursor:pointer; min-height:44px;}
 .sug-tabs{margin:10px 0 6px;}
 .sug-tabs .muestra-tab{padding:8px 4px; font-size:.82rem;}
 .sug-fila.propia span.sug-txt{font-weight:700;}
-.sug-fila span.sug-badge{flex:0 0 auto; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:20px; background:var(--verde-cl); color:var(--verde-osc);}
+.sug-fila{flex-wrap:wrap;}
+.sug-fila span.sug-txt{flex:1 1 100%; padding-top:6px;}
+.sug-fila span.sug-badge{margin-right:auto; flex:0 0 auto; font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:20px; background:var(--verde-cl); color:var(--verde-osc);}
 .sug-fila span.sug-badge.apr{background:var(--borde); color:var(--texto-sec);}
 .sug-ico{flex:0 0 auto; width:40px; height:40px; border-radius:10px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:1rem; cursor:pointer; padding:0;}
 .sug-ico[disabled]{opacity:.3; cursor:default;}
@@ -9074,7 +9076,7 @@ function renderConfigSugerencias(){
   var c = CAMPOS_SUGERENCIAS.filter(function(x){ return x.campo === sugCampoElegido; })[0] || CAMPOS_SUGERENCIAS[0];
   var propias = propiasDeCampo(c.campo), aprendidas = aprendidasDeCampo(c);
   var opciones = CAMPOS_SUGERENCIAS.map(function(x){
-    return '<option value="'+x.campo+'"'+(x.campo === c.campo ? ' selected' : '')+'>'+escapeHtml(x.etiqueta)+' ('+propiasDeCampo(x.campo).length+' propias · '+aprendidasDeCampo(x).length+' aprendidas)</option>';
+    return '<option value="'+x.campo+'"'+(x.campo === c.campo ? ' selected' : '')+'>'+escapeHtml(x.etiqueta)+' ('+(propiasDeCampo(x.campo).length+aprendidasDeCampo(x).length)+')</option>';
   }).join("");
   var filas = "";
   if(sugFiltro !== "aprendidas") propias.forEach(function(t, i){
@@ -9094,7 +9096,7 @@ function renderConfigSugerencias(){
     '<div class="comp-titulo" style="margin:0 0 6px;">Sugerencias por campo <button type="button" class="ayuda-q" data-ayuda="ayuda-sugerencias" aria-label="Ayuda sobre las sugerencias" aria-expanded="false">?</button></div>'+
     '<div class="ayuda-txt" id="ayuda-sugerencias">Son las palabras que la app ofrece sobre el teclado al escribir en cada campo. Las <b>propias</b> las creas tú y salen siempre primero, en el orden que definas. Las <b>aprendidas</b> se agregan solas al guardar un registro o una sesión (★ las convierte en propias). Quitar o renombrar no modifica tus registros ni tus sesiones.</div>'+
     '<div class="field"><label>Campo</label><select id="sug-campo">'+opciones+'</select></div>'+
-    '<div class="sug-agregar"><input type="text" id="sug-nuevo" spellcheck="true" placeholder="Nueva sugerencia para «'+escapeHtml(c.etiqueta)+'»" autocomplete="off"><button type="button" id="sug-agregar">Agregar</button></div>'+
+    '<div class="sug-agregar"><input type="text" id="sug-nuevo" spellcheck="true" placeholder="Nueva sugerencia" autocomplete="off"><button type="button" id="sug-agregar">Agregar</button></div>'+
     '<details class="sug-pegar"><summary>Pegar varias a la vez (una por línea)</summary><textarea id="sug-pegar-txt" spellcheck="true" placeholder="Una sugerencia por línea"></textarea>'+
       '<button type="button" class="btnfull btn-secondary" id="sug-pegar-ok" style="margin-top:8px;">Agregar todas</button></details>'+
     '<div class="muestra-tabs sug-tabs" id="sug-tabs">'+tab("todas","Todas ("+(propias.length+aprendidas.length)+")")+tab("propias","Propias ("+propias.length+")")+tab("aprendidas","Aprendidas ("+aprendidas.length+")")+'</div>'+
