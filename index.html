@@ -285,7 +285,10 @@ html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .dg-box .field label.dg-sub-colector{background:rgba(201,150,44,.16); color:var(--ambar-osc); border-left:5px solid var(--ambar);}
 #colector-wrap{padding:8px 8px 2px; border:1.5px dashed var(--ambar); border-radius:12px; margin-bottom:6px;}
 #colector-wrap .colector-chip.on, #colector-wrap .colector-todos.on{background:rgba(201,150,44,.22); color:var(--ambar-osc); border-color:var(--ambar); font-weight:700;}
-#colector-wrap .colector-chip.on:before, #colector-wrap .colector-todos.on:before{content:"✓ ";}
+#colector-wrap .colector-todos.on:before{content:"✓ ";}
+/* v2.64: los colectores marcados muestran su orden de selección (1, 2, 3…) */
+.colector-chip .col-n{display:none;}
+#colector-wrap .colector-chip.on .col-n{display:inline-block; min-width:1.45em; height:1.45em; line-height:1.45em; margin-right:7px; border-radius:50%; background:var(--ambar-osc); color:#fff; font-size:.78rem; font-weight:800; text-align:center; vertical-align:baseline;}
 #tipo-botones{margin-bottom:6px;}
 .btn-cerrar-dg{display:block; width:auto; margin:16px auto 0; padding:9px 22px; border-radius:10px; border:1.5px solid var(--verde); background:none; color:var(--verde-osc); font-size:.85rem; font-weight:700; cursor:pointer;}
 .aviso-tipo-bloqueado{
@@ -540,6 +543,26 @@ details.cfg-bloque > .cfg-bloque-cuerpo{padding-bottom:6px;}
 details.mas-opciones > summary{font-size:.8rem; color:var(--texto-sec); cursor:pointer; padding:8px 4px; list-style:none; text-align:center; opacity:.8;}
 details.mas-opciones > summary::-webkit-details-marker{display:none;}
 details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
+/* v2.64: filtro de la vista Consultando (por sesión y solo sin transcribir) */
+.cons-filtros{display:flex; flex-direction:column; gap:8px; margin:0 0 12px;}
+.cons-filtros select{width:100%; padding:11px 12px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.9rem;}
+.cons-filtro-pend{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--borde); border-radius:12px; background:var(--card); font-size:.9rem; cursor:pointer;}
+.cons-filtro-pend input{width:22px; height:22px; flex:none;}
+.cons-filtro-pend.on{background:var(--verde-cl); border-color:var(--verde); color:var(--verde-osc); font-weight:700;}
+/* v2.64: muestra mixta (varios taxones en un mismo evento de muestreo) */
+#comp-wrap{margin-top:12px; padding:10px 10px 4px; border:1.5px dashed var(--verde); border-radius:12px;}
+.comp-titulo{font-weight:800; font-size:.9rem; color:var(--verde-osc); margin:0 0 4px;}
+.comp-fila{border:1.5px solid var(--borde); border-radius:12px; padding:10px; margin:10px 0; background:var(--card);}
+.comp-fila .field{margin-bottom:8px;}
+.comp-cab{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:.85rem; color:var(--texto-sec);}
+.comp-x{background:none; border:0; color:var(--texto-sec); font-size:1.1rem; min-width:40px; min-height:40px; cursor:pointer;}
+.comp-fila .row2{align-items:end;}
+.comp-tejido-lab{display:flex; align-items:center; gap:8px; padding:12px 0; font-size:.9rem;}
+.comp-tejido-lab input{width:22px; height:22px; flex:none;}
+.comp-detalle summary{font-size:.82rem; color:var(--texto-sec); cursor:pointer; padding:6px 0;}
+.comp-det{color:var(--texto-sec); font-size:.82rem;}
+.comp-resumen{margin:6px 0 8px; font-size:.82rem; color:var(--texto-sec);}
+.comp-resumen.aviso{color:var(--ambar-osc); font-weight:700;}
 .cons-fila-opciones{display:flex; gap:10px; margin:0 0 12px; align-items:stretch;}
 .cons-fila-opciones > *{flex:1 1 0; min-width:0; margin:0;}
 .cons-fila-opciones .consulta-opcion{padding:10px 12px; gap:10px; font-size:.9rem;}
@@ -849,9 +872,10 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
     <div id="identificacion-individual" class="bloque">
     <div class="section-title"><span class="n">🔎</span>Identificación</div>
     <div class="nota">Nombre preliminar más inclusivo posible. Registra detalles o aclaraciones en <b style="display:inline; font-size:inherit; text-transform:none; letter-spacing:0; margin:0;">Observaciones y notas</b>.</div>
-    <div class="field"><label>Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
-    <div class="field"><label>N° individuos</label><input type="number" id="f-nind" min="0"></div>
-    <div class="field"><label>Condición / conservación</label>
+    <div class="switch-row" id="comp-switch-row"><div>Muestra mixta (múltiples taxones)<span>Un solo evento de muestreo con varios taxones</span></div><input type="checkbox" id="f-compuesta"></div>
+    <div class="field"><label id="label-taxon-libre">Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
+    <div class="field"><label id="label-nind">N° individuos</label><input type="number" id="f-nind" min="0"></div>
+    <div class="field"><label id="label-condicion">Condición / conservación</label>
       <select id="f-condicion">
         <option value="">—</option>
         <option value="seco">Seco</option>
@@ -865,7 +889,14 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
         <option value="otro">Otro</option>
       </select>
     </div>
-    <div class="switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
+    <div class="switch-row" id="tejido-switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
+    <div id="comp-wrap" style="display:none;">
+      <div class="comp-titulo">🧪 Taxones de la muestra</div>
+      <div class="campo-ayuda" style="margin:0 0 6px;">Todos comparten el mismo número de campo, punto, fecha y hora. En «Detalle» puedes darle a un taxón otra conservación u otro microhábitat; si no, usa los de la muestra.</div>
+      <div id="comp-lista"></div>
+      <button type="button" class="btnfull btn-secondary" id="comp-agregar">➕ Agregar taxón</button>
+      <div class="comp-resumen" id="comp-resumen"></div>
+    </div>
     </div>
 
     <div id="obs-tracking-flotante" style="display:none;"></div>
@@ -1000,6 +1031,10 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
   <button type="button" class="cons-flecha cons-flecha-der sin-destino" id="cons-flecha-der" aria-label="Registro siguiente (mayor)">›</button>
   <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura — desliza a los lados para cambiar de registro</p></div></div></div>
   <div class="pad">
+    <div class="cons-filtros" id="cons-filtros">
+      <select id="cons-filtro-sesion" aria-label="Filtrar por sesión"></select>
+      <label class="cons-filtro-pend" id="cons-filtro-pend-lab"><input type="checkbox" id="cons-filtro-pend"><span id="cons-filtro-pend-txt">✍️ Solo los que faltan por transcribir</span></label>
+    </div>
     <div class="cons-fila-opciones">
       <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Pantalla encendida</span></label>
       <button type="button" class="btn-compartir" id="btn-consulta-compartir">📤 Compartir</button>
@@ -3646,7 +3681,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-17 · v2.63";
+var APP_BUILD = "2026-10-18 · v2.64";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -4770,6 +4805,57 @@ function etiquetaSesionCorta(sesionId){
   var ic = s.id===state.sesionActivaId ? "🟢 activa" : "📁 archivada";
   return iconoSesion(sesionId)+" "+nombreSesionMostrar(s)+" · "+ic;
 }
+/* ---------------- v2.64: muestra mixta (varios taxones de un mismo evento de muestreo) ----------------
+   El registro sigue siendo uno solo (un número de campo, un punto, una tarjeta). Guarda compuesta:true y
+   componentes:[{id, taxon, nind, condicion, referencia, tejido}]. condicion y referencia vacíos = igual que la muestra.
+   Solo en Recolección. Al exportar sale una fila por taxón (como Observación con varias especies). */
+function componentesDeRegistro(r){
+  if(!r || r.tipo!=="coleccion" || !r.compuesta || !r.componentes) return [];
+  return r.componentes.filter(function(c){ return c && (c.taxon || c.nind); });
+}
+function sumaComponentes(comps){
+  var t = 0;
+  (comps || []).forEach(function(c){ var n = parseInt(c && c.nind, 10); if(n > 0) t += n; });
+  return t;
+}
+function nombreRegistroLista(r){
+  var comps = componentesDeRegistro(r);
+  if(comps.length){
+    var base = r.taxonLibre || (comps[0].taxon || "");
+    return base + (base ? " · " : "") + comps.length + (comps.length===1 ? " taxón" : " taxones");
+  }
+  return r.taxonLibre || r.referencia || "";
+}
+function htmlComponentesRegistro(r){
+  var comps = componentesDeRegistro(r);
+  if(!comps.length) return "";
+  var items = comps.map(function(c){
+    var det = [];
+    if(c.condicion) det.push(etiquetaConservacion(c.condicion));
+    if(c.referencia) det.push("microhábitat: " + c.referencia);
+    if(c.tejido) det.push("🧬 tejido");
+    var n = parseInt(c.nind, 10);
+    return '<li>' + escapeHtml(c.taxon || "(sin nombre)") + (n > 0 ? (' <b>— ' + n + (n==1 ? ' ejemplar' : ' ejemplares') + '</b>') : '') +
+      (det.length ? (' <span class="comp-det">· ' + escapeHtml(det.join(" · ")) + '</span>') : '') + '</li>';
+  }).join("");
+  return '<div class="narr-linea"><b>Muestra mixta:</b> ' + comps.length + (comps.length===1 ? ' taxón' : ' taxones') + '</div><ul class="narr-especies-lista">' + items + '</ul>';
+}
+// Texto que acompaña a cada fila exportada de una muestra mixta (columna observaciones y occurrenceRemarks)
+function textoMuestraMixta(r){
+  var comps = componentesDeRegistro(r);
+  if(!comps.length) return "";
+  var lista = comps.map(function(c){
+    var n = parseInt(c.nind, 10);
+    return (c.taxon || "sin nombre") + (n > 0 ? " (" + n + ")" : "");
+  }).join(", ");
+  var gen = (r.taxonLibre || "").trim();
+  return "Muestra mixta" + (r.codigo ? " " + r.codigo : "") + (gen ? " (nombre general: " + gen + ")" : "") + ". Taxones: " + lista + ".";
+}
+function observacionesExportar(r, comp){
+  if(!comp) return r.notas || "";
+  var t = textoMuestraMixta(r);
+  return r.notas ? (t + " " + r.notas) : t;
+}
 function cantidadEjemplares(r){
   if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length){ var t = sumaEspecies(r); return t>0 ? t : null; }
   return (r.nind!=null && r.nind!=="") ? r.nind : null;
@@ -4882,7 +4968,8 @@ function obtenerListaFiltrada(){
   if(q) lista = lista.filter(function(r){
     var textoBusqueda = [
       r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.localidadEspecifica, r.estacion, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
-      (r.especies||[]).map(function(e){return e.nombre;}).join(" ")
+      (r.especies||[]).map(function(e){return e.nombre;}).join(" "),
+      componentesDeRegistro(r).map(function(c){return c.taxon;}).join(" ")
     ].join(" ").toLowerCase();
     return textoBusqueda.indexOf(q)>=0;
   });
@@ -4960,7 +5047,7 @@ function renderListaTarjetas(lista, justSavedId){
       var tarjetasHtml = registrosOrdenados.map(function(r){
         var ti = TIPOS[r.tipo]||TIPOS.nota;
         var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
-        var nombre = r.taxonLibre||r.referencia||"";
+        var nombre = nombreRegistroLista(r);
         var cant = cantidadEjemplares(r);
         var cantTxt = cant!=null ? (" · "+cant+(cant==1?" ejemplar":" ejemplares")) : "";
         return '<div class="card'+cls+'" data-id="'+r.id+'" data-sesion="'+escapeHtml(r.sesionId)+'" style="border-left:4px solid '+colorSesion(r.sesionId)+';">'+
@@ -5047,6 +5134,7 @@ function textoEntradaNarrativa(r){
   } else {
     var cant = cantidadEjemplares(r);
     if(r.taxonLibre) partes.push('<div class="narr-linea"><b>Taxón:</b> '+escapeHtml(r.taxonLibre)+(cant!=null?(' ('+cant+(cant==1?' ejemplar)':' ejemplares)')):'')+'</div>');
+    if(componentesDeRegistro(r).length) partes.push(htmlComponentesRegistro(r));
   }
   if(r.tipo==="observacion" && (r.obsInicio || r.obsTermino)){
     var lineaTiempo = [];
@@ -5364,7 +5452,7 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
       var colapsada = narrColapsadas.has(r.id);
       if(colapsada){
         var ti = TIPOS[r.tipo]||TIPOS.nota;
-        var nombreResumen = r.taxonLibre||r.referencia||"";
+        var nombreResumen = nombreRegistroLista(r);
         return '<div class="narr-entrada narr-colapsada" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
           '<div class="narr-toggle" data-toggle="'+r.id+'">▸</div>' +
           '<div class="narr-resumen-colapsado"><span class="tag">'+ti.label+'</span>'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+(r.fecha||"")+' '+(r.hora||"")+(nombreResumen?(' — '+escapeHtml(nombreResumen)):'')+'</div>' +
@@ -5650,7 +5738,7 @@ function iniciarNuevoRegistro(){
     areaLargo:"", areaAncho:"", areaRadio:"", obsInicio:null, obsTermino:null, obsTrackingActivo:false,
     obsAcumuladoMs:0, obsPausado:false, trackPuntos:[],
     especieMedida:especieMedidaDefault, medConSexo:medSexoDefault, medConLocalidad:medLocDefault, medConHabitat:medHabDefault, estructuras:estructurasDefault, individuos:[],
-    notaSubtipo:"narrativo", notaTitulo:"", tejidoConservado:false,
+    notaSubtipo:"narrativo", notaTitulo:"", tejidoConservado:false, compuesta:false, componentes:[],
     fotos: [], videos: [], especies: [], _editando:false, _viendo:false
   };
   guardarDraft();
@@ -5689,6 +5777,8 @@ function cargarDraftEnFormulario(){
   })();
   document.getElementById("f-tejido").checked = !!d.tejidoConservado;
   document.getElementById("f-taxon-libre").value = d.taxonLibre || "";
+  document.getElementById("f-compuesta").checked = !!d.compuesta;
+  renderComponentes();
   poblarOpcionesMetodo(d.tipo);
   ajustarPantallaSegunTipo(d.tipo);
   if(d.tipo==="nota"){ d.notaSubtipo = d.notaSubtipo || "narrativo"; actualizarBotonesNotaSubtipo(); }
@@ -5834,12 +5924,22 @@ function sincronizarDraftDesdeFormulario(){
   }
   d.notas = document.getElementById("f-notas").value.trim();
   d.taxonLibre = document.getElementById("f-taxon-libre").value.trim();
-  d.nind = document.getElementById("f-nind").value;
+  var esComp = d.tipo==="coleccion" && document.getElementById("f-compuesta").checked;
+  d.compuesta = esComp;
+  if(esComp){
+    d.componentes = leerComponentesDOM();
+    var sumaC = sumaComponentes(d.componentes);
+    d.nind = sumaC > 0 ? String(sumaC) : "";
+    document.getElementById("f-nind").value = d.nind;
+  } else {
+    d.nind = document.getElementById("f-nind").value;
+  }
   if(d.tipo==="observacion") d.metodo = document.getElementById("f-metodo-obs").value;
   else if(d.tipo==="medicion") d.metodo = valorSelectOtro("f-metodo-med","f-metodo-med-otro");
   else d.metodo = valorSelectOtro("f-metodo","f-metodo-otro");
   d.condicion = document.getElementById("f-condicion").value;
-  d.tejidoConservado = document.getElementById("f-tejido").checked;
+  d.tejidoConservado = esComp ? (d.componentes || []).some(function(c){ return c.tejido; }) : document.getElementById("f-tejido").checked;
+  if(esComp) actualizarResumenComp();
   if(document.getElementById("f-obj-duracion")) d.duracionObjetivo = document.getElementById("f-obj-duracion").value;
   if(document.getElementById("f-obj-distancia")) d.distanciaObjetivo = document.getElementById("f-obj-distancia").value;
   if(document.getElementById("f-ancho-banda")) d.anchoBanda = document.getElementById("f-ancho-banda").value;
@@ -5858,6 +5958,129 @@ function sincronizarDraftDesdeFormulario(){
   document.getElementById(id).addEventListener("input", sincronizarDraftDesdeFormulario);
 });
 document.getElementById("f-tejido").addEventListener("change", sincronizarDraftDesdeFormulario);
+/* ---------------- v2.64: formulario de muestra mixta ---------------- */
+function nuevoComponente(){ return {id:uid(), taxon:"", nind:"", condicion:"", referencia:"", tejido:false}; }
+function leerComponentesDOM(){
+  return Array.prototype.map.call(document.querySelectorAll("#comp-lista .comp-fila"), function(f){
+    return {
+      id: f.getAttribute("data-cid") || uid(),
+      taxon: f.querySelector(".comp-taxon").value.trim(),
+      nind: f.querySelector(".comp-nind").value,
+      condicion: f.querySelector(".comp-cond").value,
+      referencia: f.querySelector(".comp-ref").value.trim(),
+      tejido: f.querySelector(".comp-tejido").checked
+    };
+  });
+}
+function opcionesCondicionComp(valor){
+  var sel = document.getElementById("f-condicion");
+  var html = '<option value="">Igual que la muestra</option>';
+  var hay = !valor;
+  Array.prototype.forEach.call(sel.options, function(o){
+    if(!o.value || o.getAttribute("data-legacy")) return;
+    if(o.value === valor) hay = true;
+    html += '<option value="'+escapeHtml(o.value)+'"'+(o.value===valor ? ' selected' : '')+'>'+escapeHtml(o.textContent)+'</option>';
+  });
+  if(!hay) html += '<option value="'+escapeHtml(valor)+'" selected>'+escapeHtml(etiquetaConservacion(valor))+' (antiguo)</option>';
+  return html;
+}
+function htmlComponente(c, i){
+  var abierto = (c.condicion || c.referencia) ? ' open' : '';
+  return '<div class="comp-fila" data-cid="'+escapeHtml(c.id || "")+'">'+
+    '<div class="comp-cab"><b class="comp-num">Taxón '+(i+1)+'</b><button type="button" class="comp-x" aria-label="Quitar este taxón">✕</button></div>'+
+    '<div class="field"><input type="text" class="comp-taxon" spellcheck="true" list="dl-taxon" placeholder="Nombre del taxón" value="'+escapeHtml(c.taxon || "")+'"></div>'+
+    '<div class="row2"><div class="field"><label>N° individuos</label><input type="number" class="comp-nind" min="0" value="'+escapeHtml(c.nind != null ? String(c.nind) : "")+'"></div>'+
+    '<label class="comp-tejido-lab"><input type="checkbox" class="comp-tejido"'+(c.tejido ? ' checked' : '')+'> 🧬 Tejido</label></div>'+
+    '<details class="comp-detalle"'+abierto+'><summary>Detalle: conservación y microhábitat</summary>'+
+      '<div class="field"><label>Condición / conservación</label><select class="comp-cond">'+opcionesCondicionComp(c.condicion || "")+'</select></div>'+
+      '<div class="field"><label>Microhábitat</label><input type="text" class="comp-ref" spellcheck="true" list="dl-referencia" placeholder="Igual que la muestra" value="'+escapeHtml(c.referencia || "")+'"></div>'+
+    '</details></div>';
+}
+function actualizarResumenComp(){
+  var el = document.getElementById("comp-resumen"); if(!el) return;
+  var comps = leerComponentesDOM().filter(function(c){ return c.taxon || c.nind; });
+  var sinN = comps.filter(function(c){ return !(parseInt(c.nind, 10) > 0); }).length;
+  var conTej = comps.filter(function(c){ return c.tejido; }).length;
+  var txt = comps.length + (comps.length===1 ? " taxón" : " taxones") + " · " + sumaComponentes(comps) + " individuos en total" + (conTej ? " · " + conTej + " con tejido" : "");
+  if(sinN) txt += " · ⚠️ " + sinN + (sinN===1 ? " sin" : " sin") + " N° de individuos (no suma)";
+  el.textContent = txt;
+  el.classList.toggle("aviso", sinN > 0);
+}
+function aplicarModoCompuesta(){
+  var on = document.getElementById("f-compuesta").checked;
+  document.getElementById("comp-wrap").style.display = on ? "block" : "none";
+  document.getElementById("tejido-switch-row").style.display = on ? "none" : "";
+  document.getElementById("f-nind").readOnly = on;
+  document.getElementById("label-nind").textContent = on ? "N° individuos (suma de los taxones)" : "N° individuos";
+  document.getElementById("label-taxon-libre").textContent = on ? "Nombre general de la muestra (taxón más inclusivo)" : "Taxón / descripción";
+  document.getElementById("label-condicion").textContent = on ? "Condición / conservación de la muestra" : "Condición / conservación";
+  if(on) actualizarResumenComp();
+}
+// Dibuja las filas a partir de state.draft.componentes (la fuente en memoria) y ajusta el resto del bloque
+function renderComponentes(){
+  var d = state.draft || {};
+  var on = document.getElementById("f-compuesta").checked;
+  var lista = on ? (d.componentes || []) : [];
+  document.getElementById("comp-lista").innerHTML = lista.map(function(c, i){ return htmlComponente(c, i); }).join("");
+  aplicarModoCompuesta();
+}
+function renumerarComponentes(){
+  Array.prototype.forEach.call(document.querySelectorAll("#comp-lista .comp-num"), function(b, i){ b.textContent = "Taxón " + (i+1); });
+}
+document.getElementById("f-compuesta").addEventListener("change", function(){
+  var d = state.draft; if(!d) return;
+  if(this.checked){
+    d.compuesta = true;
+    if(!(d.componentes && d.componentes.length)){
+      var tax = document.getElementById("f-taxon-libre").value.trim(), n = document.getElementById("f-nind").value;
+      d.componentes = [];
+      if((tax || n) && confirm("¿Usar «"+(tax || "sin nombre")+"»"+(n ? " ("+n+" individuos)" : "")+" como primer taxón de la lista?\n\nAceptar: queda como primer taxón y el campo Taxón pasa a ser el nombre general de la muestra (puedes cambiarlo).\nCancelar: la lista parte vacía.")){
+        d.componentes.push({id:uid(), taxon:tax, nind:n, condicion:"", referencia:"", tejido:document.getElementById("f-tejido").checked});
+      }
+      while(d.componentes.length < 2) d.componentes.push(nuevoComponente());
+    }
+  } else {
+    var llenos = leerComponentesDOM().filter(function(c){ return c.taxon || c.nind; });
+    if(llenos.length && !confirm("Se quitará la lista de "+llenos.length+(llenos.length===1 ? " taxón" : " taxones")+" de esta muestra. El campo Taxón y la suma de individuos se conservan.\n\n¿Continuar?")){
+      this.checked = true; return;
+    }
+    d.compuesta = false; d.componentes = [];
+    document.getElementById("f-tejido").checked = llenos.some(function(c){ return c.tejido; });
+  }
+  renderComponentes();
+  sincronizarDraftDesdeFormulario();
+});
+document.getElementById("comp-agregar").addEventListener("click", function(){
+  var d = state.draft; if(!d) return;
+  d.componentes = leerComponentesDOM();
+  d.componentes.push(nuevoComponente());
+  renderComponentes();
+  sincronizarDraftDesdeFormulario();
+  var filas = document.querySelectorAll("#comp-lista .comp-fila");
+  var ult = filas[filas.length - 1];
+  if(ult){ var inp = ult.querySelector(".comp-taxon"); if(inp){ inp.focus(); if(ult.scrollIntoView) ult.scrollIntoView({block:"center"}); } }
+});
+(function(){
+  var lista = document.getElementById("comp-lista");
+  lista.addEventListener("input", function(){ sincronizarDraftDesdeFormulario(); });
+  lista.addEventListener("change", function(){ sincronizarDraftDesdeFormulario(); });
+  lista.addEventListener("focusout", function(e){
+    var t = e.target;
+    if(t.classList.contains("comp-taxon")){ recordarValor("taxonLibre", t.value.trim()); poblarSugerencias("dl-taxon", "taxonLibre"); }
+    else if(t.classList.contains("comp-ref")){ recordarValor("referencia", t.value.trim()); poblarSugerencias("dl-referencia", "referencia"); }
+  });
+  lista.addEventListener("click", function(e){
+    var x = e.target.closest ? e.target.closest(".comp-x") : null;
+    if(!x) return;
+    var fila = x.closest(".comp-fila");
+    var d = state.draft; if(!d || !fila) return;
+    var c = leerComponentesDOM().filter(function(k){ return k.id === fila.getAttribute("data-cid"); })[0];
+    if(c && (c.taxon || c.nind) && !confirm("¿Quitar «"+(c.taxon || "este taxón")+"» de la muestra?")) return;
+    fila.parentNode.removeChild(fila);
+    renumerarComponentes();
+    sincronizarDraftDesdeFormulario();
+  });
+})();
 function tipoCompatibleConSesion(nuevoTipo){
   if(nuevoTipo === "nota") return true;
   var sid = state.draft ? state.draft.sesionId : state.sesionActivaId;
@@ -5956,10 +6179,15 @@ function esSeleccionTodos(seleccion, participantes){
   if(seleccion.length!==participantes.length) return false;
   return participantes.every(function(p){ return seleccion.indexOf(p)>=0; });
 }
+/* v2.64: los participantes marcados conservan el orden en que se eligieron (se muestra 1, 2, 3… en cada botón);
+   el texto del colector se arma en ese orden. "Todos" completa con los que faltan en el orden de la lista de participantes;
+   si ya estaban todos marcados, vuelve al orden de la lista. */
+var colectorOrden = [];
 function renderColectorWrap(seleccionActual){
   var participantes = listaParticipantes();
   var wrap = document.getElementById("colector-wrap");
   if(participantes.length <= 1){
+    colectorOrden = [];
     var valor = participantes.length===1 ? participantes[0] : (seleccionActual || "");
     wrap.innerHTML = '<input type="text" id="f-colector-input" spellcheck="true" value="'+escapeHtml(valor)+'">';
     document.getElementById("f-colector-input").addEventListener("input", function(){ sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
@@ -5968,30 +6196,42 @@ function renderColectorWrap(seleccionActual){
   var seleccion = (seleccionActual||"").split(",").map(function(s){return s.trim();}).filter(Boolean);
   var todos = seleccion.length===0; // registro nuevo: parten todos marcados
   var extra = seleccion.filter(function(s){ return participantes.indexOf(s)<0; });
+  colectorOrden = [];
+  (todos ? participantes : seleccion).forEach(function(p){ if(participantes.indexOf(p)>=0 && colectorOrden.indexOf(p)<0) colectorOrden.push(p); });
   wrap.innerHTML = '<span class="colector-todos" id="colector-todos">👥 Todos</span>' +
     participantes.map(function(p){
-      return '<span class="colector-chip'+((todos || seleccion.indexOf(p)>=0)?" on":"")+'" data-p="'+escapeHtml(p)+'">'+escapeHtml(p)+'</span>';
+      return '<span class="colector-chip" data-p="'+escapeHtml(p)+'"><span class="col-n"></span>'+escapeHtml(p)+'</span>';
     }).join("") +
     '<input type="text" id="f-colector-otro" spellcheck="true" placeholder="Otro / adicional" style="margin-top:8px;" value="'+escapeHtml(extra.join(", "))+'">';
   var chips = wrap.querySelectorAll(".colector-chip");
   var otro = document.getElementById("f-colector-otro");
   var btnTodos = document.getElementById("colector-todos");
-  function refrescarTodos(){
-    btnTodos.classList.toggle("on", Array.prototype.every.call(chips, function(c){ return c.classList.contains("on"); }));
+  function refrescar(){
+    Array.prototype.forEach.call(chips, function(c){
+      var i = colectorOrden.indexOf(c.dataset.p);
+      c.classList.toggle("on", i >= 0);
+      c.querySelector(".col-n").textContent = i >= 0 ? String(i + 1) : "";
+    });
+    btnTodos.classList.toggle("on", colectorOrden.length === participantes.length);
   }
-  refrescarTodos();
-  chips.forEach(function(c){
+  refrescar();
+  Array.prototype.forEach.call(chips, function(c){
     c.addEventListener("click", function(){
-      var quedanOtros = Array.prototype.some.call(chips, function(x){ return x!==c && x.classList.contains("on"); }) || otro.value.trim();
-      if(c.classList.contains("on") && !quedanOtros){ toast("Deja al menos un colector marcado"); return; }
-      c.classList.toggle("on");
-      refrescarTodos();
+      var p = c.dataset.p, i = colectorOrden.indexOf(p);
+      if(i >= 0){
+        if(colectorOrden.length === 1 && !otro.value.trim()){ toast("Deja al menos un colector marcado"); return; }
+        colectorOrden.splice(i, 1);
+      } else {
+        colectorOrden.push(p);
+      }
+      refrescar();
       sincronizarDraftDesdeFormulario(); actualizarResumenDg();
     });
   });
   btnTodos.addEventListener("click", function(){
-    chips.forEach(function(c){ c.classList.add("on"); });
-    refrescarTodos();
+    if(colectorOrden.length === participantes.length) colectorOrden = participantes.slice();
+    else participantes.forEach(function(p){ if(colectorOrden.indexOf(p) < 0) colectorOrden.push(p); });
+    refrescar();
     sincronizarDraftDesdeFormulario(); actualizarResumenDg();
   });
   otro.addEventListener("input", function(){ sincronizarDraftDesdeFormulario(); actualizarResumenDg(); });
@@ -5999,9 +6239,10 @@ function renderColectorWrap(seleccionActual){
 function obtenerColectorSeleccionado(){
   var input = document.getElementById("f-colector-input");
   if(input) return input.value.trim();
-  var chips = document.querySelectorAll(".colector-chip.on");
+  var activos = Array.prototype.map.call(document.querySelectorAll(".colector-chip.on"), function(c){ return c.dataset.p; });
+  var partes = colectorOrden.filter(function(p){ return activos.indexOf(p) >= 0; });
+  activos.forEach(function(p){ if(partes.indexOf(p) < 0) partes.push(p); });
   var otro = document.getElementById("f-colector-otro");
-  var partes = Array.prototype.map.call(chips, function(c){ return c.dataset.p; });
   if(otro && otro.value.trim()) partes.push(otro.value.trim());
   return partes.join(", ");
 }
@@ -6172,11 +6413,67 @@ function abrirRegistro(){
 
 // Recorrido de la vista Consulta, de izquierda (más antiguo) a derecha (más reciente). Parte del orden de la vista Lista:
 // sesiones según el criterio elegido y, dentro de cada una, el orden manual o por creación. La vista Libreta ya es cronológica.
-function listaNavegacionConsulta(){
+/* v2.64: filtro propio de la vista Consultando. sesion: "" = la lista de Registros (como hasta ahora), "__todas__" o el id de una sesión.
+   pendientes: solo los registros sin la marca "transcrito" (el registro que se está viendo se mantiene aunque se acabe de marcar). */
+state.consultaFiltro = {sesion:"", pendientes:false};
+function registrosBaseConsulta(){
+  var f = state.consultaFiltro;
+  if(!f.sesion) return obtenerListaFiltrada();
+  var l = state.registros.slice();
+  if(f.sesion !== "__todas__") l = l.filter(function(r){ return r.sesionId === f.sesion; });
+  return l;
+}
+function listaNavegacionConsulta(sinActual){
+  var f = state.consultaFiltro;
+  // el recorrido siempre va de menor a mayor (ver abajo); aquí solo se decide qué registros entran
+  var lista = registrosBaseConsulta();
+  if(f.pendientes) lista = lista.filter(function(r){ return !r.transcrito || (!sinActual && r.id === state.consultaId); });
+  return ordenarParaNavegacionConsulta(lista);
+}
+function renderFiltroConsulta(){
+  var sel = document.getElementById("cons-filtro-sesion"); if(!sel) return;
+  var f = state.consultaFiltro;
+  if(f.sesion && f.sesion !== "__todas__" && !sesionPorId(f.sesion)) f.sesion = "";
+  var porSesion = {};
+  state.registros.forEach(function(r){
+    var o = porSesion[r.sesionId] || (porSesion[r.sesionId] = {total:0, pend:0});
+    o.total++; if(!r.transcrito) o.pend++;
+  });
+  var totalPend = state.registros.filter(function(r){ return !r.transcrito; }).length;
+  var html = '<option value="">📋 Como en Registros</option><option value="__todas__">Todas las sesiones — faltan '+totalPend+' por transcribir</option>';
+  state.sesiones.slice().sort(function(a,b){ return String(b.creada||"").localeCompare(String(a.creada||"")); }).forEach(function(s){
+    var o = porSesion[s.id]; if(!o) return;
+    html += '<option value="'+escapeHtml(s.id)+'">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+' — faltan '+o.pend+' de '+o.total+'</option>';
+  });
+  sel.innerHTML = html;
+  sel.value = f.sesion || "";
+  var pend = registrosBaseConsulta().filter(function(r){ return !r.transcrito; }).length;
+  document.getElementById("cons-filtro-pend").checked = !!f.pendientes;
+  document.getElementById("cons-filtro-pend-lab").classList.toggle("on", !!f.pendientes);
+  document.getElementById("cons-filtro-pend-txt").textContent = "✍️ Solo los que faltan por transcribir ("+pend+")";
+}
+// Tras cambiar el filtro: si el registro que se ve ya no entra, se pasa al primero de la lista nueva (el más antiguo)
+function aplicarCambioFiltroConsulta(){
+  var lista = listaNavegacionConsulta(true);
+  if(!lista.some(function(r){ return r.id === state.consultaId; })){
+    if(lista.length){ state.consultaId = lista[0].id; }
+    else toast(state.consultaFiltro.pendientes ? "No hay registros por transcribir en este filtro 🎉" : "No hay registros en este filtro", 3500);
+  }
+  renderConsulta(state.consultaId);
+  irSubirInicio();
+}
+document.getElementById("cons-filtro-sesion").addEventListener("change", function(){
+  state.consultaFiltro.sesion = this.value;
+  aplicarCambioFiltroConsulta();
+});
+document.getElementById("cons-filtro-pend").addEventListener("change", function(){
+  state.consultaFiltro.pendientes = this.checked;
+  aplicarCambioFiltroConsulta();
+});
+function ordenarParaNavegacionConsulta(lista){
   // v2.35: el deslizamiento va siempre de menor a mayor, de izquierda a derecha, en cualquier vista y con cualquier
   // criterio de orden de la lista: sesiones de la más antigua a la más reciente y, dentro de cada una,
   // registros por fecha, hora y código ascendentes.
-  var lista = obtenerListaFiltrada();
   var porSesion = {}, ids = [];
   lista.forEach(function(r){
     if(!porSesion[r.sesionId]){ porSesion[r.sesionId] = []; ids.push(r.sesionId); }
@@ -6219,6 +6516,11 @@ function htmlConsultaRegistro(r, conBotonMapa){
     et.push('<div class="cons-taxon"><span class="cons-taxon-et">Especies observadas: </span>'+numEsp+(numEsp===1?' especie':' especies')+' <span class="cons-taxon-cant">· '+sumaEspecies(r)+' individuos en total</span></div><ul class="narr-especies-lista">'+itemsEsp+'</ul>');
   } else {
     var cant = cantidadEjemplares(r);
+    if(componentesDeRegistro(r).length){
+      var cantC = cantidadEjemplares(r);
+      if(r.taxonLibre) et.push('<div class="cons-taxon"><span class="cons-taxon-et">Muestra mixta: </span>'+escapeHtml(r.taxonLibre)+(cantC!=null?(' <span class="cons-taxon-cant">('+cantC+(cantC==1?' ejemplar en total)':' ejemplares en total)')+'</span>'):'')+'</div>');
+      et.push(htmlComponentesRegistro(r));
+    } else
     if(r.taxonLibre) et.push('<div class="cons-taxon"><span class="cons-taxon-et">Taxón: </span>'+escapeHtml(r.taxonLibre)+(cant!=null?(' <span class="cons-taxon-cant">('+cant+(cant==1?' ejemplar)':' ejemplares)')+'</span>'):'')+'</div>');
   }
   // Localidad (verbatim: localidad específica + localidad general)
@@ -6332,6 +6634,7 @@ document.addEventListener("visibilitychange", actualizarWakeLock);
     if(!r){ this.checked = false; return; }
     r.transcrito = this.checked;
     guardarRegistros();
+    renderFiltroConsulta();
     toast(this.checked ? "✍️ Marcado como transcrito" : "Marca de transcrito quitada");
   });
 })();
@@ -6362,11 +6665,12 @@ function renderConsulta(id){
   var cont = document.getElementById("consulta-tarjeta");
   var posEl = document.getElementById("consulta-posicion");
   sincronizarOpcionesConsulta(r);
+  renderFiltroConsulta();
   ajustarEspacioConsulta();
   if(!r){ cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; posEl.textContent = "Solo lectura"; return; }
   var listaNav = listaNavegacionConsulta();
   var idxNav = listaNav.findIndex(function(x){ return x.id===id; });
-  posEl.textContent = (idxNav>=0 ? ("Registro "+(idxNav+1)+" de "+listaNav.length+" — ") : "") + "desliza a los lados para cambiar";
+  posEl.textContent = (idxNav>=0 ? ("Registro "+(idxNav+1)+" de "+listaNav.length+(state.consultaFiltro.pendientes ? " por transcribir" : "")+" — ") : "") + "desliza a los lados para cambiar";
   document.getElementById("cons-flecha-izq").classList.toggle("sin-destino", idxNav <= 0);
   document.getElementById("cons-flecha-der").classList.toggle("sin-destino", idxNav < 0 || idxNav >= listaNav.length - 1);
   var op = ordenarFotosConPortada(r);
@@ -6532,6 +6836,7 @@ function navegarConsulta(delta){
   var xInicioSwipe = null, yInicioSwipe = null;
   pantalla.addEventListener("touchstart", function(e){
     xInicioSwipe = e.touches[0].clientX; yInicioSwipe = e.touches[0].clientY;
+    if(e.target.closest && e.target.closest("#cons-filtros")) xInicioSwipe = null;   // v2.64: tocar el filtro no cambia de registro
   }, {passive:true});
   pantalla.addEventListener("touchend", function(e){
     if(xInicioSwipe==null) return;
@@ -6572,6 +6877,7 @@ function verRegistroExistente(id, desde){
   if(!r) return;
   state.consultaId = id;
   state.consultaVolverA = desde || null;
+  state.consultaFiltro = {sesion:"", pendientes:false};   // v2.64: cada vez que se abre un registro desde Registros o el mapa, el filtro parte limpio
   irA("consulta");
 }
 document.getElementById("btn-guardar").addEventListener("click", function(e){
@@ -8654,6 +8960,23 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     state.draft.sesionId = state.sesionActivaId;
     toast("⚠️ La sesión de este registro ya no existía — se asignó a la sesión activa actual", 5000);
   }
+  // v2.64: muestra mixta: cada taxón necesita nombre; se descartan las filas vacías
+  if(state.draft.tipo === "coleccion" && state.draft.compuesta){
+    var csG = (state.draft.componentes || []).filter(function(c){ return c.taxon || c.nind; });
+    var sinNombreG = csG.filter(function(c){ return !c.taxon; });
+    if(sinNombreG.length){
+      toast("⚠️ Falta el nombre de "+(sinNombreG.length===1 ? "un taxón" : sinNombreG.length+" taxones")+" de la muestra mixta", 4500);
+      var cw = document.getElementById("comp-wrap"); if(cw && cw.scrollIntoView) cw.scrollIntoView({block:"center"});
+      return;
+    }
+    if(csG.length === 0){
+      toast("⚠️ Agrega al menos un taxón a la muestra mixta, o desmarca «Muestra mixta»", 4500);
+      var cw0 = document.getElementById("comp-wrap"); if(cw0 && cw0.scrollIntoView) cw0.scrollIntoView({block:"center"});
+      return;
+    }
+    if(csG.length === 1 && !confirm("La muestra mixta tiene un solo taxón («"+csG[0].taxon+"»).\n\n¿Guardar igual como muestra mixta? (Cancelar para completar la lista o desmarcar «Muestra mixta».)")) return;
+    state.draft.componentes = csG;
+  }
   var codigoActual = (state.draft.codigo||"").trim();
   if(codigoActual){
     var duplicadoCod = state.registros.find(function(x){ return x.id!==state.draft.id && (x.codigo||"").trim().toLowerCase()===codigoActual.toLowerCase(); });
@@ -8672,6 +8995,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   var editando = !!state.draft._editando;
   var r = JSON.parse(JSON.stringify(state.draft));
   delete r._editando;
+  if(r.tipo !== "coleccion" || !r.compuesta){ delete r.compuesta; delete r.componentes; }
   if(!editando && (r.tipo==="nota" || r.tipo==="medicion")) r.habitat = "";
   if(r.especies) r.especies = r.especies.filter(function(e){ return (parseInt(e.cantidad,10)||0) > 0; });
   if(editando){
@@ -8721,6 +9045,7 @@ function borradorVacio(d){
   for(var i=0;i<textos.length;i++){ if(String(d[textos[i]]==null ? "" : d[textos[i]]).trim()) return false; }
   if(d.altitud!=null && d.altitud!=="") return false;
   if(d.tejidoConservado) return false;
+  if(d.compuesta || (d.componentes||[]).some(function(c){ return c && (c.taxon || c.nind); })) return false;
   if((d.fotos||[]).length || (d.especies||[]).length || (d.individuos||[]).length || (d.trackPuntos||[]).length) return false;
   if(d.obsInicio || d.obsTermino) return false;
   return true;
@@ -9029,7 +9354,7 @@ function renderPanelHuerfanos(){
   panel.style.display = "block";
   document.getElementById("lista-huerfanos").innerHTML = huerfanos.map(function(r){
     var ti = TIPOS[r.tipo]||TIPOS.nota;
-    var nombre = r.taxonLibre||r.referencia||"";
+    var nombre = nombreRegistroLista(r);
     var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (" — "+(r.notaSubtipo==="narrativo"?"Narrativo":"Operativo")) : "";
     return '<div style="font-size:.82rem; padding:4px 0; border-bottom:1px dashed var(--borde);">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+subtipoTxt+' · '+(r.fecha||"")+(nombre?(' — '+escapeHtml(nombre)):'')+' <span style="color:var(--texto-sec); font-family:ui-monospace,monospace; font-size:.72rem;">(sesionId: '+escapeHtml(String(r.sesionId))+')</span></div>';
   }).join("");
@@ -9256,7 +9581,7 @@ function renderPanelGestionSesion(sesionId){
   var editarBtn = '<button type="button" class="btn-editar-sesion" data-sesion="'+sesionId+'">✏️ Editar datos de esta sesión</button>';
   var filasHtml = registros.map(function(r){
     var ti = TIPOS[r.tipo]||TIPOS.nota;
-    var nombre = r.taxonLibre||r.referencia||"";
+    var nombre = nombreRegistroLista(r);
     return '<div class="gestion-fila">'+
       '<input type="checkbox" class="gestion-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id] ? ' checked' : '')+'>'+
       '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span>'+
@@ -9452,19 +9777,19 @@ function ordenarFotosConPortadaPrimero(r){
   return fotos;
 }
 var TIPO_ESTANDAR_EXPORT = {coleccion:"colectado", observacion:"observado", nota:"nota"};
-function filaRegistroExport(r, s, taxonOverride, individuosOverride){
+function filaRegistroExport(r, s, taxonOverride, individuosOverride, comp){
   var fila = filaSesionExport(s);
   fila.codigoMuestreo = s.prefijo||""; fila.tipoRegistro = TIPO_ESTANDAR_EXPORT[r.tipo]||r.tipo; fila.numeroCampo = r.codigo||"";
   fila.phylum=""; fila.clase=""; fila.orden=""; fila.familia=""; fila.genero="";
-  fila.taxon = taxonOverride!=null ? taxonOverride : (r.taxonLibre||"");
+  fila.taxon = comp ? (comp.taxon||"") : (taxonOverride!=null ? taxonOverride : (r.taxonLibre||""));
   fila.determinador=""; fila.determinadorFecha="";
-  fila.individuos = individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:"");
+  fila.individuos = comp ? (parseInt(comp.nind,10) > 0 ? parseInt(comp.nind,10) : "") : (individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:""));
   fila.sexo=""; fila.estadoDesarrollo=""; fila.region=""; fila.provincia=""; fila.comuna="";
   fila.localidad = localidadExportar(r, s); fila.localidadVerbatim = localidadVerbatimExportar(r, s); fila.estacion = r.estacion||"";
   fila.lat = r.lat||""; fila.lng = r.lon||""; fila.fechaColecta = r.fecha||""; fila.colector = r.colector||"";
   fila.fechaIngreso=""; fila.procedencia=""; fila.destino=""; fila.ubicacionColeccion=""; fila.privacidad="";
-  fila.conservacion = r.tipo==="coleccion" ? condicionExportar(r) : "";
-  fila.preparacion=""; fila.observaciones = r.notas||"";
+  fila.conservacion = r.tipo==="coleccion" ? condicionExportar(r, comp) : "";
+  fila.preparacion=""; fila.observaciones = observacionesExportar(r, comp);
   var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
   fila.imagenes = fotosOrdenadas.map(function(f){ return nombreFotoExport(r, f); }).join("|");
   fila.fotoEstado = fotosOrdenadas.map(function(f){ return (f.comentario||"").replace(/\|/g,"/"); }).join("|");
@@ -9472,8 +9797,8 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride){
   fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
   fila.metodo_captura = r.tipo==="coleccion" ? (r.metodo||"") : "";
   fila.habitat_recoleccion = r.tipo==="coleccion" ? (r.habitat||"") : "";
-  fila.microhabitat_recoleccion = r.tipo==="coleccion" ? (r.referencia||"") : "";
-  fila.tejido_conservado = r.tipo==="coleccion" ? (r.tejidoConservado?"Sí":"No") : "";
+  fila.microhabitat_recoleccion = r.tipo==="coleccion" ? ((comp && comp.referencia) || r.referencia || "") : "";
+  fila.tejido_conservado = r.tipo==="coleccion" ? ((comp ? comp.tejido : r.tejidoConservado) ? "Sí" : "No") : "";
   fila.tipo_observacion = r.tipo==="observacion" ? (r.metodo||"") : "";
   fila.duracion_real_min = r.tipo==="observacion" ? (r.duracionReal!=null?r.duracionReal:"") : "";
   fila.distancia_real_m = r.tipo==="observacion" ? (r.distanciaReal!=null?r.distanciaReal:"") : "";
@@ -9495,6 +9820,8 @@ function construirFilasEstandar(registros){
     var s = sesionPorId(r.sesionId) || {};
     if(r.tipo==="observacion" && r.especies && r.especies.length){
       r.especies.forEach(function(e){ filas.push(filaRegistroExport(r, s, e.nombre, e.cantidad)); });
+    } else if(componentesDeRegistro(r).length){
+      componentesDeRegistro(r).forEach(function(c){ filas.push(filaRegistroExport(r, s, null, null, c)); });   // v2.64: muestra mixta, una fila por taxón
     } else {
       filas.push(filaRegistroExport(r, s, null, null));
     }
@@ -9515,14 +9842,14 @@ var COLS_DWC = [
   "sampleSizeValue","sampleSizeUnit","preparations","occurrenceRemarks",
   "associatedMedia","references","institutionCode"
 ];
-function basisOfRecordDwC(r){
-  if(r.tipo==="coleccion") return condicionExportar(r)==="vivo" ? "LivingSpecimen" : "PreservedSpecimen";   // v2.56: un ejemplar vivo no es PreservedSpecimen
+function basisOfRecordDwC(r, comp){
+  if(r.tipo==="coleccion") return condicionExportar(r, comp)==="vivo" ? "LivingSpecimen" : "PreservedSpecimen";   // v2.56: un ejemplar vivo no es PreservedSpecimen
   if(r.tipo==="observacion") return "HumanObservation";
   return "";
 }
 /* v2.56: valor de conservación que se exporta. "vivo_liberado" (v2.55 y anteriores) se exporta como "vivo".
    Los otros dos valores retirados del formulario (fotografiado y muerto sin colecta) se exportan tal como se guardaron. */
-function condicionExportar(r){ var v = r.condicion || ""; return v === "vivo_liberado" ? "vivo" : v; }
+function condicionExportar(r, comp){ var v = (comp && comp.condicion) || r.condicion || ""; return v === "vivo_liberado" ? "vivo" : v; }
 function eventDateDwC(r){
   if(!r.fecha) return "";
   var inicio = r.fecha + (r.hora ? ("T"+r.hora) : "");
@@ -9542,17 +9869,17 @@ function muestraTamanoDwC(r){
   if(largo>0 && ancho>0) return {valor: Math.round(largo*ancho*100)/100, unidad:"square meters"};
   return {valor:"", unidad:""};
 }
-function filaDarwinCore(r, s, taxonOverride, individuosOverride){
+function filaDarwinCore(r, s, taxonOverride, individuosOverride, comp){
   var muestra = muestraTamanoDwC(r);
   var habitat = r.tipo==="coleccion" ? (r.habitat||"") : (r.tipo==="observacion" ? (r.habitat||"") : "");
   var metodo = r.tipo==="coleccion" ? (r.metodo||"") : (r.tipo==="observacion" ? (r.metodo||"") : "");
   var fotosOrdenadas = ordenarFotosConPortadaPrimero(r);
   return {
-    basisOfRecord: basisOfRecordDwC(r),
+    basisOfRecord: basisOfRecordDwC(r, comp),
     fieldNumber: r.codigo||"",
-    scientificName: taxonOverride!=null ? taxonOverride : (r.taxonLibre||""),
+    scientificName: comp ? (comp.taxon||"") : (taxonOverride!=null ? taxonOverride : (r.taxonLibre||"")),
     phylum:"", class:"", order:"", family:"", genus:"",
-    individualCount: individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:""),
+    individualCount: comp ? (parseInt(comp.nind,10) > 0 ? parseInt(comp.nind,10) : "") : (individuosOverride!=null ? individuosOverride : (r.nind!=null?r.nind:"")),
     locality: localidadExportar(r, s),
     verbatimLocality: localidadVerbatimExportar(r, s),
     locationID: r.estacion||"",
@@ -9565,8 +9892,8 @@ function filaDarwinCore(r, s, taxonOverride, individuosOverride){
     samplingProtocol: metodo,
     sampleSizeValue: muestra.valor,
     sampleSizeUnit: muestra.unidad,
-    preparations: r.tipo==="coleccion" ? (condicionExportar(r)==="vivo" ? "" : condicionExportar(r)) : "",
-    occurrenceRemarks: r.notas||"",
+    preparations: r.tipo==="coleccion" ? (condicionExportar(r, comp)==="vivo" ? "" : condicionExportar(r, comp)) : "",
+    occurrenceRemarks: observacionesExportar(r, comp),
     associatedMedia: fotosOrdenadas.map(function(f){ return nombreFotoExport(r, f); }).join("|"),
     references: r.inaturalistUrl||"",
     institutionCode: s.institucion||""
@@ -9578,6 +9905,8 @@ function construirFilasDarwinCore(registros){
     var s = sesionPorId(r.sesionId) || {};
     if(r.tipo==="observacion" && r.especies && r.especies.length){
       r.especies.forEach(function(e){ filas.push(filaDarwinCore(r, s, e.nombre, e.cantidad)); });
+    } else if(componentesDeRegistro(r).length){
+      componentesDeRegistro(r).forEach(function(c){ filas.push(filaDarwinCore(r, s, null, null, c)); });   // v2.64: muestra mixta, una fila por taxón
     } else {
       filas.push(filaDarwinCore(r, s, null, null));
     }
