@@ -943,7 +943,12 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
     <div id="seccion-fotos-notas" class="bloque">
       <div class="section-title"><span class="n">📝</span>Observaciones y notas</div>
       <div id="habitat-microhabitat-principal">
-    <div class="field" style="margin-top:14px;"><label>Microhábitat</label><input type="text" id="f-referencia" spellcheck="true" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+    <div class="field" style="margin-top:14px;"><label>Microhábitat <button type="button" class="ayuda-q" style="margin-left:6px; vertical-align:middle;" data-ayuda="ayuda-microhabitat" aria-label="Ayuda sobre Microhábitat" aria-expanded="false">?</button></label>
+      <div class="ayuda-txt" id="ayuda-microhabitat">Lugar preciso dentro del hábitat donde vive o se refugia el organismo. Ej: hojarasca, bajo piedras, bajo cortezas, etc.</div>
+      <input type="text" id="f-referencia" spellcheck="true" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+    <div class="field"><label>Interacciones <button type="button" class="ayuda-q" style="margin-left:6px; vertical-align:middle;" data-ayuda="ayuda-interacciones" aria-label="Ayuda sobre Interacciones" aria-expanded="false">?</button></label>
+      <div class="ayuda-txt" id="ayuda-interacciones">Ej: Asociaciones con hospederos, interacciones tróficas, etc.</div>
+      <textarea id="f-interacciones" spellcheck="true"></textarea></div>
     </div>
 
     <div id="metodo-principal" class="field" style="margin-top:14px;"><label>Método de recolección</label>
@@ -3714,7 +3719,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-18 · v2.65";
+var APP_BUILD = "2026-10-21 · v2.66";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
@@ -4960,6 +4965,7 @@ function htmlComponentesRegistro(r){
     var det = [];
     if(c.condicion) det.push(etiquetaConservacion(c.condicion));
     if(c.referencia) det.push("microhábitat: " + c.referencia);
+    if(c.interacciones) det.push("interacciones: " + c.interacciones);
     if(c.metodo) det.push("método: " + c.metodo);
     if(c.tejido) det.push("🧬 tejido");
     var n = parseInt(c.nind, 10);
@@ -5095,7 +5101,7 @@ function obtenerListaFiltrada(){
   if(state.filtroTipo) lista = lista.filter(function(r){ return r.tipo===state.filtroTipo; });
   if(q) lista = lista.filter(function(r){
     var textoBusqueda = [
-      r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.localidadEspecifica, r.estacion, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
+      r.codigo, r.notaTitulo, r.taxonLibre, r.referencia, r.interacciones, r.localidadEspecifica, r.estacion, r.colector, r.habitat, r.sustrato, r.metodo, r.notas,
       (r.especies||[]).map(function(e){return e.nombre;}).join(" "),
       componentesDeRegistro(r).map(function(c){return c.taxon;}).join(" ")
     ].join(" ").toLowerCase();
@@ -5252,6 +5258,7 @@ function textoEntradaNarrativa(r){
   if(r.localidadEspecifica) partes.push('<div class="narr-linea"><b>Localidad específica:</b> '+escapeHtml(r.localidadEspecifica)+'</div>');
   if(r.estacion) partes.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
   if(r.referencia) partes.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
+  if(r.interacciones) partes.push('<div class="narr-linea"><b>Interacciones:</b> '+escapeHtml(r.interacciones)+'</div>');
   if(r.habitat) partes.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
   if(r.sustrato) partes.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
   if(r.metodo) partes.push('<div class="narr-linea"><b>Método:</b> '+escapeHtml(r.metodo)+'</div>');
@@ -5859,7 +5866,7 @@ function iniciarNuevoRegistro(){
     id: uid(), codigo: proximoCodigo(sesionActiva()), sesionId: state.sesionActivaId,
     fecha: fechaLocalISO(ahora), fechaLocal: true,
     hora: horaLocalHM(ahora),
-    lat:"", lon:"", altitud:null, referencia:"", localidadEspecifica:"", estacion:"", tipo:tipoDefault,
+    lat:"", lon:"", altitud:null, referencia:"", interacciones:"", localidadEspecifica:"", estacion:"", tipo:tipoDefault,
     taxonLibre:"", nind:"", metodo:"", condicion:"", habitat:((sesionActiva() && sesionActiva().habitat) || ""), sustrato:"",
     unidad:"", esfuerzo:"", colector: "", notas:"",
     duracionObjetivo:"", distanciaObjetivo:"", anchoBanda:"", duracionReal:null, distanciaReal:null,
@@ -5886,6 +5893,7 @@ function cargarDraftEnFormulario(){
   document.getElementById("fecha-hora-row").style.display = (d._editando || d._viendo) ? "grid" : "none";
   document.getElementById("f-altitud").value = d.altitud!=null ? d.altitud : "";
   document.getElementById("f-referencia").value = d.referencia;
+  document.getElementById("f-interacciones").value = d.interacciones || "";
   document.getElementById("f-localidad-especifica").value = d.localidadEspecifica || "";
   document.getElementById("f-estacion").value = d.estacion || "";
   document.getElementById("f-tipo").value = d.tipo;
@@ -6041,7 +6049,8 @@ function sincronizarDraftDesdeFormulario(){
   d.fecha = document.getElementById("f-fecha").value; d.hora = document.getElementById("f-hora").value;
   d.altitud = document.getElementById("f-altitud").value;
   d.referencia = document.getElementById("f-referencia").value.trim();
-  d.localidadEspecifica = d.tipo==="medicion" ? "" : document.getElementById("f-localidad-especifica").value.trim();
+  d.interacciones = document.getElementById("f-interacciones").value.trim();
+  d.localidadEspecifica =d.tipo==="medicion" ? "" : document.getElementById("f-localidad-especifica").value.trim();
   d.estacion = d.tipo==="medicion" ? "" : document.getElementById("f-estacion").value.trim();
   d.notaTitulo = document.getElementById("f-nota-titulo").value.trim();
   d.colector = obtenerColectorSeleccionado();
@@ -6083,12 +6092,12 @@ function sincronizarDraftDesdeFormulario(){
   d.especies = state.especiesTemp.slice();
   guardarDraft();
 }
-["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-notas","f-nota-titulo","f-nind","f-condicion","f-taxon-libre"].forEach(function(id){
+["f-codigo","f-lat","f-lon","f-fecha","f-hora","f-altitud","f-referencia","f-interacciones","f-notas","f-nota-titulo","f-nind","f-condicion","f-taxon-libre"].forEach(function(id){
   document.getElementById(id).addEventListener("input", sincronizarDraftDesdeFormulario);
 });
 document.getElementById("f-tejido").addEventListener("change", sincronizarDraftDesdeFormulario);
 /* ---------------- v2.64: formulario de muestra mixta ---------------- */
-function nuevoComponente(){ return {id:uid(), taxon:"", nind:"", condicion:"", referencia:"", metodo:"", tejido:false}; }
+function nuevoComponente(){ return {id:uid(), taxon:"", nind:"", condicion:"", referencia:"", interacciones:"", metodo:"", tejido:false}; }
 function leerComponentesDOM(){
   return Array.prototype.map.call(document.querySelectorAll("#comp-lista .comp-fila"), function(f){
     return {
@@ -6097,6 +6106,7 @@ function leerComponentesDOM(){
       nind: f.querySelector(".comp-nind").value,
       condicion: f.querySelector(".comp-cond").value,
       referencia: f.querySelector(".comp-ref").value.trim(),
+      interacciones: f.querySelector(".comp-int").value.trim(),
       metodo: valorSelectOtro(f.querySelector(".comp-met"), f.querySelector(".comp-met-otro")),
       tejido: f.querySelector(".comp-tejido").checked
     };
@@ -6121,16 +6131,17 @@ function opcionesCondicionComp(valor){
   return html;
 }
 function htmlComponente(c, i){
-  var abierto = (c.condicion || c.referencia || c.metodo) ? ' open' : '';
+  var abierto = (c.condicion || c.referencia || c.interacciones || c.metodo) ? ' open' : '';
   var metOtro = !!c.metodo && METODOS_COLECCION.indexOf(c.metodo) < 0;
   return '<div class="comp-fila" data-cid="'+escapeHtml(c.id || "")+'">'+
     '<div class="comp-cab"><b class="comp-num">Taxón '+(i+1)+'</b><button type="button" class="comp-x" aria-label="Quitar este taxón">✕</button></div>'+
     '<div class="field"><input type="text" class="comp-taxon" spellcheck="true" list="dl-taxon" placeholder="Nombre del taxón" value="'+escapeHtml(c.taxon || "")+'"></div>'+
     '<div class="row2"><div class="field"><label>N° individuos</label><input type="number" class="comp-nind" min="0" value="'+escapeHtml(c.nind != null ? String(c.nind) : "")+'"></div>'+
     '<label class="comp-tejido-lab"><input type="checkbox" class="comp-tejido"'+(c.tejido ? ' checked' : '')+'> 🧬 Tejido</label></div>'+
-    '<details class="comp-detalle"'+abierto+'><summary>Detalle: conservación, microhábitat y método</summary>'+
+    '<details class="comp-detalle"'+abierto+'><summary>Detalle: conservación, microhábitat, interacciones y método</summary>'+
       '<div class="field"><label>Condición / conservación</label><select class="comp-cond">'+opcionesCondicionComp(c.condicion || "")+'</select></div>'+
       '<div class="field"><label>Microhábitat</label><input type="text" class="comp-ref" spellcheck="true" list="dl-referencia" placeholder="Igual que la muestra" value="'+escapeHtml(c.referencia || "")+'"></div>'+
+      '<div class="field"><label>Interacciones</label><textarea class="comp-int" spellcheck="true" placeholder="Igual que la muestra">'+escapeHtml(c.interacciones || "")+'</textarea></div>'+
       '<div class="field"><label>Método de recolección</label><select class="comp-met">'+opcionesMetodoComp(c.metodo || "")+'</select>'+
       '<input type="text" class="comp-met-otro" spellcheck="true" list="dl-metodo-otro" placeholder="Especifica el método" style="'+(metOtro ? '' : 'display:none; ')+'margin-top:7px;" value="'+escapeHtml(metOtro ? c.metodo : "")+'"></div>'+
     '</details></div>';
@@ -6181,7 +6192,7 @@ document.getElementById("f-compuesta").addEventListener("change", function(){
       var tax = document.getElementById("f-taxon-libre").value.trim(), n = document.getElementById("f-nind").value;
       d.componentes = [];
       if((tax || n) && confirm("¿Usar «"+(tax || "sin nombre")+"»"+(n ? " ("+n+" individuos)" : "")+" como primer taxón de la lista?\n\nAceptar: queda como primer taxón y el campo Taxón pasa a ser el nombre general de la muestra (puedes cambiarlo).\nCancelar: la lista parte vacía.")){
-        d.componentes.push({id:uid(), taxon:tax, nind:n, condicion:"", referencia:"", tejido:document.getElementById("f-tejido").checked});
+        d.componentes.push({id:uid(), taxon:tax, nind:n, condicion:"", referencia:"", interacciones:"", tejido:document.getElementById("f-tejido").checked});
       }
       if(d.componentes.length < 1) d.componentes.push(nuevoComponente());
     }
@@ -6712,6 +6723,7 @@ function htmlConsultaRegistro(r, conBotonMapa){
   // Hábitat, microhábitat y estación
   if(r.habitat) et.push('<div class="narr-linea"><b>Hábitat:</b> '+escapeHtml(r.habitat)+'</div>');
   if(r.referencia) et.push('<div class="narr-linea"><b>Microhábitat:</b> '+escapeHtml(r.referencia)+'</div>');
+  if(r.interacciones) et.push('<div class="narr-linea"><b>Interacciones:</b> '+escapeHtml(r.interacciones)+'</div>');
   if(r.estacion) et.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
   if(et.length) p.push('<div class="cons-etiqueta">'+et.join("")+'</div>');
   // Notas
@@ -9225,6 +9237,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   var r = JSON.parse(JSON.stringify(state.draft));
   delete r._editando;
   if(r.tipo !== "coleccion" || !r.compuesta){ delete r.compuesta; delete r.componentes; }
+  if(r.tipo !== "coleccion") delete r.interacciones;   // v2.66: Interacciones solo existe en Recolección, igual que su campo en Nuevo
   if(!editando && (r.tipo==="nota" || r.tipo==="medicion")) r.habitat = "";
   if(r.especies) r.especies = r.especies.filter(function(e){ return (parseInt(e.cantidad,10)||0) > 0; });
   aprenderDeRegistro(r);
@@ -10027,7 +10040,9 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride, comp){
   fila.hora = r.hora||""; fila.altitud_m = r.altitud!=null?r.altitud:"";
   fila.metodo_captura = r.tipo==="coleccion" ? ((comp && comp.metodo) || r.metodo || "") : "";
   fila.habitat_recoleccion = r.tipo==="coleccion" ? (r.habitat||"") : "";
-  fila.microhabitat_recoleccion = r.tipo==="coleccion" ? ((comp && comp.referencia) || r.referencia || "") : "";
+  // v2.66: una sola columna microhabitat (antes microhabitat_recoleccion y microhabitat_observacion) y columna nueva interacciones
+  fila.microhabitat = (r.tipo==="coleccion" || r.tipo==="observacion") ? ((comp && comp.referencia) || r.referencia || "") : "";
+  fila.interacciones = r.tipo==="coleccion" ? ((comp && comp.interacciones) || r.interacciones || "") : "";
   fila.tejido_conservado = r.tipo==="coleccion" ? ((comp ? comp.tejido : r.tejidoConservado) ? "Sí" : "No") : "";
   fila.tipo_observacion = r.tipo==="observacion" ? (r.metodo||"") : "";
   fila.duracion_real_min = r.tipo==="observacion" ? (r.duracionReal!=null?r.duracionReal:"") : "";
@@ -10037,7 +10052,6 @@ function filaRegistroExport(r, s, taxonOverride, individuosOverride, comp){
   fila.area_ancho_m = r.tipo==="observacion" ? (r.areaAncho||"") : "";
   fila.area_radio_m = r.tipo==="observacion" ? (r.areaRadio||"") : "";
   fila.habitat_observacion = r.tipo==="observacion" ? (r.habitat||"") : "";
-  fila.microhabitat_observacion = r.tipo==="observacion" ? (r.referencia||"") : "";
   fila.hora_termino_observacion = (r.tipo==="observacion" && r.obsTermino && r.obsTermino.hora) ? r.obsTermino.hora : "";
   fila.archivo_track = (r.tipo==="observacion" && r.trackPuntos && r.trackPuntos.length>1) ? nombreArchivoTrack(r) : "";
   fila.subtipo_nota = r.tipo==="nota" ? (r.notaSubtipo==="operativo"?"Operativo":"Narrativo") : "";
@@ -10069,7 +10083,7 @@ var COLS_DWC = [
   "phylum","class","order","family","genus",
   "individualCount","locality","verbatimLocality","locationID","decimalLatitude","decimalLongitude",
   "eventDate","recordedBy","verbatimElevation","habitat","samplingProtocol",
-  "sampleSizeValue","sampleSizeUnit","preparations","occurrenceRemarks",
+  "sampleSizeValue","sampleSizeUnit","preparations","occurrenceRemarks","associatedTaxa",
   "associatedMedia","references","institutionCode"
 ];
 function basisOfRecordDwC(r, comp){
@@ -10124,6 +10138,7 @@ function filaDarwinCore(r, s, taxonOverride, individuosOverride, comp){
     sampleSizeUnit: muestra.unidad,
     preparations: r.tipo==="coleccion" ? (condicionExportar(r, comp)==="vivo" ? "" : condicionExportar(r, comp)) : "",
     occurrenceRemarks: observacionesExportar(r, comp),
+    associatedTaxa: r.tipo==="coleccion" ? ((comp && comp.interacciones) || r.interacciones || "") : "",   // v2.66
     associatedMedia: fotosOrdenadas.map(function(f){ return nombreFotoExport(r, f); }).join("|"),
     references: r.inaturalistUrl||"",
     institutionCode: s.institucion||""
@@ -10179,7 +10194,7 @@ document.getElementById("btn-descargar-dwc").addEventListener("click", function(
 // .xlsx: Excel siempre lo lee como Unicode, sin depender de la codificación. Cifras como números, el resto como texto
 // (así fechas ISO y códigos como "JP-001" no son reinterpretados por Excel).
 var COLS_DWC_NUMERICAS = {individualCount:1, decimalLatitude:1, decimalLongitude:1, verbatimElevation:1, sampleSizeValue:1};
-var ANCHOS_DWC = {basisOfRecord:17, fieldNumber:12, scientificName:28, locality:26, verbatimLocality:28, locationID:16, eventDate:18, recordedBy:24, habitat:28, samplingProtocol:22, occurrenceRemarks:40, associatedMedia:36, references:24, institutionCode:14};
+var ANCHOS_DWC = {basisOfRecord:17, fieldNumber:12, scientificName:28, locality:26, verbatimLocality:28, locationID:16, eventDate:18, recordedBy:24, habitat:28, samplingProtocol:22, occurrenceRemarks:40, associatedTaxa:30, associatedMedia:36, references:24, institutionCode:14};
 function valorCeldaDwcXlsx(col, v){
   if(v==null || v==="") return null;
   var t = String(v).trim();
