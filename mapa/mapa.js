@@ -741,8 +741,9 @@ function textoRecorrido(rc) {
 function chipGrab() {
   var c = $("mp-chip-grab"), b = $("mp-grabar");
   var rc = grab.rc;
-  if (b) { b.textContent = rc ? "⏹ Detener" : "⏺ Grabar"; b.classList.toggle("on", !!rc); b.classList.toggle("grabando", !!rc); }
-  var bq = $("mp-bloqueo"); if (bq) bq.style.display = rc ? "" : "none";
+  if (b) { b.textContent = rc ? "⏹ Detener grabación" : "⏺ Grabar recorrido"; b.classList.toggle("on", !!rc); b.classList.toggle("grabando", !!rc); }
+  var bq = $("mp-bloqueo"); if (bq) { bq.disabled = !rc; bq.textContent = rc ? "🔒 Bloquear pantalla" : "🔒 Bloqueo (solo al grabar)"; }
+  var tb = $("mp-tracks"); if (tb) { tb.classList.toggle("grabando", !!rc); rotuloTb("mp-tracks", rc ? "⏹" : "⏺", rc ? "Grabando" : "Tracks"); }
   if (!c) return;
   if (!rc) { c.style.display = "none"; return; }
   c.style.display = ""; c.className = "mp-chip mp-chip-btn rojo";
@@ -761,7 +762,7 @@ function pantallaPref() { try { return localStorage.getItem("libretaCampo_pantal
 function botonPantalla() {
   var b = $("mp-pantalla"); if (!b) return;
   var on = pantallaPref();
-  b.textContent = (on ? "🔆 " : "🌙 ") + "Pantalla\nencendida";
+  b.textContent = (on ? "🔆 " : "🌙 ") + "Pantalla encendida";
   b.title = on ? "Pantalla encendida al grabar (activado)" : "Pantalla encendida al grabar (apagado)";
   b.classList.toggle("on", on);
 }
@@ -1004,7 +1005,7 @@ function chipGps() {
     c.textContent = "GPS ±" + a + " m";
     c.className = "mp-chip mp-chip-btn " + (a <= 10 ? "ok" : a <= 25 ? "ambar" : "rojo");
   }
-  var cen = $("mp-centrar"); if (cen) cen.style.display = (gps.watch != null && gps.fix) ? "" : "none";
+  var cen = $("mp-centrar"); if (cen) cen.classList.toggle("sin-gps", !(gps.watch != null && gps.fix));
 }
 function gpsOk(p) {
   gps.fix = { lng: p.coords.longitude, lat: p.coords.latitude, acc: p.coords.accuracy, t: Date.now(), vel: (p.coords.speed != null && isFinite(p.coords.speed)) ? p.coords.speed : null, rumbo: (p.coords.heading != null && isFinite(p.coords.heading)) ? p.coords.heading : null };
@@ -1056,6 +1057,20 @@ function paletaCurvas(sat) {
   var k = capasVis.curvasColor;
   if (!k || k === "auto" || !CURVAS_COLORES[k]) k = sat ? "amarillo" : "marron";
   return CURVAS_COLORES[k];
+}
+/* v2.74: posición de las etiquetas de los puntos (un botón las recorre: abajo, derecha, izquierda, arriba, automático sin superponer, ocultas) */
+var LS_ETIQ = "libretacampo_mapa_etiq_v1";
+var MODOS_ETIQ = ["abajo", "derecha", "izquierda", "arriba", "auto", "ocultas"];
+var modoEtiq = (function () { var m = leerJSON(LS_ETIQ, "abajo"); return MODOS_ETIQ.indexOf(m) >= 0 ? m : "abajo"; })();
+function propsEtiq(modo) {
+  var P = { visibility: modo === "ocultas" ? "none" : "visible", "text-allow-overlap": modo !== "auto",
+    "text-anchor": undefined, "text-offset": undefined, "text-variable-anchor": undefined, "text-radial-offset": undefined };
+  if (modo === "derecha") { P["text-anchor"] = "left"; P["text-offset"] = [1.4, 0]; }
+  else if (modo === "izquierda") { P["text-anchor"] = "right"; P["text-offset"] = [-1.4, 0]; }
+  else if (modo === "arriba") { P["text-anchor"] = "bottom"; P["text-offset"] = [0, -1.4]; }
+  else if (modo === "auto") { P["text-variable-anchor"] = ["right", "left", "top", "bottom"]; P["text-radial-offset"] = 1.5; }
+  else { P["text-anchor"] = "top"; P["text-offset"] = ["case", ["==", ["get", "nota"], 1], ["literal", [0, 1.4]], ["literal", [0, 1.35]]]; }
+  return P;
 }
 var LS_FONDO = "libretacampo_mapa_fondo_v1";
 var fondoSat = leerJSON(LS_FONDO, "mapa") === "sat";
@@ -1272,7 +1287,11 @@ function construirEstilo(sinMapas) {
   capas.push({ id: "puntos-nota", type: "symbol", source: "puntos", filter: filtroPuntosNota(),
     layout: { "icon-image": ["concat", "nota-", ["get", "color"]], "icon-size": ["case", ["==", ["get", "activa"], 1], TAM_ROMBO[1], TAM_ROMBO[0]], "icon-allow-overlap": true, "icon-ignore-placement": true } });
   capas.push({ id: "puntos-texto", type: "symbol", source: "puntos", filter: ["all", filtroPuntos(), ["!=", ["get", "etq"], ""]],
-    layout: { "text-field": ["get", "etq"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10], "text-offset": ["case", ["==", ["get", "nota"], 1], ["literal", [0, 1.4]], ["literal", [0, 1.35]]], "text-anchor": "top", "text-allow-overlap": true },
+    layout: (function () {
+      var L = { "text-field": ["get", "etq"], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "activa"], 1], 13, 10] }, P = propsEtiq(modoEtiq);
+      Object.keys(P).forEach(function (k) { if (P[k] !== undefined) L[k] = P[k]; });
+      return L;
+    })(),
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
   /* v2.58: punto marcado a mano con un toque sostenido */
   capas.push({ id: "nav-manual-halo", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
@@ -1324,7 +1343,7 @@ function crearMapa() {
   instalarPulsacionLarga();
   map.on("click", function (ev) {
     if (pulsacionReciente) { pulsacionReciente = false; return; }
-    cerrarPanelPuntos();
+    cerrarPanelPuntos(); panelTracks(false);
     if (resaltado) ponerResaltado(null);
     var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
     if (map.getLayer("areas-centro")) {
@@ -1620,6 +1639,15 @@ function marcarPuntoManual(lng, lat) {
   refrescarNavMapa();
   mostrarTarjetaPuntoManual();
 }
+/* v2.74: guarda el punto marcado a mano como un registro nuevo (misma vía que "Guardar punto aquí", con la coordenada marcada y sin precisión de GPS) */
+function guardarPuntoManual(pm) {
+  if (!LC.exigirSesionActiva()) return;
+  LC.abrirRegistro();
+  var d = LC.state.draft;
+  if (!d || d._editando || d._viendo) { LC.toast("Hay un registro en edición. Usa Capturar ubicación dentro de Nuevo.", 5000); return; }
+  LC.aplicarPosicionAlBorrador(pm.lat, pm.lng, null, null, 0);
+  quitarPuntoManual();
+}
 function quitarPuntoManual() { puntoManual = null; refrescarNavMapa(); cerrarTarjeta(); }
 function mostrarTarjetaPuntoManual() {
   var t = $("mp-tarjeta"); if (!t || !puntoManual) return;
@@ -1633,8 +1661,9 @@ function mostrarTarjetaPuntoManual() {
   } else {
     t.appendChild(el("div", { class: "mp-suave", texto: "Activa el GPS para ver la distancia y navegar hasta aquí." }));
   }
-  t.appendChild(el("div", { class: "mp-suave", texto: "Es solo una marca temporal: no es un registro de la libreta." }));
+  t.appendChild(el("div", { class: "mp-suave", texto: "Es una marca temporal hasta que la guardes como registro." }));
   t.appendChild(el("div", { class: "mp-fila" }, [
+    el("button", { class: "primario", texto: "💾 Guardar aquí", onclick: function () { guardarPuntoManual(pm); } }),
     el("button", { texto: "🧭 Navegar hasta aquí", onclick: function () { iniciarNavegacion({ lng: pm.lng, lat: pm.lat, nombre: "el punto marcado" }); } }),
     el("button", { texto: "📋 Copiar", onclick: function () {
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { LC.toast("Coordenadas copiadas: " + txt, 3200); }, function () { LC.toast("Coordenadas: " + txt, 5000); });
@@ -1811,20 +1840,21 @@ function alternarPanelPuntos() {
 
 /* ---------- Guardar punto aquí ---------- */
 function guardarPuntoAqui() {
-  var btn = $("mp-guardar"), orig = "📍 Guardar punto aquí";
+  var btn = document.createElement("button"), orig = "", cen = $("mp-centrar");   /* v2.74: ya no hay botón propio; el progreso se muestra con un aviso y el ◎ pulsando */
   if (LC.gpsCapturaActiva()) { LC.gpsCapturaActiva().cerrarYa(); return; }
   if (!LC.exigirSesionActiva()) return;
   if (!navigator.geolocation) { LC.toast("Este navegador no tiene GPS disponible"); return; }
-  btn.textContent = "📡 Buscando…";
+  LC.toast("📡 Buscando tu posición para guardar el punto…", 3500);
+  if (cen) cen.classList.add("buscando");
   LC.obtenerPosicionMejorada(btn, "📡 Afinando", function (pos) {
-    btn.textContent = orig;
+    if (cen) cen.classList.remove("buscando");
     var c = pos.coords;
     LC.abrirRegistro();   /* crea (o recupera) el registro en curso y abre Nuevo; sin sesión activa, crea una */
     var d = LC.state.draft;
     if (!d || d._editando || d._viendo) { LC.toast("Hay un registro en edición. Usa Capturar ubicación dentro de Nuevo.", 5000); return; }
     LC.aplicarPosicionAlBorrador(c.latitude, c.longitude, c.altitude, c.accuracy, pos.muestras);
   }, function (err) {
-    btn.textContent = orig;
+    if (cen) cen.classList.remove("buscando");
     var msg = "No se pudo obtener la ubicación. Intenta de nuevo.";
     if (err && err.code === 1) msg = "Permiso de ubicación denegado. Actívalo en los ajustes del navegador.";
     else if (err && err.code === 3) msg = "Se agotó el tiempo de espera del GPS. Intenta de nuevo.";
@@ -2322,39 +2352,41 @@ function construirPantalla() {
     '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
     '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
+    '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-mapas", "🗺️", "Mapas") + '</div>' +
     '<div id="mp-ctrl">' +
-      '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
-      '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
-      '<button type="button" class="mp-btn chico" id="mp-sat">🛰️ Satélite</button>' +
-      '<button type="button" class="mp-btn chico" id="mp-todos">🧭 Ver mis mapas</button>' +
-      '<button type="button" class="mp-btn chico" id="mp-grabar">⏺ Grabar</button>' +
-      '<button type="button" class="mp-btn chico" id="mp-bloqueo" style="display:none">🔒 Bloqueo</button>' +
-      '<button type="button" class="mp-btn chico" id="mp-pantalla">🔆 Pantalla</button>' +
-      '<button type="button" class="mp-btn mp-centrar" id="mp-centrar" aria-label="Centrar en mi ubicación" style="display:none">◎</button>' +
+      btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🔍", "Mis mapas") +
       '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
-      '<button type="button" class="mp-btn chico" id="mp-rumbo" style="display:none">Rumbo arriba</button>' +
+      btnTb("mp-rumbo", "🧭", "Rumbo", ' style="display:none"') +
     '</div>' +
+    '<div id="mp-tracks-caja">' +
+      '<div id="mp-panel-tracks"><div class="mp-panel-tit">Tracks</div>' +
+        '<button type="button" class="mp-btn chico" id="mp-grabar">⏺ Grabar recorrido</button>' +
+        '<button type="button" class="mp-btn chico" id="mp-bloqueo" disabled>🔒 Bloqueo (solo al grabar)</button>' +
+        '<button type="button" class="mp-btn chico" id="mp-pantalla">🔆 Pantalla encendida</button>' +
+      '</div>' + btnTb("mp-tracks", "⏺", "Tracks") +
+    '</div>' +
+    '<button type="button" class="mp-btn mp-gps-btn sin-gps" id="mp-centrar" aria-label="Centrar en mi ubicación. Mantén presionado para guardar un punto aquí">◎</button>' +
     '<div id="mp-leyenda" role="group" aria-label="Tipos de punto: toca para mostrar u ocultar"></div>' +
     '<div id="mp-aviso"></div>' +
     '<div id="mp-panel-puntos"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
       '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div></div>' +
     '<div id="mp-tarjeta"></div>' +
-    '<button type="button" class="mp-btn" id="mp-guardar">📍 Guardar punto aquí</button>' +
     '</div>';
   $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagarManual(); };
-  $("mp-centrar").onclick = function () { if (gps.fix && map) map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 16), duration: 400 }); };
+  instalarCentrar();
   $("mp-puntos").onclick = alternarPanelPuntos;
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
   $("mp-todos").onclick = verTodosLosMapas;
   $("mp-nav-cerrar").onclick = terminarNavegacion;
-  $("mp-guardar").onclick = guardarPuntoAqui;
   $("mp-volver-reg").onclick = volverAlRegistro;
-  $("mp-grabar").onclick = function () { if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
+  $("mp-grabar").onclick = function () { panelTracks(false); if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
+  $("mp-tracks").onclick = function () { panelTracks(); };
+  $("mp-etiq").onclick = alternarEtiquetas; botonEtiquetas();
   $("mp-chip-grab").onclick = function () { detenerGrabacion(false); };
   $("mp-pantalla").onclick = alternarPantalla; botonPantalla();
-  $("mp-bloqueo").onclick = bloquear;
+  $("mp-bloqueo").onclick = function () { panelTracks(false); bloquear(); };
   construirLeyenda();
   $("mp-chip-rec").onclick = function () { LC.abrirRegistro(); };   /* vuelve a la Observación que se está grabando */
   $("mp-norte").onclick = function () { if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
@@ -2365,11 +2397,57 @@ function construirPantalla() {
 function botonSatelite() {
   var b = $("mp-sat"); if (!b) return;
   b.classList.toggle("on", satActivo());
-  b.textContent = fondoSat && !online ? "🛰️ Sin señal" : "🛰️ Satélite";
+  rotuloTb("mp-sat", "🛰️", fondoSat && !online ? "Sin señal" : "Satélite");
 }
 function satRefrescar() {
   botonSatelite();
   if (map && mapaListo && LC && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas();
+}
+/* v2.74: botones cuadrados con ícono y rótulo corto */
+function btnTb(id, icono, texto, extra) { return '<button type="button" class="mp-btn mp-tb" id="' + id + '"' + (extra || "") + '><span class="i">' + icono + '</span><span class="t">' + texto + '</span></button>'; }
+function rotuloTb(id, icono, texto) { var b = $(id); if (!b) return; var i = b.querySelector(".i"), t = b.querySelector(".t"); if (i) i.textContent = icono; if (t) t.textContent = texto; }
+var ROT_ETIQ = { abajo: ["🏷️", "Etiq. ↓", "Etiquetas debajo del punto"], derecha: ["🏷️", "Etiq. →", "Etiquetas a la derecha del punto"], izquierda: ["🏷️", "Etiq. ←", "Etiquetas a la izquierda del punto"],
+  arriba: ["🏷️", "Etiq. ↑", "Etiquetas sobre el punto"], auto: ["🏷️", "Etiq. auto", "Etiquetas automáticas: se acomodan y no se superponen (si no caben, se ocultan)"], ocultas: ["🚫", "Sin etiq.", "Etiquetas ocultas"] };
+function botonEtiquetas() {
+  var r = ROT_ETIQ[modoEtiq]; rotuloTb("mp-etiq", r[0], r[1]);
+  var b = $("mp-etiq"); if (b) b.classList.toggle("on", modoEtiq !== "ocultas");
+}
+function aplicarEtiquetas() {
+  botonEtiquetas();
+  if (!map || !mapaListo || !map.getLayer("puntos-texto")) return;
+  var P = propsEtiq(modoEtiq);
+  /* primero se limpian las propiedades que el modo anterior pudo dejar puestas */
+  ["text-anchor", "text-offset", "text-variable-anchor", "text-radial-offset"].forEach(function (k) { map.setLayoutProperty("puntos-texto", k, undefined); });
+  Object.keys(P).forEach(function (k) { if (P[k] !== undefined) map.setLayoutProperty("puntos-texto", k, P[k]); });
+}
+function alternarEtiquetas() {
+  modoEtiq = MODOS_ETIQ[(MODOS_ETIQ.indexOf(modoEtiq) + 1) % MODOS_ETIQ.length];
+  guardarJSON(LS_ETIQ, modoEtiq);
+  aplicarEtiquetas();
+  LC.toast("🏷️ " + ROT_ETIQ[modoEtiq][2], 2600);
+}
+/* v2.74: ◎ centra en el GPS con un toque; con presión sostenida guarda un punto en la ubicación actual (antes era el botón "Guardar punto aquí") */
+function centrarEnGps() {
+  if (gps.watch == null) { gpsEncender(); LC.toast("📡 Activando el GPS…", 2500); return; }
+  if (!gps.fix) { LC.toast("Buscando señal GPS…", 2500); return; }
+  if (map) map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 16), duration: 400 });
+}
+function instalarCentrar() {
+  var b = $("mp-centrar"), t = null, largo = false;
+  b.addEventListener("pointerdown", function () {
+    largo = false; b.classList.add("pulsando"); clearTimeout(t);
+    t = setTimeout(function () { t = null; largo = true; b.classList.remove("pulsando"); if (navigator.vibrate) navigator.vibrate(40); guardarPuntoAqui(); }, 700);
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(t); t = null; b.classList.remove("pulsando"); }); });
+  b.addEventListener("click", function (e) { if (largo) { largo = false; e.preventDefault(); return; } centrarEnGps(); });
+  b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+}
+/* v2.74: menú desplegable "Tracks" (grabar, bloqueo de pantalla, pantalla encendida) */
+function panelTracks(abrir) {
+  var p = $("mp-panel-tracks"); if (!p) return;
+  var ver = abrir === undefined ? p.style.display !== "block" : abrir;
+  p.style.display = ver ? "block" : "none";
+  $("mp-tracks").classList.toggle("on", ver && !grab.rc);
 }
 /* v2.73: encuadra todas las zonas de los mapas instalados */
 function verTodosLosMapas() {

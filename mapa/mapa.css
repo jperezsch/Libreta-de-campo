@@ -15,17 +15,33 @@
 .mp-chip.ok{background:var(--verde); color:#fff; border-color:var(--verde);}
 .mp-chip.ambar{background:var(--ambar); color:#fff; border-color:var(--ambar);}
 .mp-chip.rojo{background:var(--rojo); color:#fff; border-color:var(--rojo);}
-#mp-barra{position:absolute; top:8px; left:8px; right:64px; display:flex; gap:6px; flex-wrap:wrap; pointer-events:none; z-index:2;}
-#mp-ctrl{position:absolute; top:8px; right:8px; display:flex; flex-direction:column; gap:8px; z-index:2;}
+#mp-barra{position:absolute; top:8px; left:8px; right:124px; display:flex; gap:6px; flex-wrap:wrap; pointer-events:none; z-index:2;}
+#mp-fila-sup{position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:2;}
+#mp-ctrl{position:absolute; top:68px; right:8px; display:flex; flex-direction:column; align-items:flex-end; gap:6px; z-index:2;}
 
 /* ---- Botones (mismo estilo que los botones de la app: secundario verde con borde, primario verde lleno) ---- */
 .mp-btn{min-width:48px; min-height:48px; padding:0 10px; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-size:.95rem; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.22); cursor:pointer;}
 .mp-btn:active{filter:brightness(.94);}
 .mp-btn.on{background:var(--verde); color:#fff;}
 .mp-btn.chico{font-size:.72rem; min-height:44px;}
-#mp-guardar{position:absolute; left:50%; transform:translateX(-50%); bottom:14px; min-height:52px; padding:0 24px; background:var(--verde); color:#fff; font-size:1rem; box-shadow:0 2px 8px rgba(0,0,0,.35); z-index:2; max-width:calc(100% - 140px); white-space:nowrap;}
-#mp-aviso{position:absolute; left:52px; right:64px; top:46px; background:var(--nota-bg); color:var(--nota-txt); border:1px solid var(--nota-borde); border-radius:10px; padding:9px 10px; font-size:.82rem; display:none; z-index:2;}
-#mp-tarjeta{position:absolute; left:8px; right:64px; bottom:80px; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:12px; box-shadow:0 2px 8px rgba(0,0,0,.35); display:none; z-index:3; font-size:.9rem; max-height:50%; overflow:auto;}
+/* v2.74: botones cuadrados con ícono y rótulo corto */
+.mp-tb{min-width:52px; width:52px; min-height:52px; height:52px; padding:2px 0 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; line-height:1;}
+.mp-tb .i{font-size:1.2rem;}
+.mp-tb .t{font-size:.58rem; font-weight:700; letter-spacing:-.01em; white-space:nowrap;}
+.mp-tb.grabando{background:var(--rojo); border-color:var(--rojo); color:#fff;}
+#mp-tracks-caja{position:absolute; left:8px; bottom:14px; display:flex; flex-direction:column-reverse; align-items:flex-start; gap:6px; z-index:4;}
+#mp-panel-tracks{display:none; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:8px; box-shadow:0 3px 12px rgba(0,0,0,.4); width:200px;}
+#mp-panel-tracks .mp-panel-tit{font-weight:800; font-size:.8rem; margin:0 0 6px; color:var(--verde);}
+#mp-panel-tracks .mp-btn{display:block; width:100%; margin:0 0 6px; text-align:left; font-size:.8rem; min-height:44px;}
+#mp-panel-tracks .mp-btn:last-child{margin-bottom:0;}
+#mp-panel-tracks .mp-btn:disabled{opacity:.5; cursor:default;}
+.mp-gps-btn{position:absolute; right:8px; bottom:14px; width:56px; height:56px; min-width:56px; padding:0; border-radius:50%; font-size:1.6rem; background:var(--verde); color:#fff; border-color:#fff; z-index:2; touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; transition:transform .15s;}
+.mp-gps-btn.sin-gps{background:var(--card); color:var(--verde); border-color:var(--verde); opacity:.85;}
+.mp-gps-btn.pulsando{transform:scale(1.18); box-shadow:0 0 0 6px rgba(46,125,50,.35);}
+.mp-gps-btn.buscando{animation:mpbusca 1s infinite;}
+@keyframes mpbusca{50%{box-shadow:0 0 0 9px rgba(46,125,50,.3);}}
+#mp-aviso{position:absolute; left:52px; right:124px; top:46px; background:var(--nota-bg); color:var(--nota-txt); border:1px solid var(--nota-borde); border-radius:10px; padding:9px 10px; font-size:.82rem; display:none; z-index:2;}
+#mp-tarjeta{position:absolute; left:8px; right:72px; bottom:84px; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:12px; box-shadow:0 2px 8px rgba(0,0,0,.35); display:none; z-index:3; font-size:.9rem; max-height:50%; overflow:auto;}
 #mp-tarjeta b{font-size:1.02rem;}
 #s-mapa .maplibregl-ctrl-bottom-left{bottom:0;}
 #s-mapa .maplibregl-ctrl-bottom-right{bottom:0; right:0;}
@@ -57,7 +73,7 @@
 .mp-chip-btn:active{filter:brightness(.93);}
 .mp-centrar{min-width:40px; min-height:40px; width:40px; height:40px; padding:0; border-radius:50%; font-size:1.15rem; opacity:.9;}
 .mp-btn.chico.on{background:var(--verde); color:#fff;}
-#mp-panel-puntos{position:absolute; top:8px; right:64px; width:min(290px, calc(100% - 76px)); max-height:calc(100% - 100px); overflow:auto; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:10px 12px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:4;}
+#mp-panel-puntos{position:absolute; top:68px; right:66px; width:min(290px, calc(100% - 78px)); max-height:calc(100% - 160px); overflow:auto; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:10px 12px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:4;}
 .mp-panel-cab{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
 .mp-panel-x{background:none; border:0; color:var(--texto-sec); font-size:1.1rem; min-width:36px; min-height:36px; cursor:pointer;}
 .mp-panel-grupo{font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--texto-sec); margin:10px 0 2px;}
@@ -131,7 +147,7 @@
 #mp-bq-btn svg{position:absolute; inset:0;}
 #mp-bq-ic{position:relative; font-size:2.2rem; filter:grayscale(1) brightness(.7);}
 #mp-bq-ayuda{font-size:.82rem; color:#5f5f5f; max-width:260px;}
-#mp-pantalla{white-space:pre-line; line-height:1.15;}
+#mp-pantalla{line-height:1.15;}
 
 /* v2.58: buscador del catálogo de mapas, destacado y fijo arriba */
 .mp-busca{position:sticky; top:0; z-index:2; background:var(--card); border:2px solid var(--verde); border-radius:var(--radio); padding:10px 12px; margin:0 0 12px; box-shadow:0 2px 8px rgba(0,0,0,.25);}
