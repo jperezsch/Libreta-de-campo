@@ -1044,6 +1044,19 @@ function rutaBase() { return location.origin + location.pathname.replace(/[^\/]*
 function vis(c) { return capasVis[c] ? "visible" : "none"; }
 /* v2.72: nombres de lugares (toponimia) visibles por defecto; fondo satelital opcional (necesita conexión) */
 function visTopo() { return capasVis.topo !== false; }
+/* v2.73: color de las curvas de nivel elegible. "auto" usa marrón sobre el mapa y amarillo sobre el satélite. */
+var CURVAS_COLORES = {
+  marron: { rot: "Marrón", c: "#8a5a2b", t: "#6d4520", h: "#ffffff" },
+  blanco: { rot: "Blanco", c: "#ffffff", t: "#ffffff", h: "rgba(0,0,0,0.75)" },
+  amarillo: { rot: "Amarillo", c: "#ffd54f", t: "#ffe082", h: "rgba(0,0,0,0.75)" },
+  naranja: { rot: "Naranja", c: "#ff9800", t: "#ffb74d", h: "rgba(0,0,0,0.75)" },
+  negro: { rot: "Negro", c: "#222222", t: "#222222", h: "#ffffff" }
+};
+function paletaCurvas(sat) {
+  var k = capasVis.curvasColor;
+  if (!k || k === "auto" || !CURVAS_COLORES[k]) k = sat ? "amarillo" : "marron";
+  return CURVAS_COLORES[k];
+}
 var LS_FONDO = "libretacampo_mapa_fondo_v1";
 var fondoSat = leerJSON(LS_FONDO, "mapa") === "sat";
 function satActivo() { return fondoSat && online; }
@@ -1145,6 +1158,29 @@ function capasToponimia(k, sat) {
       paint: { "text-color": colTxt, "text-halo-color": halo, "text-halo-width": 1.5 } }
   ];
 }
+/* v2.73: zona de cada mapa instalado, visible desde lejos (recuadro, punto central y nombre) para ubicarlos en la vista general */
+var COL_AREA = "#00838f";
+function geoAreas() {
+  var fs = [];
+  mapasOrdenados().forEach(function (m) {
+    var a = m.area; if (!a || a.length !== 4) return;
+    fs.push({ type: "Feature", properties: { id: m.id, nombre: nombreCorto(m.nombre) }, geometry: { type: "Polygon", coordinates: [[[a[0], a[1]], [a[2], a[1]], [a[2], a[3]], [a[0], a[3]], [a[0], a[1]]]] } });
+    fs.push({ type: "Feature", properties: { id: m.id, nombre: nombreCorto(m.nombre), centro: 1 }, geometry: { type: "Point", coordinates: [(a[0] + a[2]) / 2, (a[1] + a[3]) / 2] } });
+  });
+  return { type: "FeatureCollection", features: fs };
+}
+function capasAreas() {
+  var ES_POL = ["==", ["geometry-type"], "Polygon"], ES_PTO = ["==", ["geometry-type"], "Point"];
+  return [
+    { id: "areas-relleno", type: "fill", source: "areas", filter: ES_POL, paint: { "fill-color": COL_AREA, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0.3, 10, 0.14, 13, 0] } },
+    { id: "areas-borde-base", type: "line", source: "areas", filter: ES_POL, paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 4, 4, 12, 6], "line-opacity": 0.85 } },
+    { id: "areas-borde", type: "line", source: "areas", filter: ES_POL, paint: { "line-color": COL_AREA, "line-width": ["interpolate", ["linear"], ["zoom"], 4, 2, 12, 3], "line-dasharray": [3, 2] } },
+    { id: "areas-centro", type: "circle", source: "areas", filter: ES_PTO, maxzoom: 11, paint: { "circle-radius": 8, "circle-color": COL_AREA, "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 } },
+    { id: "areas-texto", type: "symbol", source: "areas", filter: ES_PTO, maxzoom: 14,
+      layout: { "text-field": ["get", "nombre"], "text-font": ["NotoSans-Medium"], "text-size": 13, "text-anchor": "top", "text-offset": [0, 1.2], "text-allow-overlap": true, "text-max-width": 10 },
+      paint: { "text-color": "#004d55", "text-halo-color": "#ffffff", "text-halo-width": 2.2 } }
+  ];
+}
 function construirEstilo(sinMapas) {
   var estilo = { version: 8, glyphs: rutaBase() + RUTA_MAPA + "fuentes/{fontstack}/{range}.pbf", sources: {}, layers: [] };
   var ms = sinMapas ? [] : mapasOrdenados();
@@ -1162,10 +1198,10 @@ function construirEstilo(sinMapas) {
     extra.push({ id: "relieve-sombra", type: "hillshade", source: "dem", layout: { visibility: vis("sombra") },
       paint: { "hillshade-exaggeration": 0.5, "hillshade-shadow-color": "#3b3f45", "hillshade-highlight-color": "#ffffff", "hillshade-accent-color": "#6b7078" } });
     extra.push({ id: "curvas-linea", type: "line", source: "curvas", "source-layer": "contours", layout: { visibility: vis("curvas") },
-      paint: { "line-color": "#8a5a2b", "line-opacity": 0.75, "line-width": ["match", ["get", "level"], 1, 1.4, 0.6] } });
+      paint: { "line-color": paletaCurvas(sat).c, "line-opacity": sat ? 0.95 : 0.75, "line-width": sat ? ["match", ["get", "level"], 1, 1.7, 0.9] : ["match", ["get", "level"], 1, 1.4, 0.6] } });
     etiquetas.push({ id: "curvas-texto", type: "symbol", source: "curvas", "source-layer": "contours", filter: [">", ["get", "level"], 0],
       layout: { visibility: vis("curvas"), "symbol-placement": "line", "text-field": ["concat", ["to-string", ["get", "ele"]], " m"], "text-font": ["NotoSans-Regular"], "text-size": 11 },
-      paint: { "text-color": "#6d4520", "text-halo-color": "#ffffff", "text-halo-width": 1.5 } });
+      paint: { "text-color": paletaCurvas(sat).t, "text-halo-color": paletaCurvas(sat).h, "text-halo-width": 1.5 } });
   }
   if (bases.length) {
     bases.forEach(function (m, k) {
@@ -1197,6 +1233,7 @@ function construirEstilo(sinMapas) {
   } else {
     capas = [{ id: "fondo", type: "background", paint: { "background-color": "#eef0ec" } }].concat(sat ? [capaSat] : [], extra, etiquetas);
   }
+  if (!sinMapas && ms.length) { estilo.sources.areas = { type: "geojson", data: geoAreas() }; capas = capas.concat(capasAreas()); }
   estilo.sources.capas = { type: "geojson", data: geoCapas() };
   var COL = ["match", ["get", "_origen"], "local", COL_LOC, COL_CAT];
   capas.push({ id: "capas-pol-relleno", type: "fill", source: "capas", filter: filtroCapas("capas-pol-relleno"), paint: { "fill-color": COL, "fill-opacity": 0.07 } });
@@ -1290,6 +1327,10 @@ function crearMapa() {
     cerrarPanelPuntos();
     if (resaltado) ponerResaltado(null);
     var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
+    if (map.getLayer("areas-centro")) {
+      var fa = map.queryRenderedFeatures(caja, { layers: ["areas-centro"] });
+      if (fa.length && inst[fa[0].properties.id]) { enfocarArea(inst[fa[0].properties.id].area, true); return; }
+    }
     var lp = ["puntos-circ", "puntos-nota"].filter(function (l) { return map.getLayer(l); });
     if (lp.length) {
       var fs = map.queryRenderedFeatures(caja, { layers: lp });
@@ -2156,6 +2197,18 @@ function renderGestor() {
     };
     cu.appendChild(chk("sombra", "Sombreado del relieve", tieneRel));
     cu.appendChild(chk("curvas", "Curvas de nivel (calculadas en el teléfono)", tieneRel));
+    var selCurv = el("select", { id: "mp-curvas-color" });
+    selCurv.appendChild(el("option", { value: "auto", texto: "Automático (marrón en el mapa, amarillo en el satélite)" }));
+    Object.keys(CURVAS_COLORES).forEach(function (k) { selCurv.appendChild(el("option", { value: k, texto: CURVAS_COLORES[k].rot })); });
+    selCurv.value = capasVis.curvasColor && CURVAS_COLORES[capasVis.curvasColor] ? capasVis.curvasColor : "auto";
+    selCurv.onchange = function () {
+      capasVis.curvasColor = selCurv.value; guardarJSON(LS_CAPAS, capasVis);
+      if (!map || !mapaListo) return;
+      var pal = paletaCurvas(satActivo());
+      if (map.getLayer("curvas-linea")) map.setPaintProperty("curvas-linea", "line-color", pal.c);
+      if (map.getLayer("curvas-texto")) { map.setPaintProperty("curvas-texto", "text-color", pal.t); map.setPaintProperty("curvas-texto", "text-halo-color", pal.h); }
+    };
+    cu.appendChild(el("div", { class: "field" }, [el("label", { texto: "Color de las curvas de nivel", for: "mp-curvas-color" }), selCurv]));
     cu.appendChild(chk("topo", "Nombres de lugares (poblados, áreas protegidas, cerros y puntos de interés)", true));
     if (!tieneRel) cu.appendChild(el("p", { class: "mp-suave", texto: "Ninguno de los mapas instalados trae relieve." }));
     cu.appendChild(el("h3", { texto: "Capas de los mapas", style: "margin:16px 0 6px;font-size:1rem;" }));
@@ -2273,6 +2326,7 @@ function construirPantalla() {
       '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
       '<button type="button" class="mp-btn chico" id="mp-sat">🛰️ Satélite</button>' +
+      '<button type="button" class="mp-btn chico" id="mp-todos">🧭 Ver mis mapas</button>' +
       '<button type="button" class="mp-btn chico" id="mp-grabar">⏺ Grabar</button>' +
       '<button type="button" class="mp-btn chico" id="mp-bloqueo" style="display:none">🔒 Bloqueo</button>' +
       '<button type="button" class="mp-btn chico" id="mp-pantalla">🔆 Pantalla</button>' +
@@ -2293,6 +2347,7 @@ function construirPantalla() {
   $("mp-puntos").onclick = alternarPanelPuntos;
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
+  $("mp-todos").onclick = verTodosLosMapas;
   $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-guardar").onclick = guardarPuntoAqui;
   $("mp-volver-reg").onclick = volverAlRegistro;
@@ -2315,6 +2370,13 @@ function botonSatelite() {
 function satRefrescar() {
   botonSatelite();
   if (map && mapaListo && LC && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas();
+}
+/* v2.73: encuadra todas las zonas de los mapas instalados */
+function verTodosLosMapas() {
+  var as = mapasOrdenados().map(function (m) { return m.area; }).filter(function (a) { return a && a.length === 4; });
+  if (!as.length || !map) { LC.toast("No hay mapas instalados"); return; }
+  var b = as.reduce(function (r, a) { return [Math.min(r[0], a[0]), Math.min(r[1], a[1]), Math.max(r[2], a[2]), Math.max(r[3], a[3])]; }, as[0].slice());
+  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 50, duration: 700, maxZoom: 12 });
 }
 function alternarSatelite() {
   if (!fondoSat && !online) { LC.toast("El satélite necesita conexión a internet"); return; }
