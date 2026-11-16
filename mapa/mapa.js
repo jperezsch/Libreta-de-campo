@@ -1042,6 +1042,13 @@ function gpsApagar(olvidar) {
 /* ---------- estilo y mapa ---------- */
 function rutaBase() { return location.origin + location.pathname.replace(/[^\/]*$/, ""); }
 function vis(c) { return capasVis[c] ? "visible" : "none"; }
+/* v2.72: nombres de lugares (toponimia) visibles por defecto; fondo satelital opcional (necesita conexión) */
+function visTopo() { return capasVis.topo !== false; }
+var LS_FONDO = "libretacampo_mapa_fondo_v1";
+var fondoSat = leerJSON(LS_FONDO, "mapa") === "sat";
+function satActivo() { return fondoSat && online; }
+var URL_SAT = "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+var ATTR_SAT = '<a href="https://www.esri.com/" target="_blank" rel="noopener">Imagen © Esri, Maxar, Earthstar Geographics</a>';
 function visSesion(id) { return !(capasVis.sesiones && capasVis.sesiones[id] === false); }
 function visReg(id) { return !(capasVis.regs && capasVis.regs[id] === false); }
 function idsOcultos() { return Object.keys(capasVis.regs || {}).filter(function (k) { return capasVis.regs[k] === false; }); }
@@ -1102,15 +1109,51 @@ function aplicarFiltroPuntos() {
 var ATTR_OSM = '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>';
 var ATTR_REL = '<a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener">Relieve: Mapterhorn</a>';
 function mapasOrdenados() { return Object.keys(inst).sort().map(function (id) { return inst[id]; }); }
-function firmaMapas() { return Object.keys(inst).sort().map(function (id) { return id + "@" + inst[id].version + "@" + inst[id].fecha; }).join("|"); }
+function firmaMapas() { return Object.keys(inst).sort().map(function (id) { return id + "@" + inst[id].version + "@" + inst[id].fecha; }).join("|") + (satActivo() ? "|sat" : ""); }
 /* v2.47: el estilo junta TODOS los mapas instalados. Cada mapa aporta su fuente "base<k>" y una copia de las capas del estilo base
    (intercaladas por orden, para que el apilado sea correcto entre mapas vecinos). El relieve y las curvas son una sola fuente que lee de todos los paquetes. */
+/* v2.72: toponimia. Los paquetes ya traen los nombres (capas "places" y "pois"); aquí se dibujan: localidades, áreas protegidas, cerros y puntos de interés. */
+var TOPO_NAT = ["nature_reserve", "national_park", "protected_area", "park", "forest", "garden", "beach", "wetland", "picnic_site", "camp_site"];
+var TOPO_CERRO = ["peak", "volcano", "viewpoint", "saddle"];
+var TOPO_AGUA = ["marina", "slipway", "swimming_area", "fishing", "drinking_water", "water_point", "watering_place"];
+function capasToponimia(k, sat) {
+  var suf = k > 0 ? "~" + k : "", src = "base" + k;
+  var ref = ESTILO_BASE.filter(function (l) { return l.id === "places_subplace"; })[0];
+  var NOM = (ref && ref.layout && ref.layout["text-field"]) || ["coalesce", ["get", "name:es"], ["get", "name"]];
+  var v = visTopo() ? "visible" : "none";
+  var kd = ["get", "kind_detail"], kind = ["get", "kind"];
+  var esCiudad = ["in", kd, ["literal", ["city", "town"]]];
+  var colTxt = sat ? "#ffffff" : ["case", ["in", kind, ["literal", TOPO_NAT]], "#1e5e22", ["in", kind, ["literal", TOPO_CERRO]], "#6d4520", ["in", kind, ["literal", TOPO_AGUA]], "#16578f", "#41505a"];
+  var colPunto = ["case", ["in", kind, ["literal", TOPO_NAT]], "#2e7d32", ["in", kind, ["literal", TOPO_CERRO]], "#8a5a2b", ["in", kind, ["literal", TOPO_AGUA]], "#1f6fb2", "#5f6b73"];
+  var halo = sat ? "rgba(0,0,0,0.8)" : "#ffffff";
+  var visibleDesde = [">=", ["zoom"], ["+", ["get", "min_zoom"], 0]];
+  var fPoi = ["all", visibleDesde, ["any", ["has", "name"], ["in", kind, ["literal", TOPO_CERRO]]]];
+  return [
+    { id: "topo-localidades" + suf, type: "symbol", source: src, "source-layer": "places", minzoom: 7, filter: ["==", kind, "locality"],
+      layout: { visibility: v, "text-field": NOM, "symbol-sort-key": ["coalesce", ["get", "sort_key"], ["get", "min_zoom"], 0], "text-padding": 4,
+        "text-font": ["case", esCiudad, ["literal", ["NotoSans-Medium"]], ["literal", ["NotoSans-Regular"]]],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 7, ["case", esCiudad, 12, 10], 14, ["case", esCiudad, 17, ["==", kd, "village"], 14, 12.5]] },
+      paint: { "text-color": sat ? "#ffffff" : "#1f2a30", "text-halo-color": halo, "text-halo-width": 1.6 } },
+    { id: "topo-poi-punto" + suf, type: "circle", source: src, "source-layer": "pois", minzoom: 11, filter: fPoi,
+      layout: { visibility: v },
+      paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 2.5, 16, 4.5], "circle-color": colPunto, "circle-stroke-color": "#ffffff", "circle-stroke-width": 1 } },
+    { id: "topo-poi-texto" + suf, type: "symbol", source: src, "source-layer": "pois", minzoom: 11, filter: ["all", visibleDesde, ["has", "name"]],
+      layout: { visibility: v, "text-field": NOM, "symbol-sort-key": ["get", "min_zoom"], "text-max-width": 8,
+        "text-font": ["case", ["in", kind, ["literal", TOPO_NAT]], ["literal", ["NotoSans-Italic"]], ["literal", ["NotoSans-Regular"]]],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10, 17, 13],
+        "text-variable-anchor": ["top", "bottom", "left", "right"], "text-radial-offset": 0.7 },
+      paint: { "text-color": colTxt, "text-halo-color": halo, "text-halo-width": 1.5 } }
+  ];
+}
 function construirEstilo(sinMapas) {
   var estilo = { version: 8, glyphs: rutaBase() + RUTA_MAPA + "fuentes/{fontstack}/{range}.pbf", sources: {}, layers: [] };
   var ms = sinMapas ? [] : mapasOrdenados();
   var bases = ms.filter(function (m) { return archivoTipo(m, "base"); });
   var rels = ms.filter(function (m) { return archivoTipo(m, "relieve"); });
-  var capas = [], extra = [], etiquetas = [];
+  var capas = [], extra = [], etiquetas = [], topo = [];
+  var sat = satActivo();
+  if (sat) estilo.sources.sat = { type: "raster", tiles: [URL_SAT], tileSize: 256, maxzoom: 19, attribution: ATTR_SAT };
+  var capaSat = { id: "satelite", type: "raster", source: "sat", paint: { "raster-fade-duration": 0 } };
   if (rels.length) {
     estilo.sources.dem = { type: "raster-dem", tiles: [demSource.sharedDemProtocolUrl], tileSize: 512, maxzoom: 12, encoding: "terrarium", attribution: ATTR_REL };
     estilo.sources.curvas = { type: "vector", maxzoom: 15, tiles: [demSource.contourProtocolUrl({
@@ -1130,6 +1173,7 @@ function construirEstilo(sinMapas) {
       if (k === 0) fu.attribution = ATTR_OSM;
       estilo.sources["base" + k] = fu;
     });
+    if (sat) extra = extra.filter(function (x) { return x.id !== "relieve-sombra"; });   /* la imagen ya trae su propio relieve */
     var idx = ESTILO_BASE.length;
     for (var i = 0; i < ESTILO_BASE.length; i++) { if (ESTILO_BASE[i].type === "line" && !/^water/.test(ESTILO_BASE[i].id)) { idx = i; break; } }
     for (var j = 0; j < ESTILO_BASE.length; j++) {
@@ -1137,16 +1181,21 @@ function construirEstilo(sinMapas) {
       bases.forEach(function (m, k) {
         var L = ESTILO_BASE[j];
         if (L.type === "background" && k > 0) return;
+        if (sat && L.type === "fill") return;   /* con satélite se quitan los rellenos; quedan caminos, ríos y nombres encima */
         var c = JSON.parse(JSON.stringify(L));
+        if (L.id === "water_waterway_label") c.minzoom = 11;   /* v2.72: nombres de quebradas y ríos desde más lejos */
+        if (sat && L.type === "symbol") c.paint = Object.assign({}, c.paint, { "text-color": "#ffffff", "text-halo-color": "rgba(0,0,0,0.8)", "text-halo-width": 1.6 });
         if (L.source === "base") c.source = "base" + k;
         if (k > 0) c.id = L.id + "~" + k;
         capas.push(c);
+        if (L.type === "background" && k === 0 && sat) capas.push(capaSat);
       });
     }
     if (idx >= ESTILO_BASE.length) capas = capas.concat(extra);
-    capas = capas.concat(etiquetas);
+    bases.forEach(function (m, k) { topo = topo.concat(capasToponimia(k, sat)); });
+    capas = capas.concat(etiquetas, topo);
   } else {
-    capas = [{ id: "fondo", type: "background", paint: { "background-color": "#eef0ec" } }].concat(extra, etiquetas);
+    capas = [{ id: "fondo", type: "background", paint: { "background-color": "#eef0ec" } }].concat(sat ? [capaSat] : [], extra, etiquetas);
   }
   estilo.sources.capas = { type: "geojson", data: geoCapas() };
   var COL = ["match", ["get", "_origen"], "local", COL_LOC, COL_CAT];
@@ -2094,18 +2143,20 @@ function renderGestor() {
   } else if (vistaGestor === "capas") {
     var tieneRel = relieveNombres.length > 0 || mapasOrdenados().some(function (m) { return archivoTipo(m, "relieve"); });
     var chk = function (clave, texto, habil) {
-      var inp = el("input", { type: "checkbox" }); inp.checked = !!capasVis[clave]; if (!habil) inp.disabled = true;
+      var inp = el("input", { type: "checkbox" }); inp.checked = clave === "topo" ? visTopo() : !!capasVis[clave]; if (!habil) inp.disabled = true;
       inp.onchange = function () {
         capasVis[clave] = inp.checked; guardarJSON(LS_CAPAS, capasVis);
         var v = inp.checked ? "visible" : "none";
         if (!map || !mapaListo) return;
         if (clave === "sombra" && map.getLayer("relieve-sombra")) map.setLayoutProperty("relieve-sombra", "visibility", v);
         if (clave === "curvas") ["curvas-linea", "curvas-texto"].forEach(function (id) { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", v); });
+        if (clave === "topo") map.getStyle().layers.forEach(function (l) { if (/^topo-/.test(l.id)) map.setLayoutProperty(l.id, "visibility", v); });
       };
       return el("label", { class: "mp-chk" }, [inp, el("span", { texto: texto })]);
     };
     cu.appendChild(chk("sombra", "Sombreado del relieve", tieneRel));
     cu.appendChild(chk("curvas", "Curvas de nivel (calculadas en el teléfono)", tieneRel));
+    cu.appendChild(chk("topo", "Nombres de lugares (poblados, áreas protegidas, cerros y puntos de interés)", true));
     if (!tieneRel) cu.appendChild(el("p", { class: "mp-suave", texto: "Ninguno de los mapas instalados trae relieve." }));
     cu.appendChild(el("h3", { texto: "Capas de los mapas", style: "margin:16px 0 6px;font-size:1rem;" }));
     if (!Object.keys(inst).length) cu.appendChild(el("p", { class: "mp-suave", texto: "Instala un mapa para ver o importar sus capas." }));
@@ -2221,6 +2272,7 @@ function construirPantalla() {
     '<div id="mp-ctrl">' +
       '<button type="button" class="mp-btn chico" id="mp-puntos">Mis puntos</button>' +
       '<button type="button" class="mp-btn chico" id="mp-mapas">Mapas</button>' +
+      '<button type="button" class="mp-btn chico" id="mp-sat">🛰️ Satélite</button>' +
       '<button type="button" class="mp-btn chico" id="mp-grabar">⏺ Grabar</button>' +
       '<button type="button" class="mp-btn chico" id="mp-bloqueo" style="display:none">🔒 Bloqueo</button>' +
       '<button type="button" class="mp-btn chico" id="mp-pantalla">🔆 Pantalla</button>' +
@@ -2240,6 +2292,7 @@ function construirPantalla() {
   $("mp-centrar").onclick = function () { if (gps.fix && map) map.easeTo({ center: [gps.fix.lng, gps.fix.lat], zoom: Math.max(map.getZoom(), 16), duration: 400 }); };
   $("mp-puntos").onclick = alternarPanelPuntos;
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
+  $("mp-sat").onclick = alternarSatelite; botonSatelite();
   $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-guardar").onclick = guardarPuntoAqui;
   $("mp-volver-reg").onclick = volverAlRegistro;
@@ -2251,6 +2304,23 @@ function construirPantalla() {
   $("mp-chip-rec").onclick = function () { LC.abrirRegistro(); };   /* vuelve a la Observación que se está grabando */
   $("mp-norte").onclick = function () { if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
   $("mp-rumbo").onclick = function () { if (rumbo.activo) apagarRumbo(true); else encenderRumbo(); };
+}
+
+/* v2.72: fondo satelital (Esri World Imagery), solo con conexión. Sin conexión vuelve solo al mapa guardado. */
+function botonSatelite() {
+  var b = $("mp-sat"); if (!b) return;
+  b.classList.toggle("on", satActivo());
+  b.textContent = fondoSat && !online ? "🛰️ Sin señal" : "🛰️ Satélite";
+}
+function satRefrescar() {
+  botonSatelite();
+  if (map && mapaListo && LC && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas();
+}
+function alternarSatelite() {
+  if (!fondoSat && !online) { LC.toast("El satélite necesita conexión a internet"); return; }
+  fondoSat = !fondoSat; guardarJSON(LS_FONDO, fondoSat ? "sat" : "mapa");
+  LC.toast(fondoSat ? "🛰️ Fondo satelital (necesita señal)" : "Fondo: mapa guardado");
+  satRefrescar();
 }
 
 async function precargarArchivos() {
@@ -2271,8 +2341,8 @@ function alDesactivar() {
 
 async function init(lc) {
   LC = lc;
-  window.addEventListener("online", function () { online = true; chipMapa(); cargarCatalogo().then(refrescarUI); });
-  window.addEventListener("offline", function () { online = false; chipMapa(); refrescarUI(); });
+  window.addEventListener("online", function () { online = true; chipMapa(); cargarCatalogo().then(refrescarUI); satRefrescar(); });
+  window.addEventListener("offline", function () { online = false; chipMapa(); refrescarUI(); satRefrescar(); });
   if (!LISTO) return;
   construirPantalla();
   estiloPromesa = fetch(RUTA_MAPA + "estilo-base.json").then(function (r) { return r.json(); }).then(function (j) { ESTILO_BASE = j; }).catch(function (e) { anotarError("estilo", e); });
