@@ -658,6 +658,108 @@ body.modo-visor #btn-reactivar-sesion, body.modo-visor #btn-guardar-sesion, body
 body.modo-visor .btn-restaurar-orden, body.modo-visor #btn-consulta-editar,
 body.modo-visor [data-vj-acc="activar"], body.modo-visor [data-vj-acc="nota"], body.modo-visor #btn-bit-nota,
 body.modo-visor #btn-bit-exportar-zip{display:none !important;}
+
+/* ================= v2.68 · Sistema visual unificado =================
+   Jerarquía: pantalla (topbar) > bloque titulado (section-title con ícono) > Proyecto (banda verde oscuro)
+   > Sesión (banda verde claro) > Registro (tarjeta blanca). Texto mínimo .78rem (14 px), cuerpo 1rem. */
+:root{--vj-bg:var(--verde-osc); --vj-tx:#fff;}
+html[data-tema="noche"]{--vj-bg:#2b4a39; --vj-tx:#e8e5da;}
+.topbar h2{font-size:1.15rem;}
+.app-title{font-size:1.3rem;}
+.topbar .sub{font-size:.8rem;}
+.section-title{font-size:.88rem;}
+.section-title .n{width:26px; height:26px; font-size:.85rem;}
+.bloque-titulo{font-size:.88rem;}
+.bloque-subtitulo{font-size:.82rem; margin:14px 0 8px;}
+.bloque-subtitulo:first-child{margin-top:0;}
+.bloque .section-title{margin:2px 0 14px;}
+.field label{font-size:.84rem;}
+.campo-ayuda{font-size:.78rem;}
+.mini-btn{font-size:.82rem; padding:6px 12px; border-radius:14px; min-height:34px;}
+.mini-btn:disabled{opacity:.5;}
+.btn-menu{width:36px; height:34px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:1.25rem; line-height:1; font-weight:800; cursor:pointer; padding:0 0 4px; flex:none;}
+/* Registros: jerarquía Proyecto > Sesión > Registro */
+.viaje-header{display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--vj-bg); border:none; border-radius:12px; padding:11px 12px; margin:18px 0 8px; color:var(--vj-tx); box-shadow:var(--sombra);}
+.viaje-header .vj-titulo{flex:1; min-width:140px; font-size:1.16rem; font-weight:800; line-height:1.25; overflow-wrap:anywhere;}
+.viaje-header .vj-cnt, .viaje-header .cnt{font-weight:400; font-size:.82rem; color:inherit; opacity:.85;}
+.vj-acciones{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+.viaje-header .mini-btn{background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.55); color:var(--vj-tx);}
+.viaje-header .mini-btn.on{background:#fff; color:#1e4029; border-color:#fff;}
+html[data-tema="noche"] .viaje-header .mini-btn.on{background:var(--verde); color:#10140f; border-color:var(--verde);}
+.viaje-header .btn-menu{background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.55); color:var(--vj-tx);}
+.viaje-sin{background:var(--verde-cl); color:var(--texto-sec); box-shadow:none; border:1.5px solid var(--borde);}
+.viaje-sin .vj-titulo{font-size:1.05rem;}
+.viaje-sesiones{margin-left:6px; padding-left:8px; border-left:3px solid var(--vj-bg);}
+.narr-sesion-header{align-items:center; flex-wrap:wrap; margin-top:18px; padding:9px 10px 9px 12px; row-gap:6px;}
+.narr-sesion-titulo{font-size:1.06rem; padding-top:0; flex:1 1 100%;}
+.narr-sesion-titulo .cnt{font-weight:400; color:var(--texto-sec); font-size:.9rem;}
+.narr-sesion-acciones{flex-direction:row; flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:6px; max-width:100%;}
+.btn-colapsar-sesion, .btn-finalizar-sesion-inline, .btn-restaurar-orden{font-size:.8rem; padding:6px 11px; border-radius:14px; min-height:34px;}
+.reg-title{font-size:.98rem;}
+.reg-meta{font-size:.84rem;}
+.reg-toolbar{display:flex; gap:8px; margin:0 0 10px;}
+.reg-toolbar .mini-btn{flex:1; min-height:38px; font-weight:700;}
+.reg-toolbar .mini-btn.on{background:var(--verde); color:#fff; border-color:var(--verde);}
+.filtros-det summary{font-size:.92rem;}
+.filtros-fila{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:2px 0 10px;}
+.filtros-rotulo{font-size:.82rem; color:var(--texto-sec); width:100%;}
+.card .reg-sel{width:24px; height:24px; flex:none; align-self:center;}
+.card.sel{background:var(--verde-cl); box-shadow:0 0 0 2px var(--verde);}
+.selbar{position:fixed; left:0; right:0; bottom:70px; display:none; align-items:center; gap:8px; padding:10px 12px; background:var(--card); border-top:2px solid var(--verde); z-index:26;}
+.selbar.on{display:flex;}
+.selbar{flex-wrap:wrap;}
+.selbar-n{flex:1 1 100%; min-width:0; font-weight:800; font-size:.9rem; color:var(--verde-osc);}
+.selbar-b{flex:1; padding:8px 10px; border-radius:12px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde-osc); font-weight:700; font-size:.84rem; cursor:pointer;}
+.selbar-b.peligro{border-color:var(--rojo); color:var(--rojo);}
+.selbar-b:disabled{opacity:.45;}
+.sesion-recs{margin:0 0 10px 4px; padding:6px 10px 8px; background:var(--card); border:1px solid var(--borde); border-radius:10px;}
+.sesion-recs .gestion-sub{margin:6px 0 4px;}
+.sesion-recs .gestion-rec:last-child{border-bottom:none;}
+.sesion-vacia{font-size:.86rem; color:var(--texto-sec); padding:4px 4px 10px;}
+.gestion-rec{font-size:.86rem;}
+.gestion-sub{font-size:.82rem;}
+.gestion-ayuda{font-size:.8rem;}
+.gestion-contador, .gestion-vacio{font-size:.82rem;}
+/* Avisos de mantenimiento (banda en Registros) */
+.aviso{background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:12px; padding:14px; margin:0 0 12px;}
+html[data-tema="noche"] .aviso{background:#2a2014;}
+.aviso-t{font-weight:800; color:var(--ambar-osc); margin-bottom:6px; font-size:.98rem;}
+/* Menú de acciones */
+.mm-item{display:block; width:100%; padding:14px; margin:0 0 8px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:1rem; font-weight:700; text-align:left; cursor:pointer;}
+.mm-item.peligro{color:var(--rojo); border-color:var(--rojo);}
+.mg-check-lab{display:flex; align-items:center; gap:10px; font-size:.95rem; text-transform:none; font-weight:600; color:var(--texto);}
+.mg-check-lab input{width:22px; height:22px; flex:none;}
+/* Exportar */
+.exp-atajos{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px;}
+.exp-atajos .mini-btn.on{background:var(--verde); color:#fff; border-color:var(--verde);}
+.sesion-exportar-card{border-radius:12px;}
+.sesion-exportar-header{cursor:pointer; padding:12px 14px;}
+.sesion-exportar-header input[type=checkbox]{width:22px; height:22px;}
+.sesion-exportar-label{font-size:.98rem; line-height:1.3;}
+.sesion-exportar-label .cnt{font-weight:400; color:var(--texto-sec); font-size:.86rem;}
+.sesion-exportar-card.viaje-card{background:var(--vj-bg); border-color:var(--vj-bg); color:var(--vj-tx); margin-top:14px;}
+.viaje-card .sesion-exportar-label{font-size:1.1rem; font-weight:800;}
+.viaje-card .sesion-exportar-label .cnt{color:inherit; opacity:.85;}
+.viaje-card .badge-activa{background:#fff; color:#1e4029;}
+.badge-activa{font-size:.72rem;}
+.gestion-fila{font-size:.9rem; cursor:pointer;}
+.gestion-fila input[type=checkbox]{width:20px; height:20px;}
+.exp-sueltos-resumen{font-size:.88rem;}
+.exp-sueltos-resumen button{font-size:.84rem;}
+.stat .l{font-size:.8rem;}
+.stat .n{font-size:1.6rem;}
+.dwc-par .btnfull{font-size:.9rem;}
+.btnfull{font-size:1rem;}
+/* Config */
+details.cfg-bloque{background:var(--card); border:1.5px solid var(--borde); border-left:5px solid var(--verde); border-radius:var(--radio); margin:0 0 14px; padding:0 14px; box-shadow:var(--sombra);}
+details.cfg-bloque > summary{display:flex; align-items:center; gap:7px; font-size:.88rem; text-transform:uppercase; letter-spacing:.4px; color:var(--verde-osc); font-weight:800; padding:14px 0;}
+details.cfg-bloque > summary > .n, .section-title .n{width:26px; height:26px; border-radius:50%; background:var(--verde); color:#fff; font-size:.85rem; display:inline-flex; align-items:center; justify-content:center; flex:none; letter-spacing:0;}
+details.cfg-bloque > summary::after{margin-left:auto;}
+details.cfg-bloque[open] > summary{border-bottom:1px solid var(--borde); margin-bottom:12px;}
+.version-info{font-size:.82rem;}
+/* modo "Consultar respaldo": sin acciones de edición en los menús ni en las herramientas de Registros */
+body.modo-visor #btn-seleccionar, body.modo-visor #btn-reg-nuevo-viaje, body.modo-visor .btn-menu-sesion, body.modo-visor #registros-avisos, body.modo-visor #selbar,
+body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="borrar"]{display:none !important;}
 </style>
 </head>
 <body>
@@ -678,8 +780,8 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
   </div>
   <div class="pad">
     <div class="bloque" id="bloque-sesion-principal">
+      <div class="section-title"><span class="n">🧭</span>Sesión actual</div>
       <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
-      <div class="bloque-subtitulo">Sesión actual</div>
       <div class="field"><select id="ss-selector-sesion"></select><span class="campo-ayuda">🟢 = sesión activa (donde se guardan los registros nuevos) · 📁 = sesión archivada · 🆕 = sesión nueva sin guardar</span></div>
       <div class="sesion-acciones-fila" id="sesion-acciones-fila">
         <button type="button" class="btnfull btn-secondary" id="btn-reactivar-sesion" style="display:none;">▶️ Reactivar sesión</button>
@@ -695,7 +797,7 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
     </div>
 
     <div class="bloque" id="bloque-sesion-numeracion">
-      <div class="bloque-titulo">Numeración automática</div>
+      <div class="section-title"><span class="n">🔢</span>Numeración automática</div>
     <div class="row2">
       <div class="field"><label>Acrónimo / prefijo</label><input type="text" id="ss-prefijo" list="dl-ss-prefijo"><datalist id="dl-ss-prefijo"></datalist><span class="campo-ayuda" id="ss-prefijo-hint"></span></div>
       <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Número del próximo registro. Cámbialo si tu libreta manuscrita va en otro número.</span></div>
@@ -704,7 +806,7 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
     </div>
 
     <div class="bloque" id="bloque-sesion-otros">
-      <div class="bloque-titulo">Otros datos de la sesión</div>
+      <div class="section-title"><span class="n">📋</span>Otros datos de la sesión</div>
     <div class="field"><label>Objetivo</label><input type="text" id="ss-objetivo" spellcheck="true" list="dl-ss-objetivo"><datalist id="dl-ss-objetivo"></datalist></div>
     <div class="field"><label>Hábitat general</label>
       <select id="ss-habitat">
@@ -733,7 +835,7 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
       <span class="campo-ayuda">Se asigna a cada registro nuevo de Recolección y Observación. Si cambia durante la salida, cámbialo aquí.</span>
     </div>
 
-    <div class="section-title">Contexto adicional</div>
+    <div class="bloque-subtitulo" style="margin-top:14px;">Contexto adicional</div>
     <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" spellcheck="true" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
     <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima" spellcheck="true" list="dl-ss-clima"><datalist id="dl-ss-clima"></datalist></div>
     <div class="field"><label>Notas generales</label><textarea id="ss-notas" spellcheck="true"></textarea></div>
@@ -749,22 +851,46 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
 
 <!-- ===================== REGISTROS ===================== -->
 <div class="screen" id="s-lista">
-  <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Libreta de Campo</h2><p class="sub">WikiTaxa · Registro en terreno</p></div></div></div>
+  <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Registros</h2><p class="sub">Revisa y organiza tus datos</p></div></div></div>
   <div class="pad">
+    <div id="registros-avisos">
+    <div id="exp-rec-huerfanos" class="aviso" style="display:none;"></div>
+    <div id="panel-huerfanos" class="aviso" style="display:none;">
+      <div class="aviso-t">⚠️ Registros sin sesión válida</div>
+      <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Estos registros no están asociados a ninguna sesión existente, por eso no entran al exportar. Reasígnalos a una sesión para poder incluirlos.</div>
+      <div id="lista-huerfanos"></div>
+      <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
+        <select id="sel-sesion-huerfanos" style="flex:1; padding:9px 8px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.85rem;"></select>
+        <button type="button" class="btnfull btn-primary" style="width:auto; margin:0; padding:0 16px; font-size:.85rem;" id="btn-reparar-huerfanos">Asignar todos aquí</button>
+      </div>
+    </div>
+    <div id="panel-fechas" class="aviso" style="display:none;">
+      <div class="aviso-t">🕒 Fechas posiblemente desfasadas</div>
+      <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Hasta la versión 2.32 la fecha se guardaba en hora universal (UTC), por lo que los registros tomados por la tarde-noche (desde las 20:00 o 21:00 hasta la medianoche) quedaron con la fecha de un día después. Revisa la propuesta de cada uno; vienen marcados solo los que su fecha de creación respalda.</div>
+      <div id="lista-fechas"></div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button type="button" class="btnfull btn-primary" style="margin:0; font-size:.85rem; padding:11px;" id="btn-corregir-fechas">Corregir marcados</button>
+        <button type="button" class="btnfull btn-secondary" style="margin:0; font-size:.85rem; padding:11px;" id="btn-revisadas-fechas">Dejar todos como están</button>
+      </div>
+    </div>
+    </div>
     <div class="vista-toggle">
       <button type="button" class="vista-btn on" id="btn-vista-tarjetas">📋 Lista</button>
       <button type="button" class="vista-btn" id="btn-vista-narrativa">📖 Libreta</button>
     </div>
-    <div style="display:flex; justify-content:flex-end; margin:8px 0 4px;">
-      <button type="button" id="btn-modo-reordenar" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">↕️ Reordenar</button>
+    <div class="reg-toolbar">
+      <button type="button" class="mini-btn" id="btn-seleccionar">☑ Seleccionar</button>
+      <button type="button" class="mini-btn on" id="btn-reordenar-listo" style="display:none;">✔️ Listo</button>
+      <button type="button" class="mini-btn" id="btn-reg-nuevo-viaje">🧭 ＋ Proyecto</button>
     </div>
     <details class="filtros-det" id="det-filtros">
       <summary id="sum-filtros">🔎 Orden y filtros</summary>
       <div class="filtros-cuerpo">
-        <div style="display:flex; gap:6px; align-items:center; margin:2px 0 8px;">
-          <span style="font-size:.76rem; color:var(--texto-sec);">Ordenar sesiones:</span>
-          <button type="button" class="btn-orden-especies on" id="btn-orden-registros-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
-          <button type="button" class="btn-orden-especies" id="btn-orden-registros-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
+        <div class="filtros-fila">
+          <span class="filtros-rotulo">Ordenar sesiones:</span>
+          <button type="button" class="mini-btn on btn-orden-especies" id="btn-orden-registros-fecha">📅 Por fecha</button>
+          <button type="button" class="mini-btn btn-orden-especies" id="btn-orden-registros-alfabetico">🔤 Alfabético</button>
+          <button type="button" class="mini-btn" id="btn-modo-reordenar">↕️ Reordenar</button>
         </div>
         <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
         <div class="chipbar" id="chipbar"></div>
@@ -772,9 +898,13 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
     </details>
     <div id="lista-registros"></div>
     <div id="lista-narrativa" style="display:none;"></div>
-    <div class="lista-footer-acciones">
-      <button type="button" class="btnfull btn-secondary" id="btn-exportar-narrativa" style="display:none;">⬇️ Exportar libreta (.html)</button>
-    </div>
+    <div style="height:120px;"></div>
+  </div>
+  <div class="selbar" id="selbar">
+    <span class="selbar-n" id="selbar-n">0 seleccionados</span>
+    <button type="button" class="selbar-b" id="btn-sel-mover">↪️ Mover…</button>
+    <button type="button" class="selbar-b peligro" id="btn-sel-borrar">🗑 Borrar</button>
+    <button type="button" class="selbar-b" id="btn-sel-cancelar">Cancelar</button>
   </div>
 </div>
 
@@ -1051,54 +1181,47 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
 
 <!-- ===================== EXPORTAR ===================== -->
 <div class="screen" id="s-exportar">
-  <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Exportar</h2><p class="sub">Genera tu planilla o respaldo</p></div></div></div>
+  <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Exportar</h2><p class="sub">Elige qué sacar y qué traer</p></div></div></div>
   <div class="pad">
     <div class="stat-grid">
       <div class="stat"><div class="n" id="stat-sesiones">0</div><div class="l">Sesiones</div></div>
       <div class="stat"><div class="n" id="stat-total">0</div><div class="l">Registros</div></div>
     </div>
-    <div class="field"><label>Sesiones a exportar</label>
-      <div style="display:flex; gap:6px; align-items:center; margin:-2px 0 8px;">
-        <button type="button" class="btn-orden-especies on" id="btn-orden-exportar-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
-        <button type="button" class="mini-btn" id="btn-exp-nuevo-viaje" style="margin-left:auto;">🧭 ＋ Proyecto</button>
-        <button type="button" class="btn-orden-especies" id="btn-orden-exportar-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
+    <div class="bloque">
+      <div class="section-title"><span class="n">📋</span>Qué exportar</div>
+      <div class="exp-atajos">
+        <button type="button" class="mini-btn" id="btn-exp-todo">Todo</button>
+        <button type="button" class="mini-btn" id="btn-exp-ninguno">Ninguno</button>
+        <button type="button" class="mini-btn" id="btn-exp-activa">Solo la activa</button>
+        <button type="button" class="mini-btn" id="btn-exp-elegir">🎯 Elegir registros…</button>
       </div>
       <div id="exp-selector-sesion"></div>
       <div class="exp-sueltos-resumen" id="exp-sueltos-resumen" style="display:none;"></div>
-      <span class="campo-ayuda">Marca sesiones completas, o abre «Gestionar» y marca registros sueltos sin marcar su sesión.</span>
+      <div id="exp-elegir-panel" style="display:none;"></div>
+      <span class="campo-ayuda">Marca proyectos o sesiones completas. Con «Elegir registros…» puedes sumar registros sueltos sin marcar su sesión.</span>
     </div>
-    <div id="exp-rec-huerfanos" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;"></div>
-    <div id="panel-huerfanos" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;">
-      <div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">⚠️ Registros sin sesión válida</div>
-      <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Estos registros no están asociados a ninguna sesión existente — por eso no aparecen al exportar, sin importar qué selecciones arriba. Reasígnalos a una sesión para poder incluirlos.</div>
-      <div id="lista-huerfanos"></div>
-      <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
-        <select id="sel-sesion-huerfanos" style="flex:1; padding:9px 8px; border-radius:9px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); font-size:.85rem;"></select>
-        <button type="button" class="btnfull btn-primary" style="width:auto; margin:0; padding:0 16px; font-size:.85rem;" id="btn-reparar-huerfanos">Asignar todos aquí</button>
-      </div>
-    </div>
-    <div id="panel-fechas" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;">
-      <div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">🕒 Fechas posiblemente desfasadas</div>
-      <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Hasta la versión 2.32 la fecha se guardaba en hora universal (UTC), por lo que los registros tomados por la tarde-noche (desde las 20:00 o 21:00 hasta la medianoche) quedaron con la fecha de un día después. Revisa la propuesta de cada uno; vienen marcados solo los que su fecha de creación respalda.</div>
-      <div id="lista-fechas"></div>
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button type="button" class="btnfull btn-primary" style="margin:0; font-size:.85rem; padding:11px;" id="btn-corregir-fechas">Corregir marcados</button>
-        <button type="button" class="btnfull btn-secondary" style="margin:0; font-size:.85rem; padding:11px;" id="btn-revisadas-fechas">Dejar todos como están</button>
-      </div>
-    </div>
-    <div class="section-title">Exportar lo seleccionado</div>
+    <div class="bloque">
+      <div class="section-title"><span class="n">📤</span>Sacar lo elegido</div>
+      <div class="bloque-subtitulo">Paquete y Darwin Core</div>
     <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Registros (.zip)</button>
     <div class="dwc-par">
       <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc-xlsx">🧬 Darwin Core (.xlsx)</button>
       <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv)</button>
     </div>
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos. Excel a veces muestra mal las tildes de un .csv (aparecen como «Ã³», «Ã­»…); para abrirlo en Excel usa el .xlsx.</p>
-    <div class="section-title">Registros de medición</div>
+    <div class="bloque-subtitulo">Para leer o compartir</div>
+    <button type="button" class="btnfull btn-secondary" id="btn-exportar-libreta">📖 Libreta (.html)</button>
+    <button type="button" class="btnfull btn-secondary" id="btn-exportar-bitacora">🧭 Bitácora de proyecto (.html)</button>
+    <p class="campo-ayuda" style="margin:-4px 0 12px;">La libreta incluye los registros elegidos arriba. La bitácora se genera para cada proyecto marcado.</p>
+    <div class="bloque-subtitulo">Mediciones</div>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
-    <div class="section-title">Carpeta de respaldos</div>
+    </div>
+    <div class="bloque">
+      <div class="section-title"><span class="n">📥</span>Traer respaldos</div>
+      <div class="bloque-subtitulo">Carpeta del teléfono</div>
     <button type="button" class="btnfull btn-secondary" id="btn-explorar-carpeta">📂 Explorar carpeta del teléfono</button>
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Muestra el contenido de la carpeta elegida en Config («Gestión de imágenes»): fotos, videos y respaldos. Desde ahí puedes abrir archivos o importar un respaldo (.zip o .json). El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</p>
-    <div class="section-title">Consultar e importar respaldos</div>
+    <div class="bloque-subtitulo">Consultar e importar</div>
     <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">📂 Consultar respaldo</label>
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Abre uno o varios respaldos (.zip o .json) solo para mirarlos, sin cambiar tus datos. Desde ahí puedes pasar a importarlos.</p>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
@@ -1106,6 +1229,7 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
     <div id="importados-acciones" style="display:none;">
       <button type="button" class="btnfull btn-primary" id="btn-importar-seleccionados">📲 Importar seleccionados a esta app</button>
       <button type="button" class="btnfull btn-secondary" id="btn-descargar-unificado">💾 Descargar respaldo unificado (.json)</button>
+    </div>
     </div>
     <div style="height:90px;"></div>
   </div>
@@ -1130,14 +1254,15 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
 <div class="screen" id="s-config">
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Configuración</h2><p class="sub">Preferencias y datos</p></div></div></div>
   <div class="pad">
-    <div class="section-title">Preferencias</div>
-    <div class="section-title">Aplicación</div>
-    <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
-    <div class="version-info" id="version-info">Comprobando versión...</div>
-    <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
-    <details class="cfg-bloque" id="cfg-gestion-mapas"><summary>Gestión de mapas</summary><div class="cfg-bloque-cuerpo" id="config-mapa"></div></details>
-    <details class="cfg-bloque" id="cfg-sugerencias"><summary>Sugerencias de los campos</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
-    <details class="cfg-bloque" id="cfg-datos"><summary>Datos</summary><div class="cfg-bloque-cuerpo">
+    <div class="bloque">
+      <div class="section-title"><span class="n">📲</span>Aplicación</div>
+      <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
+      <div class="version-info" id="version-info">Comprobando versión...</div>
+    </div>
+    <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary><span class="n">🖼</span>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
+    <details class="cfg-bloque" id="cfg-gestion-mapas"><summary><span class="n">🗺</span>Gestión de mapas</summary><div class="cfg-bloque-cuerpo" id="config-mapa"></div></details>
+    <details class="cfg-bloque" id="cfg-sugerencias"><summary><span class="n">💡</span>Sugerencias de los campos</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
+    <details class="cfg-bloque" id="cfg-datos"><summary><span class="n">🗂</span>Datos</summary><div class="cfg-bloque-cuerpo">
       <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
     </div></details>
     <div style="height:110px;"></div>
@@ -1150,9 +1275,6 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
   <button type="button" class="cons-flecha cons-flecha-der sin-destino" id="cons-flecha-der" aria-label="Registro siguiente (mayor)">›</button>
   <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura — desliza a los lados para cambiar de registro</p></div></div></div>
   <div class="pad">
-    <div class="cons-filtros" id="cons-filtros">
-      <select id="cons-filtro-sesion" aria-label="Filtrar por sesión"></select>
-    </div>
     <div class="cons-fila-opciones">
       <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Pantalla encendida</span></label>
       <button type="button" class="btn-compartir" id="btn-consulta-compartir">📤 Compartir</button>
@@ -1188,8 +1310,18 @@ body.modo-visor #btn-bit-exportar-zip{display:none !important;}
     <p id="mg-msg" style="font-size:.9rem; line-height:1.45; margin:0 0 12px; display:none;"></p>
     <div class="field" id="mg-campo-texto" style="display:none;"><input type="text" id="mg-texto" spellcheck="true"></div>
     <div class="field" id="mg-campo-sel" style="display:none;"><select id="mg-sel"></select></div>
+    <div class="field" id="mg-campo-check" style="display:none;"><label class="mg-check-lab"><input type="checkbox" id="mg-check"><span id="mg-check-txt"></span></label><p class="nota" id="mg-check-aviso" style="display:none;"></p></div>
     <button type="button" class="btnfull btn-primary" id="mg-ok">Aceptar</button>
     <button type="button" class="btnfull btn-secondary" id="mg-cancelar" style="margin-bottom:0;">Cancelar</button>
+  </div>
+</div>
+
+<!-- Menú de acciones (v2.68) -->
+<div class="modal-bg" id="modal-menu">
+  <div class="modal">
+    <button type="button" class="modal-x" id="mm-x">✕</button>
+    <h3 id="mm-titulo"></h3>
+    <div id="mm-items"></div>
   </div>
 </div>
 
@@ -3833,7 +3965,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-16 · v2.67";
+var APP_BUILD = "2026-11-16 · v2.68";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -4519,6 +4651,7 @@ function irA(view, opts){
   var btn = document.querySelector('.navbtn[data-s="'+view+'"]'); if(btn) btn.classList.add("on");
   document.getElementById("savebar").classList.toggle("on", view==="form");
   state.currentView = view;
+  modoSeleccion = false; state.regSel = {};
   try{ sessionStorage.setItem("libretacampo_ultima_vista", view); }catch(e){}
   if(view==="lista"){
     state.filtroSesionLista = "";
@@ -4551,6 +4684,7 @@ function irA(view, opts){
   if(window.MapaPro){ if(view==="mapa") MapaPro.alMostrar(); else MapaPro.alOcultar(); }
   if(view==="lista") irBajarFinal(idResaltar); else irSubirInicio();
   if(!(opts && opts.sinHistorial)) registrarVistaEnHistorial(view);
+  actualizarBarraSeleccion();
   actualizarWakeLock();
 }
 function irBajarFinal(idResaltar){
@@ -5236,20 +5370,20 @@ function obtenerListaFiltrada(){
 }
 function renderLista(justSavedId){
   renderChips();
+  renderPanelHuerfanos(); renderRecorridosHuerfanos(); renderPanelFechas();
   var smf = document.getElementById("sum-filtros");
   if(smf){ var filtroAct = !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); smf.textContent = "🔎 Orden y filtros" + (filtroAct ? " · filtro activo" : ""); }
   var lista = obtenerListaFiltrada();
   if(state.vistaRegistros==="narrativa"){
     document.getElementById("lista-registros").style.display = "none";
     document.getElementById("lista-narrativa").style.display = "block";
-    document.getElementById("btn-exportar-narrativa").style.display = "block";
     renderListaNarrativa(lista);
   } else {
     document.getElementById("lista-registros").style.display = "block";
     document.getElementById("lista-narrativa").style.display = "none";
-    document.getElementById("btn-exportar-narrativa").style.display = "none";
     renderListaTarjetas(lista, justSavedId);
   }
+  actualizarBarraSeleccion();
 }
 var modoReordenarRegistros = false;
 var listaSesionesColapsadas = new Set(); // ids de sesión colapsadas en la vista Lista (no persiste entre recargas)
@@ -5279,28 +5413,34 @@ function renderListaTarjetas(lista, justSavedId){
         '<div class="reg-title">'+(state.draft.codigo ? ("Registro en curso: "+escapeHtml(state.draft.codigo)) : ("Nota en curso"+(state.draft.notaTitulo?(": "+escapeHtml(state.draft.notaTitulo)):"")))+'</div>'+
         '<div class="reg-meta">Toca para continuar y completarlo'+iconoFotosHtml(state.draft)+'</div>'+
       '</div><div class="reg-actions"><span class="btn-icon" style="border-color:var(--ambar); color:var(--ambar);">▸</span></div></div>') : "";
-  var sActivaVacia = (lista.length===0 && sesionActiva() && !state.filtroSesionLista && !state.filtroTipo && !(document.getElementById("buscador").value||"").trim())
-    ? '<div class="narr-sesion-header"><span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(state.sesionActivaId))+' <span style="font-weight:400; color:var(--texto-sec);">(0)</span></span><span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(state.sesionActivaId)+'</span></div>' : "";
-  if(lista.length===0){
-    cont.innerHTML = sActivaVacia + htmlDraft + (hayFiltroRegistros() ? '' : conViajes([], function(){ return ""; }, true)) + '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>';
+  var sinFiltro = !hayFiltroRegistros() && !state.filtroSesionLista;
+  var grupos = []; var indicePorSesion = {};
+  lista.forEach(function(r){
+    if(indicePorSesion[r.sesionId]===undefined){
+      indicePorSesion[r.sesionId] = grupos.length;
+      grupos.push({sesionId:r.sesionId, registros:[]});
+    }
+    grupos[indicePorSesion[r.sesionId]].registros.push(r);
+  });
+  // v2.68: las sesiones sin registros también se muestran (así se pueden editar o borrar desde aquí)
+  if(sinFiltro) state.sesiones.forEach(function(s){
+    if(indicePorSesion[s.id]===undefined){ indicePorSesion[s.id] = grupos.length; grupos.push({sesionId:s.id, registros:[]}); }
+  });
+  if(!grupos.length){
+    cont.innerHTML = htmlDraft + (hayFiltroRegistros() ? '' : conViajes([], function(){ return ""; }, true, true)) + '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>';
   } else {
-    var grupos = []; var indicePorSesion = {};
-    lista.forEach(function(r){
-      if(indicePorSesion[r.sesionId]===undefined){
-        indicePorSesion[r.sesionId] = grupos.length;
-        grupos.push({sesionId:r.sesionId, registros:[]});
-      }
-      grupos[indicePorSesion[r.sesionId]].registros.push(r);
-    });
     grupos.sort(function(ga,gb){ return comparadorSesionesPorCriterio(state.ordenSesionesRegistros)(sesionPorId(ga.sesionId), sesionPorId(gb.sesionId)); });
     cont.innerHTML = htmlDraft + conViajes(grupos, function(g){
       var colapsada = listaSesionesColapsadas.has(g.sesionId);
       var sesG = sesionPorId(g.sesionId);
       var restaurarHtml = (modoReordenarRegistros && sesG && sesG.ordenRegistros) ? '<button type="button" class="btn-restaurar-orden" data-restaurar-orden="'+escapeHtml(g.sesionId)+'">↺ Orden por fecha</button>' : '';
+      var btnColapsar = '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button>';
+      var accHtml = modoSeleccion
+        ? ((g.registros.length ? '<button type="button" class="btn-colapsar-sesion" data-sel-todos="'+escapeHtml(g.sesionId)+'">☑ Todos</button>' : '')+btnColapsar)
+        : (botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+btnColapsar+(sesG ? '<button type="button" class="btn-menu btn-menu-sesion" data-ses-menu="'+escapeHtml(g.sesionId)+'" aria-label="Más acciones de la sesión">⋯</button>' : ''));
       var headerHtml = '<div class="narr-sesion-header">' +
-        '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span style="font-weight:400; color:var(--texto-sec);">('+g.registros.length+')</span></span>' +
-        '<span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+
-        '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button></span>' +
+        '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span class="cnt">('+g.registros.length+')</span></span>' +
+        '<span class="narr-sesion-acciones">'+accHtml+'</span>' +
       '</div>';
       if(colapsada) return headerHtml;
       var registrosOrdenados = ordenarRegistrosDeSesion(g.sesionId, g.registros);
@@ -5308,27 +5448,52 @@ function renderListaTarjetas(lista, justSavedId){
         var ti = TIPOS[r.tipo]||TIPOS.nota;
         var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
         if(r.tipo==="nota") cls += (r.notaSubtipo==="operativo" ? " card-nota-op" : " card-nota-nar");
+        if(modoSeleccion && state.regSel[r.id]) cls += " sel";
         var nombre = nombreRegistroLista(r);
         var cant = cantidadEjemplares(r);
         var cantTxt = cant!=null ? (" · "+cant+(cant==1?" ejemplar":" ejemplares")) : "";
         return '<div class="card'+cls+'" data-id="'+r.id+'" data-sesion="'+escapeHtml(r.sesionId)+'" style="border-left:4px solid '+colorSesion(r.sesionId)+';">'+
           (modoReordenarRegistros ? '<div class="reg-handle" data-handle="1" title="Arrastra para reordenar">⠿</div>' : '')+
+          (modoSeleccion ? '<input type="checkbox" class="reg-sel" data-id="'+r.id+'"'+(state.regSel[r.id]?' checked':'')+' aria-label="Seleccionar registro">' : '')+
           '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
           '<div class="reg-info" style="flex:1; min-width:0;">'+
             '<div class="reg-title">'+(r.codigo ? (escapeHtml(r.codigo)+' · ') : (r.notaTitulo ? (escapeHtml(r.notaTitulo)+' · ') : ''))+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
             '<div class="reg-meta"><span class="tag">'+ti.label+'</span>'+insigniaSubtipoNota(r)+' '+escapeHtml(nombre)+escapeHtml(cantTxt)+iconoFotosHtml(r)+'</div>'+
           '</div>'+
-          (modoReordenarRegistros ? '' : ('<div class="reg-actions">'+
+          ((modoReordenarRegistros || modoSeleccion) ? '' : ('<div class="reg-actions">'+
             '<button type="button" class="btn-icon" data-action="mapa" data-id="'+r.id+'" title="Ver en el mapa">🗺️</button>'+
             '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
           '</div>'))+'</div>';
       }).join("");
-      return headerHtml + tarjetasHtml;
-    }, !hayFiltroRegistros());
+      var recsHtml = htmlRecorridosDeSesion(g.sesionId);
+      var vacioHtml = g.registros.length ? '' : '<div class="sesion-vacia">Esta sesión no tiene registros.</div>';
+      return headerHtml + tarjetasHtml + vacioHtml + (recsHtml ? '<div class="sesion-recs">'+recsHtml+'</div>' : '');
+    }, !hayFiltroRegistros(), true);
   }
   cont.querySelectorAll('.btn-icon[data-action="mapa"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); verRegistroEnMapa(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
-  cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(){ if(modoReordenarRegistros) return; verRegistroExistente(c.dataset.id); }); });
+  cont.querySelectorAll(".card:not(.card-draft)").forEach(function(c){ c.addEventListener("click", function(e){
+    if(modoReordenarRegistros) return;
+    if(modoSeleccion){
+      var cb = c.querySelector(".reg-sel"); if(!cb) return;
+      if(e.target!==cb) cb.checked = !cb.checked;
+      state.regSel[c.dataset.id] = cb.checked;
+      c.classList.toggle("sel", cb.checked);
+      actualizarBarraSeleccion();
+      return;
+    }
+    verRegistroExistente(c.dataset.id);
+  }); });
+  cont.querySelectorAll('[data-ses-menu]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); menuSesion(b.dataset.sesMenu); }); });
+  cont.querySelectorAll('[data-sel-todos]').forEach(function(b){
+    b.addEventListener("click", function(e){
+      e.stopPropagation();
+      var ids = state.registros.filter(function(r){ return r.sesionId===b.dataset.selTodos; }).map(function(r){ return r.id; });
+      var todos = ids.every(function(id){ return state.regSel[id]; });
+      ids.forEach(function(id){ if(todos) delete state.regSel[id]; else state.regSel[id] = true; });
+      renderLista();
+    });
+  });
   cont.querySelectorAll('.reg-handle[data-handle]').forEach(function(h){
     h.addEventListener("pointerdown", function(e){ iniciarArrastreRegistro(e, h.closest(".card"), cont); });
     h.addEventListener("click", function(e){ e.stopPropagation(); });
@@ -5792,9 +5957,6 @@ document.getElementById("btn-orden-registros-alfabetico").addEventListener("clic
   this.classList.add("on"); document.getElementById("btn-orden-registros-fecha").classList.remove("on");
   renderLista();
 });
-document.getElementById("btn-exportar-narrativa").addEventListener("click", function(){
-  exportarLibretaHTML(obtenerListaFiltrada());
-});
 /* v2.67: ordena una lista plana igual que las vistas Lista y Libreta (sesiones según el criterio elegido; dentro de cada una, más reciente arriba o el orden manual) */
 function ordenarListaComoVista(lista){
   var grupos = [], idx = {};
@@ -5939,16 +6101,6 @@ function generarPaqueteZip(idsSesiones, idsRegistros, idsViajes){
     return zip.generateAsync({type:"blob", compression:"DEFLATE", compressionOptions:{level:6}});
   });
 }
-document.getElementById("btn-orden-exportar-fecha").addEventListener("click", function(){
-  state.ordenSesionesExportar = "fecha";
-  this.classList.add("on"); document.getElementById("btn-orden-exportar-alfabetico").classList.remove("on");
-  renderExportar();
-});
-document.getElementById("btn-orden-exportar-alfabetico").addEventListener("click", function(){
-  state.ordenSesionesExportar = "alfabetico";
-  this.classList.add("on"); document.getElementById("btn-orden-exportar-fecha").classList.remove("on");
-  renderExportar();
-});
 document.getElementById("btn-descargar-zip").addEventListener("click", function(){
   var sel = seleccionExportar();
   if(sel.vacia){ toast("Marca al menos una sesión, un proyecto o un registro para descargar"); return; }
@@ -6019,6 +6171,13 @@ function modalGen(o, cb){
   var sel = document.getElementById("mg-sel");
   document.getElementById("mg-campo-sel").style.display = o.opciones ? "block" : "none";
   sel.innerHTML = (o.opciones || []).map(function(op){ return '<option value="'+escapeHtml(op.v)+'">'+escapeHtml(op.l)+'</option>'; }).join("");
+  var ck = document.getElementById("mg-campo-check");
+  ck.style.display = o.check ? "block" : "none";
+  if(o.check){
+    document.getElementById("mg-check").checked = false;
+    document.getElementById("mg-check-txt").textContent = o.check.texto || "";
+    var av = document.getElementById("mg-check-aviso"); av.textContent = o.check.aviso || ""; av.style.display = "none";
+  }
   document.getElementById("mg-ok").textContent = o.ok || "Aceptar";
   document.getElementById("modal-gen").classList.add("on");
   if(o.texto) setTimeout(function(){ try{ tx.focus(); }catch(e){} }, 60);
@@ -6031,8 +6190,13 @@ document.getElementById("mg-ok").addEventListener("click", function(){
   var cb = modalGenCb, o = modalGenOpts || {};
   var t = document.getElementById("mg-texto").value.trim(), s = document.getElementById("mg-sel").value;
   if(o.texto && o.texto.requerido && !t){ toast("Escribe un nombre"); return; }
+  var chk = document.getElementById("mg-check").checked;
   cerrarModalGen();
-  if(cb) cb(t, s);
+  if(cb) cb(t, s, chk);
+});
+document.getElementById("mg-check").addEventListener("change", function(){
+  var av = document.getElementById("mg-check-aviso");
+  av.style.display = (this.checked && av.textContent) ? "block" : "none";
 });
 
 /* ---------- Alta, activación, nombre y borrado de proyectos ---------- */
@@ -6091,11 +6255,52 @@ function htmlCabeceraViaje(v, nSes){
   var act = v.id===state.viajeActivoId, col = viajesColapsados.has(v.id);
   return '<div class="viaje-header" data-viaje="'+v.id+'">'+
     '<span class="vj-titulo">🧭 '+escapeHtml(v.nombre)+' <span class="vj-cnt">('+nSes+(nSes===1?' sesión':' sesiones')+')</span></span>'+
-    '<button type="button" class="mini-btn'+(act?' on':'')+'" data-vj-acc="activar" data-id="'+v.id+'">'+(act?'★ Activo':'☆ Activar')+'</button>'+
-    '<button type="button" class="mini-btn" data-vj-acc="nota" data-id="'+v.id+'">＋ Nota</button>'+
-    '<button type="button" class="mini-btn" data-vj-acc="bitacora" data-id="'+v.id+'">📖 Bitácora</button>'+
-    '<button type="button" class="mini-btn" data-vj-acc="colapsar" data-id="'+v.id+'" aria-label="Plegar o desplegar">'+(col?'▾':'▸')+'</button>'+
+    '<span class="vj-acciones">'+
+      '<button type="button" class="mini-btn'+(act?' on':'')+'" data-vj-acc="activar" data-id="'+v.id+'">'+(act?'★ Activo':'☆ Activar')+'</button>'+
+      '<button type="button" class="mini-btn" data-vj-acc="colapsar" data-id="'+v.id+'">'+(col?'▾ Expandir':'▸ Colapsar')+'</button>'+
+      '<button type="button" class="btn-menu" data-vj-acc="menu" data-id="'+v.id+'" aria-label="Más acciones del proyecto">⋯</button>'+
+    '</span>'+
   '</div>';
+}
+function htmlRutasViaje(v){
+  var rutas = recorridosDeRuta(v.id);
+  if(!rutas.length) return "";
+  return '<div class="sesion-recs"><div class="gestion-sub">Recorridos de ruta ('+rutas.length+')</div>'+rutas.map(htmlFilaRecorrido).join("")+'</div>';
+}
+/* ---------- Menú de acciones (hoja inferior) ---------- */
+function menuAcciones(titulo, items){
+  document.getElementById("mm-titulo").textContent = titulo || "";
+  var box = document.getElementById("mm-items"); box.innerHTML = "";
+  items.forEach(function(it){
+    var b = document.createElement("button"); b.type = "button";
+    b.className = "mm-item" + (it.peligro ? " peligro" : "");
+    b.textContent = it.l;
+    b.addEventListener("click", function(){ cerrarMenuAcciones(); setTimeout(it.fn, 0); });
+    box.appendChild(b);
+  });
+  document.getElementById("modal-menu").classList.add("on");
+}
+function cerrarMenuAcciones(){ document.getElementById("modal-menu").classList.remove("on"); }
+document.getElementById("mm-x").addEventListener("click", cerrarMenuAcciones);
+document.getElementById("modal-menu").addEventListener("click", function(e){ if(e.target===this) cerrarMenuAcciones(); });
+function menuViaje(id){
+  var v = viajePorId(id); if(!v) return;
+  var items = [];
+  if(!visorActivo){
+    items.push({l:"✏️ Renombrar proyecto", fn:function(){ renombrarViaje(id); }});
+    items.push({l:"＋ Nota de bitácora", fn:function(){ abrirNotaViaje(id, null); }});
+  }
+  items.push({l:"📖 Ver la bitácora", fn:function(){ abrirBitacora(id); }});
+  if(!visorActivo) items.push({l:"🗑 Borrar el proyecto", peligro:true, fn:function(){ borrarViaje(id); }});
+  menuAcciones("🧭 "+v.nombre, items);
+}
+function menuSesion(id){
+  var s = sesionPorId(id); if(!s || visorActivo) return;
+  var hay = state.registros.some(function(r){ return r.sesionId===id; });
+  var items = [{l:"✏️ Editar datos de la sesión", fn:function(){ verEnSesion(id); }}];
+  if(hay) items.push({l:"☑ Seleccionar registros", fn:function(){ entrarSeleccion(id); }});
+  items.push({l:hay ? "🗑 Borrar la sesión y sus registros" : "🗑 Borrar la sesión", peligro:true, fn:function(){ if(hay) eliminarSesionConRegistros(id); else eliminarSesionVacia(id); }});
+  menuAcciones(etiquetaSesionCorta(id), items);
 }
 function viajesOrdenados(){
   return state.viajes.slice().sort(function(a,b){
@@ -6104,7 +6309,7 @@ function viajesOrdenados(){
   });
 }
 /* grupos: [{sesionId, ...}] ya ordenados; fnGrupo(g) devuelve el HTML de un grupo. Sin proyectos creados, no cambia nada. */
-function conViajes(grupos, fnGrupo, mostrarVacios){
+function conViajes(grupos, fnGrupo, mostrarVacios, conRutas){
   if(!state.viajes.length) return grupos.map(fnGrupo).join("");
   var porViaje = {}, sin = [];
   grupos.forEach(function(g){
@@ -6115,7 +6320,7 @@ function conViajes(grupos, fnGrupo, mostrarVacios){
   viajesOrdenados().forEach(function(v){
     var gs = porViaje[v.id] || [];
     if(!gs.length && !mostrarVacios) return;
-    html += htmlCabeceraViaje(v, gs.length) + (viajesColapsados.has(v.id) ? "" : '<div class="viaje-sesiones">'+gs.map(fnGrupo).join("")+'</div>');
+    html += htmlCabeceraViaje(v, gs.length) + (viajesColapsados.has(v.id) ? "" : '<div class="viaje-sesiones">'+(conRutas ? htmlRutasViaje(v) : "")+gs.map(fnGrupo).join("")+'</div>');
   });
   if(sin.length) html += '<div class="viaje-header viaje-sin"><span class="vj-titulo">Sin proyecto <span class="vj-cnt">('+sin.length+(sin.length===1?' sesión':' sesiones')+')</span></span></div><div class="viaje-sesiones">'+sin.map(fnGrupo).join("")+'</div>';
   return html;
@@ -6129,6 +6334,7 @@ document.addEventListener("click", function(e){
   if(acc==="activar") alternarViajeActivo(id);
   else if(acc==="nota") abrirNotaViaje(id, null);
   else if(acc==="bitacora") abrirBitacora(id);
+  else if(acc==="menu") menuViaje(id);
   else if(acc==="colapsar"){ if(viajesColapsados.has(id)) viajesColapsados.delete(id); else viajesColapsados.add(id); refrescarVistasViaje(); }
 }, true);
 
@@ -6140,7 +6346,7 @@ function renderSelectorViajeSesion(s){
   }).join("") + '<option value="__nuevo__">＋ Nuevo proyecto…</option>';
   sel.value = (s.viajeId && viajePorId(s.viajeId)) ? s.viajeId : "";
   var av = viajeActivo();
-  document.getElementById("ss-viaje-ayuda").textContent = av ? ('Proyecto activo: "'+av.nombre+'" (se puede cambiar en Registros o en Exportar).') : "Opcional: agrupa varias sesiones de una misma salida o campaña.";
+  document.getElementById("ss-viaje-ayuda").textContent = av ? ('Proyecto activo: "'+av.nombre+'" (se puede cambiar en Registros).') : "Opcional: agrupa varias sesiones de una misma salida o campaña.";
 }
 document.getElementById("ss-viaje").addEventListener("change", function(){
   var s = sesionEnPantalla(); if(!s) return;
@@ -6492,7 +6698,7 @@ function renderRecorridosHuerfanos(){
   var lista = (state.recorridos||[]).filter(function(rc){ return rc && !rc.enCurso && (recorridoHuerfano(rc) || !recorridoValido(rc)); });
   if(!lista.length){ box.style.display = "none"; box.innerHTML = ""; return; }
   box.style.display = "block";
-  box.innerHTML = '<div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">〰 Recorridos sin sesión o dañados</div>'+
+  box.innerHTML = '<div class="aviso-t">〰 Recorridos sin sesión o dañados</div>'+
     '<div class="gestion-ayuda" style="margin-bottom:8px;">Fragmentos con menos de 2 puntos o recorridos cuya sesión ya no existe. Puedes moverlos a una sesión o proyecto, verlos en el mapa o borrarlos.</div>'+
     lista.map(htmlFilaRecorrido).join("")+
     '<button type="button" class="btnfull btn-secondary" id="btn-rec-limpiar" style="margin:10px 0 0;">🧹 Borrar los '+lista.length+' de esta lista</button>';
@@ -6510,28 +6716,11 @@ function htmlRecorridosDeSesion(sesionId){
   if(!recs.length) return "";
   return '<div class="gestion-sub">Recorridos grabados ('+recs.length+')</div>'+recs.map(htmlFilaRecorrido).join("");
 }
-function renderPanelGestionViaje(v){
-  var notas = notasDeViaje(v.id), rutas = recorridosDeRuta(v.id), sesiones = sesionesDeViaje(v.id);
-  var act = v.id===state.viajeActivoId;
-  return '<div class="gestion-panel">'+
-    '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">'+
-      '<button type="button" class="mini-btn" data-vjp="renombrar" data-id="'+v.id+'">✏️ Renombrar</button>'+
-      '<button type="button" class="mini-btn'+(act?' on':'')+'" data-vj-acc="activar" data-id="'+v.id+'">'+(act?'★ Activo':'☆ Activar')+'</button>'+
-      '<button type="button" class="mini-btn" data-vj-acc="nota" data-id="'+v.id+'">＋ Nota</button>'+
-      '<button type="button" class="mini-btn" data-vj-acc="bitacora" data-id="'+v.id+'">📖 Bitácora</button>'+
-    '</div>'+
-    '<div class="gestion-ayuda">'+sesiones.length+(sesiones.length===1?' sesión':' sesiones')+' · '+notas.length+(notas.length===1?' nota de bitácora':' notas de bitácora')+'. Marcar el proyecto incluye en el .zip todas sus sesiones, sus notas y sus recorridos de ruta.</div>'+
-    (rutas.length ? ('<div class="gestion-sub">Recorridos de ruta ('+rutas.length+')</div>'+rutas.map(htmlFilaRecorrido).join("")) : '<div class="gestion-ayuda">Sin recorridos de ruta. Se graban en el mapa cuando el proyecto está activo y no hay sesión activa.</div>')+
-    '<button type="button" class="btn-borrar-sesion-panel" data-vjp="borrar" data-id="'+v.id+'" style="margin-top:12px;">🗑 Borrar este proyecto</button>'+
-  '</div>';
-}
 function htmlTarjetaViajeExp(v, nSes){
-  var exp = state.viajeGestionId===v.id, act = v.id===state.viajeActivoId;
-  return '<div class="sesion-exportar-card viaje-card'+(exp?' gestionando':'')+'" data-viaje="'+v.id+'"><div class="sesion-exportar-header">'+
+  var act = v.id===state.viajeActivoId;
+  return '<div class="sesion-exportar-card viaje-card" data-viaje="'+v.id+'"><label class="sesion-exportar-header">'+
     '<input type="checkbox" class="viaje-check-export" data-id="'+v.id+'"'+(state.viajesSel[v.id]?' checked':'')+'>'+
-    '<span class="sesion-exportar-label">🧭 '+escapeHtml(v.nombre)+' <span style="font-weight:400;">('+nSes+')</span> '+(act?'<span class="badge-activa">ACTIVO</span>':'')+'</span>'+
-    '<button type="button" class="btn-gestionar'+(exp?' on':'')+'" data-viaje-gest="'+v.id+'">'+(exp?'▾':'▸')+' Gestionar</button></div>'+
-    (exp ? renderPanelGestionViaje(v) : '')+'</div>';
+    '<span class="sesion-exportar-label">🧭 '+escapeHtml(v.nombre)+' <span class="cnt">('+nSes+(nSes===1?' sesión':' sesiones')+')</span> '+(act?'<span class="badge-activa">ACTIVO</span>':'')+'</span></label></div>';
 }
 function conViajesExp(sesiones, fn){
   if(!state.viajes.length) return sesiones.map(fn).join("");
@@ -6562,14 +6751,7 @@ function ligarEventosViajesExportar(box){
       actualizarStatsExportar();
     });
   });
-  box.querySelectorAll("[data-viaje-gest]").forEach(function(b){
-    b.addEventListener("click", function(){ state.viajeGestionId = (state.viajeGestionId===b.dataset.viajeGest) ? null : b.dataset.viajeGest; renderExportar(); });
-  });
-  box.querySelectorAll("[data-vjp]").forEach(function(b){
-    b.addEventListener("click", function(){ if(b.dataset.vjp==="renombrar") renombrarViaje(b.dataset.id); else if(b.dataset.vjp==="borrar") borrarViaje(b.dataset.id); });
-  });
 }
-document.getElementById("btn-exp-nuevo-viaje").addEventListener("click", function(){ pedirNuevoViaje(); });
 
 function finalizarSesionActiva(){
   if(bloqueadoPorVisor()) return;
@@ -6592,16 +6774,121 @@ document.getElementById("f-codigo").addEventListener("input", actualizarAvisoCod
 function aplicarEstiloBotonReordenar(){
   var b = document.getElementById("btn-modo-reordenar");
   b.textContent = modoReordenarRegistros ? "✔️ Listo" : "↕️ Reordenar";
-  b.style.background = modoReordenarRegistros ? "var(--verde)" : "var(--card)";
-  b.style.color = modoReordenarRegistros ? "#fff" : "var(--texto)";
+  b.classList.toggle("on", modoReordenarRegistros);
+  var l = document.getElementById("btn-reordenar-listo"); if(l) l.style.display = modoReordenarRegistros ? "" : "none";
 }
 function salirModoReordenar(){ modoReordenarRegistros = false; aplicarEstiloBotonReordenar(); }
 document.getElementById("btn-modo-reordenar").addEventListener("click", function(){
   if(state.vistaRegistros==="narrativa") document.getElementById("btn-vista-tarjetas").click();
+  if(modoSeleccion){ modoSeleccion = false; state.regSel = {}; }
   modoReordenarRegistros = !modoReordenarRegistros;
   aplicarEstiloBotonReordenar();
+  if(modoReordenarRegistros) document.getElementById("det-filtros").open = false;
   renderLista();
 });
+document.getElementById("btn-reordenar-listo").addEventListener("click", function(){
+  salirModoReordenar(); renderLista();
+});
+
+/* ---------- v2.68 · Modo selección en Registros (mover y borrar varios registros) ---------- */
+var modoSeleccion = false;
+state.regSel = {};
+function idsRegSel(){
+  return Object.keys(state.regSel).filter(function(id){ return state.regSel[id] && state.registros.some(function(r){ return r.id===id; }); });
+}
+function actualizarBarraSeleccion(){
+  var bar = document.getElementById("selbar"); if(!bar) return;
+  var on = modoSeleccion && state.currentView==="lista";
+  bar.classList.toggle("on", on);
+  var n = idsRegSel().length;
+  document.getElementById("selbar-n").textContent = n+(n===1?" seleccionado":" seleccionados");
+  document.getElementById("btn-sel-mover").disabled = !n;
+  document.getElementById("btn-sel-borrar").disabled = !n;
+  var b = document.getElementById("btn-seleccionar");
+  if(b){ b.textContent = modoSeleccion ? "✖ Salir de selección" : "☑ Seleccionar"; b.classList.toggle("on", modoSeleccion); }
+}
+function entrarSeleccion(sesionId){
+  if(bloqueadoPorVisor()) return;
+  salirModoReordenar();
+  modoSeleccion = true; state.regSel = {};
+  if(state.vistaRegistros==="narrativa") document.getElementById("btn-vista-tarjetas").click();
+  if(sesionId) listaSesionesColapsadas.delete(sesionId);
+  renderLista();
+}
+function salirSeleccion(){
+  modoSeleccion = false; state.regSel = {};
+  actualizarBarraSeleccion();
+}
+document.getElementById("btn-seleccionar").addEventListener("click", function(){
+  if(modoSeleccion){ salirSeleccion(); renderLista(); } else entrarSeleccion(null);
+});
+document.getElementById("btn-sel-cancelar").addEventListener("click", function(){ salirSeleccion(); renderLista(); });
+document.getElementById("btn-reg-nuevo-viaje").addEventListener("click", function(){ pedirNuevoViaje(); });
+document.getElementById("btn-sel-mover").addEventListener("click", function(){
+  if(bloqueadoPorVisor()) return;
+  var ids = idsRegSel(); if(!ids.length){ toast("Marca al menos un registro"); return; }
+  var ops = state.sesiones.slice().sort(function(a,b){ return String(b.creada||"").localeCompare(String(a.creada||"")); }).map(function(s){
+    return {v:s.id, l:iconoSesion(s.id)+" "+nombreSesionMostrar(s)};
+  });
+  ops.push({v:"__nueva__", l:"＋ Una sesión nueva…"});
+  modalGen({titulo:"↪️ Mover "+ids.length+(ids.length===1?" registro":" registros"), mensaje:"Elige la sesión de destino.", opciones:ops, ok:"Mover",
+    check:{texto:"Renumerar los códigos según la sesión destino", aviso:"⚠️ Esto cambia el código de cada registro. Si la muestra ya tiene una etiqueta o rótulo físico con su código actual, debes actualizarlo tú mismo: la app no guarda el código anterior."}},
+    function(t, destino, renumerar){ moverRegistros(ids, destino, renumerar); });
+});
+document.getElementById("btn-sel-borrar").addEventListener("click", function(){
+  if(bloqueadoPorVisor()) return;
+  var ids = idsRegSel(); if(!ids.length){ toast("Marca al menos un registro"); return; }
+  if(!confirm("¿Borrar "+ids.length+(ids.length===1?" registro":" registros")+"?\n\nSe borran también sus fotos y videos guardados en la app. Esta acción no se puede deshacer.")) return;
+  var cadena = Promise.resolve();
+  ids.forEach(function(id){ cadena = cadena.then(function(){ return eliminarRegistroPorId(id, null, true); }); });
+  cadena.then(function(){
+    toast(ids.length+(ids.length===1?" registro borrado":" registros borrados"));
+    salirSeleccion(); renderLista();
+  });
+});
+function moverRegistros(ids, destino, renumerar){
+  if(bloqueadoPorVisor()) return;
+  if(!destino){ toast("Elige a qué sesión mover"); return; }
+  var esNueva = destino === "__nueva__";
+  var sesionDestinoId = destino;
+  if(esNueva){
+    var nueva = sesionVacia();
+    nueva.archivada = true;
+    state.sesiones.push(nueva);
+    guardarListaSesiones();
+    sesionDestinoId = nueva.id;
+  }
+  var sesionDestino = sesionPorId(sesionDestinoId);
+  var registrosAMover = ids.map(function(id){ return state.registros.filter(function(x){return x.id===id;})[0]; }).filter(Boolean);
+  if(renumerar && sesionDestino){
+    // Se respeta el orden relativo que ya tenían (por código), no el orden en que fueron seleccionados.
+    registrosAMover.sort(function(a,b){ return (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}); });
+  }
+  registrosAMover.forEach(function(r){
+    r.sesionId = sesionDestinoId;
+    if(renumerar && sesionDestino && r.tipo !== "nota"){
+      var codigoNuevo = sesionDestino.prefijo + "-" + pad(sesionDestino.contador, 3);
+      sesionDestino.contador = sesionDestino.contador + 1;
+      r.codigo = codigoNuevo;
+      if(r.tipo==="medicion" && r.individuos && r.individuos.length){
+        r.individuos.forEach(function(ind, i){ ind.subcodigo = codigoNuevo+"_"+(i+1); });
+      }
+    }
+  });
+  ids.forEach(function(id){ delete state.sueltosSel[id]; });
+  guardarRegistros();
+  if(sesionDestino) guardarListaSesiones();
+  if(state.draft && ids.indexOf(state.draft.id)>=0){
+    var draftMovido = registrosAMover.filter(function(r){ return r.id===state.draft.id; })[0];
+    state.draft.sesionId = sesionDestinoId;
+    if(draftMovido){ state.draft.codigo = draftMovido.codigo; if(draftMovido.individuos) state.draft.individuos = draftMovido.individuos; }
+    guardarDraft();
+  }
+  if(sesionDestinoId) listaSesionesColapsadas.delete(sesionDestinoId);
+  salirSeleccion();
+  toast(ids.length+" registro(s) movido(s)"+(esNueva?" a una nueva sesión (archivada): complétala en la pestaña Sesión":"")+(renumerar?" y renumerados":""), 3800);
+  renderLista();
+}
 
 function iniciarNuevoRegistro(){
   detenerSeguimientoEnVivo();
@@ -7374,22 +7661,8 @@ function listaNavegacionConsulta(sinActual){
   return ordenarParaNavegacionConsulta(lista);
 }
 function renderFiltroConsulta(){
-  var sel = document.getElementById("cons-filtro-sesion"); if(!sel) return;
   var f = state.consultaFiltro;
-  if(f.sesion && f.sesion !== "__todas__" && !sesionPorId(f.sesion)) f.sesion = "";
-  var porSesion = {};
-  state.registros.forEach(function(r){
-    var o = porSesion[r.sesionId] || (porSesion[r.sesionId] = {total:0, pend:0});
-    o.total++; if(!r.transcrito) o.pend++;
-  });
-  var totalPend = state.registros.filter(function(r){ return !r.transcrito; }).length;
-  var html = '<option value="">📋 Como en Registros</option><option value="__todas__">Todas las sesiones — faltan '+totalPend+' por transcribir</option>';
-  state.sesiones.slice().sort(function(a,b){ return String(b.creada||"").localeCompare(String(a.creada||"")); }).forEach(function(s){
-    var o = porSesion[s.id]; if(!o) return;
-    html += '<option value="'+escapeHtml(s.id)+'">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+' — faltan '+o.pend+' de '+o.total+'</option>';
-  });
-  sel.innerHTML = html;
-  sel.value = f.sesion || "";
+  f.sesion = "";   // v2.68: la navegación sigue siempre la lista de Registros (el desplegable de sesión se quitó)
   var pend = registrosBaseConsulta().filter(function(r){ return !r.transcrito; }).length;
   document.getElementById("cons-filtro-pend").checked = !!f.pendientes;
   document.getElementById("cons-filtro-pend-lab").classList.toggle("on", !!f.pendientes);
@@ -7405,10 +7678,6 @@ function aplicarCambioFiltroConsulta(){
   renderConsulta(state.consultaId);
   irSubirInicio();
 }
-document.getElementById("cons-filtro-sesion").addEventListener("change", function(){
-  state.consultaFiltro.sesion = this.value;
-  aplicarCambioFiltroConsulta();
-});
 document.getElementById("cons-filtro-pend").addEventListener("change", function(){
   state.consultaFiltro.pendientes = this.checked;
   aplicarCambioFiltroConsulta();
@@ -7835,15 +8104,15 @@ document.getElementById("btn-guardar").addEventListener("click", function(e){
 }, true);
 /* v2.56: al borrar un registro también se borran sus fotos y videos de la base de la app (antes quedaban huérfanos en IndexedDB)
    y sus copias originales (HD) de la carpeta local. El permiso de la carpeta se pide antes de la confirmación, mientras sigue vigente el toque. */
-function eliminarRegistroPorId(id, despues){
-  if(bloqueadoPorVisor()) return;
+function eliminarRegistroPorId(id, despues, sinConfirmar){
+  if(bloqueadoPorVisor()) return Promise.resolve();
   var r = state.registros.filter(function(x){return x.id===id;})[0];
-  if(!r) return;
+  if(!r) return Promise.resolve();
   var rutas = archivosLocalesDeRegistros([r]);
   var dirP = (rutas.length && soportaCarpeta()) ? carpetaConPermiso() : Promise.resolve(null);
-  dirP.then(function(dir){
+  return dirP.then(function(dir){
     var extra = rutas.length ? (dir ? "\n\nTambién se borrará"+(rutas.length===1?" 1 archivo original (HD)":"n "+rutas.length+" archivos originales (HD)")+" de la carpeta local." : "\n\n⚠️ "+(rutas.length===1?"1 archivo original (HD) quedará":rutas.length+" archivos originales (HD) quedarán")+" en la carpeta local: no hay acceso a ella ahora (se verán como «sin registro en la app» en «Explorar carpeta»).") : "";
-    if(!confirm("¿Borrar el registro "+(r.codigo||r.notaTitulo||"sin identificar")+"? Esta acción no se puede deshacer."+extra)) return;
+    if(!sinConfirmar && !confirm("¿Borrar el registro "+(r.codigo||r.notaTitulo||"sin identificar")+"? Esta acción no se puede deshacer."+extra)) return;
     state.registros = state.registros.filter(function(x){return x.id!==id;});
     guardarRegistros();
     (r.fotos || []).concat(r.videos || []).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); });
@@ -10307,7 +10576,7 @@ function eliminarSesionConRegistrosPaso2(id, dirCarpeta, rutasLocales){
   guardarListaSesiones();
   if(!state.sesiones.length && !state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); state.sesionEnPantallaId = state.sesionBorrador.id; }
   toast('Sesión "'+nombre+'" borrada con sus '+regs.length+(regs.length===1?' registro':' registros')+(eraActiva ? '. Ya no hay sesión activa: guarda una nueva o reactiva otra' : ''), eraActiva ? 5200 : 3500);
-  renderExportar();
+  refrescarVistasViaje();
   if(rutasLocales.length){
     borrarArchivosDeCarpeta(dirCarpeta, rutasLocales).then(function(r){
       var m = [];
@@ -10345,7 +10614,7 @@ function eliminarSesionVacia(id){
   if(!state.sesiones.length && !state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); state.sesionEnPantallaId = state.sesionBorrador.id; }
   if(state.sesionGestionId === id) state.sesionGestionId = null;
   guardarListaSesiones();
-  renderExportar();
+  refrescarVistasViaje();
 }
 function registrosHuerfanos(){
   var idsValidos = {}; state.sesiones.forEach(function(s){ idsValidos[s.id]=true; });
@@ -10375,8 +10644,7 @@ document.getElementById("btn-reparar-huerfanos").addEventListener("click", funct
   if(!confirm("¿Reasignar "+huerfanos.length+" registro(s) a la sesión elegida? Esto no se puede deshacer.")) return;
   huerfanos.forEach(function(r){ r.sesionId = destino; });
   guardarRegistros();
-  renderPanelHuerfanos();
-  renderExportar();
+  refrescarVistasViaje();
   toast("✅ "+huerfanos.length+" registro(s) reasignado(s)");
 });
 /* ---------------- Reparación de fechas guardadas en UTC (hasta v2.32) ---------------- */
@@ -10438,7 +10706,7 @@ document.getElementById("btn-corregir-fechas").addEventListener("click", functio
   if(!confirm("¿Corregir la fecha de "+aplicar.length+" registro(s) según la propuesta? Esto no se puede deshacer.")) return;
   aplicar.forEach(function(c){ c.r.fecha = c.propuesta; c.r.fechaLocal = true; });
   guardarRegistros();
-  renderPanelFechas();
+  refrescarVistasViaje();
   toast("✅ "+aplicar.length+" fecha(s) corregida(s)");
 });
 document.getElementById("btn-revisadas-fechas").addEventListener("click", function(){
@@ -10447,30 +10715,27 @@ document.getElementById("btn-revisadas-fechas").addEventListener("click", functi
   if(!confirm("¿Dejar las fechas de estos "+lista.length+" registro(s) como están? Dejarán de mostrarse en este aviso.")) return;
   lista.forEach(function(c){ c.r.fechaLocal = true; });
   guardarRegistros();
-  renderPanelFechas();
+  refrescarVistasViaje();
   toast("Registros marcados como revisados");
 });
 function renderExportar(){
-  renderPanelHuerfanos();
-  renderRecorridosHuerfanos();
-  renderPanelFechas();
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
-  var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
+  var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesRegistros));
   // v2.43: si la persona dejó todas las sesiones sin marcar (para exportar solo registros sueltos), se respeta.
   var seleccion = seleccionPrevia.length ? seleccionPrevia : (state.expVacioManual ? [] : [state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : "")]);
+  var nPorSesion = {};
+  state.registros.forEach(function(r){ nPorSesion[r.sesionId] = (nPorSesion[r.sesionId]||0)+1; });
   box.innerHTML = conViajesExp(ordenadas, function(s){
     var esActiva = s.id===state.sesionActivaId;
     var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + fechaSesion(s);
     var badgeActiva = esActiva ? '<span class="badge-activa">ACTIVA</span>' : "";
-    var expandida = state.sesionGestionId === s.id;
-    var panelHtml = expandida ? renderPanelGestionSesion(s.id) : "";
-    return '<div class="sesion-exportar-card'+(expandida?" gestionando":"")+'" data-sesion="'+s.id+'">'+
-      '<div class="sesion-exportar-header">'+
+    var n = nPorSesion[s.id]||0;
+    return '<div class="sesion-exportar-card" data-sesion="'+s.id+'">'+
+      '<label class="sesion-exportar-header">'+
         '<input type="checkbox" class="sesion-check-export" data-id="'+s.id+'"'+(seleccion.indexOf(s.id)>=0?" checked":"")+'>'+
-        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+' '+badgeActiva+'</span>'+
-        '<button type="button" class="btn-gestionar'+(expandida?" on":"")+'" data-sesion="'+s.id+'">'+(expandida?"▾":"▸")+' Gestionar</button>'+
-      '</div>'+panelHtml+
+        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+' <span class="cnt">('+n+')</span> '+badgeActiva+'</span>'+
+      '</label>'+
     '</div>';
   });
   box.querySelectorAll(".sesion-check-export").forEach(function(c){
@@ -10480,18 +10745,76 @@ function renderExportar(){
     });
   });
   ligarEventosViajesExportar(box);
-  box.querySelectorAll(".btn-gestionar[data-sesion]").forEach(function(b){
-    b.addEventListener("click", function(){ toggleGestionSesion(b.dataset.sesion); });
-  });
-  box.querySelectorAll(".sesion-exportar-label").forEach(function(el){
-    ligarPulsacionLarga(el, function(){
-      var tarjeta = el.closest(".sesion-exportar-card");
-      if(tarjeta) verEnSesion(tarjeta.dataset.sesion);
-    });
-  });
-  ligarEventosPanelGestion(box);
+  renderElegirRegistros();
   actualizarStatsExportar();
 }
+/* v2.68: atajos de selección y lista de registros sueltos (solo casillas; Exportar no edita datos) */
+state.expElegirAbierto = false;
+function renderElegirRegistros(){
+  var p = document.getElementById("exp-elegir-panel"), b = document.getElementById("btn-exp-elegir");
+  if(!p || !b) return;
+  b.classList.toggle("on", !!state.expElegirAbierto);
+  if(!state.expElegirAbierto){ p.style.display = "none"; p.innerHTML = ""; return; }
+  p.style.display = "block";
+  var html = "";
+  state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesRegistros)).forEach(function(s){
+    var regs = registrosDeSesionOrdenados(s.id);
+    if(!regs.length) return;
+    html += '<div class="gestion-sub">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+' ('+regs.length+')</div><div class="gestion-lista">'+regs.map(function(r){
+      var ti = TIPOS[r.tipo]||TIPOS.nota, nombre = nombreRegistroLista(r);
+      return '<label class="gestion-fila"><input type="checkbox" class="gestion-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id]?' checked':'')+'>'+
+        '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span></label>';
+    }).join("")+'</div>';
+  });
+  p.innerHTML = html || '<div class="gestion-vacio">Aún no hay registros.</div>';
+  p.querySelectorAll(".gestion-check").forEach(function(chk){
+    chk.addEventListener("change", function(){
+      state.sueltosSel[chk.dataset.id] = chk.checked;
+      actualizarStatsExportar();
+    });
+  });
+}
+document.getElementById("btn-exp-elegir").addEventListener("click", function(){
+  state.expElegirAbierto = !state.expElegirAbierto;
+  renderElegirRegistros();
+});
+function marcarSesionesExportar(ids){
+  var box = document.getElementById("exp-selector-sesion");
+  box.querySelectorAll(".sesion-check-export").forEach(function(c){ c.checked = ids.indexOf(c.dataset.id)>=0; });
+  state.viajesSel = {};
+  box.querySelectorAll(".viaje-check-export").forEach(function(c){
+    var ss = sesionesDeViaje(c.dataset.id);
+    var todas = ss.length>0 && ss.every(function(s){ return ids.indexOf(s.id)>=0; });
+    c.checked = todas; state.viajesSel[c.dataset.id] = todas;
+  });
+  state.expVacioManual = ids.length===0;
+}
+document.getElementById("btn-exp-todo").addEventListener("click", function(){
+  marcarSesionesExportar(state.sesiones.map(function(s){ return s.id; }));
+  actualizarStatsExportar();
+});
+document.getElementById("btn-exp-ninguno").addEventListener("click", function(){
+  marcarSesionesExportar([]);
+  state.sueltosSel = {};
+  renderExportar();
+});
+document.getElementById("btn-exp-activa").addEventListener("click", function(){
+  var s = sesionActiva() || ultimaSesion();
+  if(!s){ toast("No hay sesiones"); return; }
+  marcarSesionesExportar([s.id]);
+  state.sueltosSel = {};
+  renderExportar();
+});
+document.getElementById("btn-exportar-libreta").addEventListener("click", function(){
+  var sel = seleccionExportar();
+  if(sel.vacia){ toast("Marca al menos un proyecto, una sesión o un registro"); return; }
+  exportarLibretaHTML(sel.registros);
+});
+document.getElementById("btn-exportar-bitacora").addEventListener("click", function(){
+  var ids = idsViajesMarcados();
+  if(!ids.length){ toast("Marca un proyecto para exportar su bitácora"); return; }
+  ids.forEach(function(id, i){ setTimeout(function(){ var v = viajePorId(id); if(v) exportarBitacoraHTML(v); }, i*900); });
+});
 function verEnSesion(id){
   var s = sesionPorId(id);
   if(!s) return;
@@ -10578,164 +10901,9 @@ function actualizarStatsExportar(){
   actualizarResumenSueltos();
 }
 
-/* ---------------- Panel de gestión de sesión (mover / borrar registros), en Exportar ---------------- */
-function toggleGestionSesion(sesionId){
-  state.sesionGestionId = (state.sesionGestionId === sesionId) ? null : sesionId;
-  renderExportar();
-}
 function registrosDeSesionOrdenados(sesionId){
   return state.registros.filter(function(r){ return r.sesionId===sesionId; })
     .sort(compararRegistrosPorFechaYCodigo);
-}
-function renderPanelGestionSesion(sesionId){
-  var registros = registrosDeSesionOrdenados(sesionId);
-  var otrasSesiones = state.sesiones.filter(function(s){return s.id!==sesionId;}).sort(function(a,b){return b.creada.localeCompare(a.creada);});
-  var editarBtn = '<button type="button" class="btn-editar-sesion" data-sesion="'+sesionId+'">✏️ Editar datos de esta sesión</button>';
-  var filasHtml = registros.map(function(r){
-    var ti = TIPOS[r.tipo]||TIPOS.nota;
-    var nombre = nombreRegistroLista(r);
-    return '<div class="gestion-fila">'+
-      '<input type="checkbox" class="gestion-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id] ? ' checked' : '')+'>'+
-      '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span>'+
-      '<span class="gestion-editar" data-id="'+r.id+'" title="Editar">✏️</span>'+
-      '<span class="gestion-borrar" data-id="'+r.id+'" title="Borrar">🗑</span>'+
-    '</div>';
-  }).join("");
-  if(registros.length===0){
-    var borrarSesionBtn = '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'">🗑 Borrar esta sesión</button>';
-    return '<div class="gestion-panel">'+editarBtn+htmlRecorridosDeSesion(sesionId)+
-      '<div class="gestion-vacio">Esta sesión no tiene registros.</div>'+
-      borrarSesionBtn+
-    '</div>';
-  }
-  var nMarcados = registros.filter(function(r){ return state.sueltosSel[r.id]; }).length;
-  var borrarCompletaBtn = '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'" style="margin-top:12px;">🗑 Borrar esta sesión y sus '+registros.length+(registros.length===1?' registro':' registros')+'</button>';
-  var opcionesDestino = otrasSesiones.map(function(s){
-    return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+'</option>';
-  }).join("");
-  return '<div class="gestion-panel">'+editarBtn+htmlRecorridosDeSesion(sesionId)+
-    '<div class="gestion-ayuda">Marca registros para descargarlos sueltos (botones de arriba, sin marcar la sesión) o para moverlos.</div>'+
-    '<div class="gestion-lista">'+filasHtml+'</div>'+
-    '<div class="gestion-contador" id="gestion-contador">'+nMarcados+(nMarcados===1 ? " registro seleccionado" : " registros seleccionados")+'</div>'+
-    '<div class="gestion-mover-row" style="flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:8px;">'+
-      '<button type="button" id="btn-toggle-renumerar" style="background:none; border:none; padding:0; color:var(--texto-sec); font-size:.74rem; text-decoration:underline; cursor:pointer;">⚙️ Opción avanzada: renumerar código al mover</button>'+
-      '<div id="renumerar-avanzado" style="display:none; width:100%;">'+
-        '<label style="display:flex; align-items:center; gap:7px; font-size:.78rem; color:var(--texto-sec); font-weight:400;">'+
-          '<input type="checkbox" id="gestion-renumerar" style="width:auto;">Renumerar automáticamente según la sesión destino</label>'+
-        '<div class="nota" style="margin-top:4px;">⚠️ Esto cambia el código del registro. Si la muestra ya tiene una etiqueta o rótulo físico con su código actual, debes actualizarlo tú mismo — la app no queda con registro del código anterior.</div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="gestion-mover-row">'+
-      '<select id="gestion-select-destino"><option value="">Mover a...</option>'+opcionesDestino+'<option value="__nueva__">＋ Mover a nueva sesión...</option></select>'+
-      '<button type="button" id="btn-gestion-mover">Mover</button>'+
-    '</div>'+
-    borrarCompletaBtn+
-  '</div>';
-}
-function ligarEventosPanelGestion(container){
-  var btnToggleRenumerar = container.querySelector("#btn-toggle-renumerar");
-  if(btnToggleRenumerar){
-    btnToggleRenumerar.addEventListener("click", function(){
-      var bloque = container.querySelector("#renumerar-avanzado");
-      if(bloque) bloque.style.display = bloque.style.display==="none" ? "block" : "none";
-    });
-  }
-  container.querySelectorAll(".btn-editar-sesion").forEach(function(b){
-    b.addEventListener("click", function(){ verEnSesion(b.dataset.sesion); });
-  });
-  container.querySelectorAll(".btn-borrar-sesion-panel").forEach(function(b){
-    b.addEventListener("click", function(){
-      var hay = state.registros.some(function(r){ return r.sesionId===b.dataset.sesion; });
-      if(hay) eliminarSesionConRegistros(b.dataset.sesion); else eliminarSesionVacia(b.dataset.sesion);
-    });
-  });
-  container.querySelectorAll(".gestion-check").forEach(function(chk){
-
-    chk.addEventListener("change", function(){
-      state.sueltosSel[chk.dataset.id] = chk.checked;
-      actualizarStatsExportar();
-      var panel = chk.closest(".gestion-panel");
-      var contador = panel && panel.querySelector("#gestion-contador");
-      if(contador){
-        var n = panel.querySelectorAll(".gestion-check:checked").length;
-        contador.textContent = n + (n===1 ? " registro seleccionado" : " registros seleccionados");
-      }
-    });
-  });
-  container.querySelectorAll(".gestion-borrar").forEach(function(x){
-    x.addEventListener("click", function(e){
-      e.stopPropagation();
-      borrarRegistroDesdeGestion(x.dataset.id);
-    });
-  });
-  container.querySelectorAll(".gestion-editar").forEach(function(x){
-    x.addEventListener("click", function(e){
-      e.stopPropagation();
-      editarRegistroExistente(x.dataset.id);
-    });
-  });
-  var btnMover = container.querySelector("#btn-gestion-mover");
-  if(btnMover){
-    btnMover.addEventListener("click", function(){ moverRegistrosSeleccionados(state.sesionGestionId); });
-  }
-}
-function borrarRegistroDesdeGestion(id){
-  eliminarRegistroPorId(id, function(r){
-    toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
-    renderExportar();
-  });
-}
-function moverRegistrosSeleccionados(sesionOrigenId){
-  var panel = document.querySelector('.sesion-exportar-card[data-sesion="'+sesionOrigenId+'"] .gestion-panel');
-  if(!panel) return;
-  var ids = Array.prototype.map.call(panel.querySelectorAll(".gestion-check:checked"), function(c){return c.dataset.id;});
-  if(ids.length===0){ toast("Selecciona al menos un registro para mover"); return; }
-  var destinoSel = document.getElementById("gestion-select-destino");
-  var destino = destinoSel ? destinoSel.value : "";
-  if(!destino){ toast("Elige a qué sesión mover"); return; }
-  var chkRenumerar = document.getElementById("gestion-renumerar");
-  var renumerar = chkRenumerar ? chkRenumerar.checked : false;
-  var esNueva = destino === "__nueva__";
-  var nombreDestino = esNueva ? "una nueva sesión" : ('"'+nombreSesionMostrar(sesionPorId(destino))+'"');
-  var msgMover = "¿Mover "+ids.length+" registro(s) a "+nombreDestino+"?";
-  if(renumerar) msgMover += "\n\n⚠️ También se renumerarán. Si alguna de estas muestras ya tiene una etiqueta o rótulo físico con su código actual, debes actualizarlo tú mismo: la app no queda con registro del código anterior.";
-  if(!confirm(msgMover)) return;
-  var sesionDestinoId = destino;
-  if(esNueva){
-    var nueva = sesionVacia();
-    nueva.archivada = true;
-    state.sesiones.push(nueva);
-    guardarListaSesiones();
-    sesionDestinoId = nueva.id;
-  }
-  var sesionDestino = sesionPorId(sesionDestinoId);
-  var registrosAMover = ids.map(function(id){ return state.registros.filter(function(x){return x.id===id;})[0]; }).filter(Boolean);
-  if(renumerar && sesionDestino){
-    // Se respeta el orden relativo que ya tenían (por código), no el orden en que fueron seleccionados.
-    registrosAMover.sort(function(a,b){ return (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}); });
-  }
-  registrosAMover.forEach(function(r){
-    r.sesionId = sesionDestinoId;
-    if(renumerar && sesionDestino && r.tipo !== "nota"){
-      var codigoNuevo = sesionDestino.prefijo + "-" + pad(sesionDestino.contador, 3);
-      sesionDestino.contador = sesionDestino.contador + 1;
-      r.codigo = codigoNuevo;
-      if(r.tipo==="medicion" && r.individuos && r.individuos.length){
-        r.individuos.forEach(function(ind, i){ ind.subcodigo = codigoNuevo+"_"+(i+1); });
-      }
-    }
-  });
-  ids.forEach(function(id){ delete state.sueltosSel[id]; });
-  guardarRegistros();
-  if(sesionDestino) guardarListaSesiones();
-  if(state.draft && ids.indexOf(state.draft.id)>=0){
-    var draftMovido = registrosAMover.filter(function(r){ return r.id===state.draft.id; })[0];
-    state.draft.sesionId = sesionDestinoId;
-    if(draftMovido){ state.draft.codigo = draftMovido.codigo; if(draftMovido.individuos) state.draft.individuos = draftMovido.individuos; }
-    guardarDraft();
-  }
-  toast(ids.length+" registro(s) movido(s)"+(esNueva?" a una nueva sesión (archivada) — complétala en la pestaña Sesión":"")+(renumerar?" y renumerados":""));
-  renderExportar();
 }
 // v2.35: localidad específica y localidad general (texto de la sesión sin correlativo). Sin específica, se conserva solo la general.
 function textoLocalidadSesion(s){ return ((s && s.zona) || "").trim(); }
