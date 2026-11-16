@@ -4011,7 +4011,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-16 · v2.70";
+var APP_BUILD = "2026-11-16 · v2.71";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -11832,6 +11832,8 @@ function mapaRenderSesion(s){
   actualizarPestanaMapa();
 }
 function mapaCargarArchivo(tag, url){
+  /* v2.71: mapa.js y mapa.css llevan la versión en la dirección para que el navegador no use una copia vieja guardada */
+  if(/(^|\/)mapa\.(js|css)$/.test(url)) url += "?v=" + encodeURIComponent(APP_BUILD);
   return new Promise(function(res, rej){
     var n = document.createElement(tag);
     if(tag==="script"){ n.src = url; } else { n.rel = "stylesheet"; n.href = url; }
@@ -11936,7 +11938,7 @@ function renderConfigMapaAdmin(){
     h = '<div class="mapa-cfg-card" style="margin-top:12px;"><p class="estado on">🔧 Administrador de mapas activo</p>'+
       '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Repositorio: '+escapeHtml(a.repo)+'. En «Mapas descargados y catálogo» aparece el botón «Pedir mapa nuevo».</span>'+
       '<button type="button" class="btnfull btn-secondary" id="btn-adm-cambiar" style="margin:0 0 8px;">🔑 Cambiar el token</button>'+
-      '<button type="button" class="btnfull btn-secondary" id="btn-adm-quitar" style="margin:0;">⏻ Quitar el modo administrador</button></div>';
+      '<button type="button" class="btnfull btn-secondary" id="btn-adm-quitar" style="margin:0;">🔓 Quitar el modo administrador</button></div>';
   } else if(mapaAdminVisible){
     h = '<div class="mapa-cfg-card" style="margin-top:12px;"><p class="estado">🔧 Administrador de mapas</p>'+
       '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Pega el token de GitHub (permiso «Actions: Read and write» sobre el repositorio de mapas). Queda guardado solo en este teléfono.</span>'+
@@ -11999,7 +12001,7 @@ function renderConfigMapa(){
       '</select><span class="campo-ayuda">Solo con mapa en la sesión: la pestaña aparece mientras la sesión tiene un mapa asociado e instalado. Siempre visible: aparece aunque no haya mapa para el área visitada.</span></div>'+
       '<button type="button" class="btnfull btn-secondary" id="btn-mapa-gestor" style="margin:0 0 8px;">⚙️ Mapas descargados y catálogo</button>'+
       '<button type="button" class="btnfull btn-secondary" id="btn-mapa-cambiar-url" style="margin:0 0 8px;">✏️ Cambiar la dirección del catálogo</button>'+
-      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-desactivar" style="margin:0;">⏻ Desactivar el mapa</button>';
+      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-desactivar" style="margin:0;">🔌 Desactivar el mapa</button>';
   }
   h += '</div>';
   cont.innerHTML = h;
