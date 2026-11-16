@@ -138,3 +138,9 @@
 .mp-busca-rot{display:block; font-weight:700; font-size:.95rem; color:var(--verde); margin:0 0 6px;}
 .mp-busca-input{width:100%; box-sizing:border-box; padding:12px 14px; font-size:1.05rem; border:1.5px solid var(--verde); border-radius:10px; background:var(--fondo,#fff); color:var(--texto);}
 .mp-busca-input:focus{outline:3px solid rgba(46,125,50,.35);}
+
+/* v2.70 pedir mapa nuevo (administrador) */
+#mp-modal-pedir .modal{max-height:92vh; overflow-y:auto;}
+#mp-modal-pedir .field{margin:0 0 10px;}
+#mp-modal-pedir .field input{width:100%; box-sizing:border-box;}
+#mp-modal-pedir .mp-chk{display:flex; align-items:center; gap:8px; margin:6px 0;}

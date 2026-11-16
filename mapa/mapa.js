@@ -1744,6 +1744,175 @@ function guardarPuntoAqui() {
 
 /* ---------- gestor "Mapas sin conexión" ---------- */
 var modal = null, modalCuerpo = null, vistaGestor = "mapas";
+/* ---------- v2.70: pedir un mapa nuevo (solo administrador) ----------
+   Lanza en GitHub el flujo "Nueva localidad de mapa" (nueva-localidad.yml), que corta el mapa base y el relieve,
+   actualiza catalogo.json y publica. El token vive solo en este teléfono (Config, modo administrador). */
+var LS_PEDIDO = "libretacampo_mapa_pedido_v1";
+var pedido = leerJSON(LS_PEDIDO, null);   /* { runId, nombre, modo, url, estado, fin } */
+var pedidoTimer = null, modalPedir = null;
+function adminMapas() { return (LC && LC.mapaAdmin) ? LC.mapaAdmin() : null; }
+function ghLlamar(a, ruta, op) {
+  op = op || {};
+  var h = { "Authorization": "Bearer " + a.token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+  if (op.body) h["Content-Type"] = "application/json";
+  return fetch("https://api.github.com" + ruta, { method: op.method || "GET", headers: h, body: op.body ? JSON.stringify(op.body) : undefined, cache: "no-store" });
+}
+function mensajeGh(r, cuerpo) {
+  if (r.status === 401) return "El token no es válido o venció. Cámbialo en Config, Gestión de mapas.";
+  if (r.status === 403 || r.status === 404) return "GitHub no permite la acción (" + r.status + "). Revisa que el token tenga el permiso «Actions: Read and write» sobre el repositorio.";
+  if (r.status === 422) return "GitHub rechazó los datos" + (cuerpo && cuerpo.message ? ": " + cuerpo.message : ".");
+  return "GitHub respondió " + r.status + (cuerpo && cuerpo.message ? ": " + cuerpo.message : ".");
+}
+function numDecimal(t) { var n = parseFloat(String(t == null ? "" : t).trim().replace(",", ".")); return isFinite(n) ? n : null; }
+function validarPedido(d) {
+  if (!d.nombre) return "Falta el nombre de la localidad.";
+  if (!d.region) return "Falta la región.";
+  var la = numDecimal(d.lat), lo = numDecimal(d.lon), ra = numDecimal(d.radio);
+  if (la == null || la < -90 || la > 90) return "La latitud debe estar entre -90 y 90.";
+  if (lo == null || lo < -180 || lo > 180) return "La longitud debe estar entre -180 y 180.";
+  if (ra == null || ra < 0.5 || ra > 30) return "El radio debe estar entre 0,5 y 30 km.";
+  if (d.id && !/^[a-z0-9_]+$/.test(d.id)) return "El identificador solo admite minúsculas, números y guion bajo.";
+  return null;
+}
+function guardarPedido() { if (pedido) guardarJSON(LS_PEDIDO, pedido); else { try { localStorage.removeItem(LS_PEDIDO); } catch (e) {} } }
+function textoPedido() {
+  if (!pedido) return "";
+  var e = pedido.estado;
+  if (e === "enviando") return "Enviando el pedido a GitHub…";
+  if (e === "buscando") return "Pedido enviado. Esperando que GitHub lo inicie…";
+  if (e === "en_curso") return "Preparando «" + pedido.nombre + "» en GitHub. Suele tardar entre 2 y 8 minutos. Puedes cerrar esta ventana.";
+  if (e === "ok") return pedido.modo === "solo_medir" ? "Medición lista. Revisa el resumen en GitHub (no se publicó nada)." : "✅ «" + pedido.nombre + "» publicado. Ya está en el catálogo.";
+  if (e === "fallo") return "El pedido terminó con error" + (pedido.detalle ? " (" + pedido.detalle + ")" : "") + ". Revisa el detalle en GitHub.";
+  return "";
+}
+async function sondearPedido() {
+  clearTimeout(pedidoTimer); pedidoTimer = null;
+  var a = adminMapas(); if (!a || !pedido || pedido.fin) return;
+  try {
+    if (!pedido.runId) {
+      var rl = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + a.workflow + "/runs?event=workflow_dispatch&per_page=10");
+      var jl = await rl.json();
+      if (!rl.ok) throw new Error(mensajeGh(rl, jl));
+      var titulo = "Mapa: " + pedido.nombre + " (" + pedido.modo + ")";
+      var hit = (jl.workflow_runs || []).filter(function (w) { return Date.parse(w.created_at) >= pedido.t0 - 90000 && (w.display_title === titulo || w.name === titulo); })[0];
+      if (hit) { pedido.runId = hit.id; pedido.url = hit.html_url; pedido.estado = "en_curso"; guardarPedido(); }
+      else if (Date.now() - pedido.t0 > 180000) { pedido.estado = "fallo"; pedido.detalle = "GitHub no inició el flujo"; pedido.fin = true; guardarPedido(); renderGestor(); return; }
+    } else {
+      var rr = await ghLlamar(a, "/repos/" + a.repo + "/actions/runs/" + pedido.runId);
+      var jr = await rr.json();
+      if (!rr.ok) throw new Error(mensajeGh(rr, jr));
+      pedido.url = jr.html_url || pedido.url;
+      if (jr.status === "completed") {
+        pedido.fin = true; pedido.estado = jr.conclusion === "success" ? "ok" : "fallo"; pedido.detalle = jr.conclusion === "success" ? "" : (jr.conclusion || "");
+        guardarPedido();
+        if (pedido.estado === "ok") {
+          LC.toast(pedido.modo === "solo_medir" ? "📏 Medición lista" : "🗺️ Mapa nuevo publicado", 5000);
+          if (pedido.modo !== "solo_medir") { await cargarCatalogo(); await leerAlmacenamiento(); refrescarUI(); }
+        } else LC.toast("El pedido de mapa terminó con error", 6000);
+        renderGestor(); return;
+      }
+      if (Date.now() - pedido.t0 > 40 * 60000) { pedido.estado = "fallo"; pedido.detalle = "pasó demasiado tiempo"; pedido.fin = true; guardarPedido(); renderGestor(); return; }
+    }
+  } catch (e) { anotarError("pedido de mapa", e); }
+  renderGestor();
+  pedidoTimer = setTimeout(sondearPedido, pedido.runId ? 10000 : 5000);
+}
+async function enviarPedido(d) {
+  var a = adminMapas(); if (!a) return "No hay token de administrador en este teléfono.";
+  if (pedido && !pedido.fin) return "Ya hay un pedido en curso.";
+  var err = validarPedido(d); if (err) return err;
+  if (!online) return "Sin conexión. Necesitas internet para pedir un mapa.";
+  var inputs = {
+    nombre: d.nombre, region: d.region, latitud: String(numDecimal(d.lat)), longitud: String(numDecimal(d.lon)), radio_km: String(numDecimal(d.radio)),
+    id: d.id || "", zoom_base: String(d.zoom || "15"), max_mb: String(d.maxmb || "30"), modo: d.soloMedir ? "solo_medir" : "publicar"
+  };
+  pedido = { runId: null, nombre: d.nombre, modo: inputs.modo, url: "", estado: "enviando", fin: false, t0: Date.now() };
+  renderGestor();
+  try {
+    var r = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + a.workflow + "/dispatches", { method: "POST", body: { ref: a.ref, inputs: inputs } });
+    var cuerpo = null; try { cuerpo = await r.json(); } catch (e) {}
+    if (!r.ok) { var m = mensajeGh(r, cuerpo); pedido = null; guardarPedido(); renderGestor(); return m; }
+    pedido.estado = "buscando";
+    var id = cuerpo && (cuerpo.workflow_run_id || cuerpo.id);
+    if (id) { pedido.runId = id; pedido.url = cuerpo.html_url || cuerpo.run_url || ""; pedido.estado = "en_curso"; }
+    guardarPedido(); renderGestor();
+    pedidoTimer = setTimeout(sondearPedido, 4000);
+    return null;
+  } catch (e) {
+    anotarError("pedido de mapa", e); pedido = null; guardarPedido(); renderGestor();
+    return "No se pudo contactar a GitHub. Revisa la conexión.";
+  }
+}
+function cerrarPedir() { if (modalPedir) modalPedir.classList.remove("on"); }
+function abrirPedir() {
+  if (!adminMapas()) { LC.toast("Este teléfono no tiene el modo administrador"); return; }
+  if (!modalPedir) {
+    modalPedir = el("div", { class: "modal-bg", id: "mp-modal-pedir" });
+    modalPedir.addEventListener("click", function (e) { if (e.target === modalPedir) cerrarPedir(); });
+    document.body.appendChild(modalPedir);
+  }
+  modalPedir.textContent = "";
+  var campo = function (rot, id, ayuda, attrs) {
+    var inp = el("input", Object.assign({ type: "text", id: id, autocomplete: "off", autocapitalize: "off", spellcheck: "false" }, attrs || {}));
+    return { inp: inp, nodo: el("div", { class: "field" }, [el("label", { texto: rot, for: id }), inp, ayuda ? el("span", { class: "campo-ayuda", texto: ayuda }) : null]) };
+  };
+  var fNom = campo("Nombre de la localidad", "ped-nombre", "Ej.: La Higuera, Elqui. El identificador se arma con el texto antes de la coma.", { autocapitalize: "words" });
+  var fReg = campo("Región", "ped-region", "Ej.: Región de Coquimbo", { autocapitalize: "words" });
+  var fLat = campo("Latitud del centro", "ped-lat", null, { inputmode: "decimal" });
+  var fLon = campo("Longitud del centro", "ped-lon", null, { inputmode: "decimal" });
+  var fRad = campo("Radio (km)", "ped-radio", "Entre 0,5 y 30. Se agregan 0,5 km de margen.", { inputmode: "decimal", value: "8" });
+  var fId = campo("Identificador (opcional)", "ped-id", "Vacío: se arma con el nombre.");
+  var fZ = campo("Zoom máximo del mapa base", "ped-zoom", "13 a 15. Baja solo si se supera el tope.", { inputmode: "numeric", value: "15" });
+  var fMb = campo("Tope de tamaño (MB)", "ped-maxmb", "Base más relieve.", { inputmode: "numeric", value: "30" });
+  var chk = el("input", { type: "checkbox", id: "ped-medir" });
+  var msg = el("p", { class: "campo-ayuda", id: "ped-msg", style: "min-height:1.2em;" });
+  var leer = function () {
+    return { nombre: fNom.inp.value.trim(), region: fReg.inp.value.trim(), lat: fLat.inp.value, lon: fLon.inp.value, radio: fRad.inp.value, id: fId.inp.value.trim(), zoom: fZ.inp.value.trim(), maxmb: fMb.inp.value.trim(), soloMedir: chk.checked };
+  };
+  var ponerCentro = function (lat, lon, quien) { fLat.inp.value = lat.toFixed(6); fLon.inp.value = lon.toFixed(6); msg.textContent = "Centro tomado de " + quien + "."; };
+  var bCentro = el("button", { type: "button", texto: "🗺️ Centro del mapa", onclick: function () {
+    if (!map || !mapaListo) { msg.textContent = "Abre la pestaña Mapa para usar su centro."; return; }
+    var c = map.getCenter(); ponerCentro(c.lat, c.lng, "la vista del mapa");
+  } });
+  var bGps = el("button", { type: "button", texto: "📡 Mi posición", onclick: function () {
+    if (gps.fix) { ponerCentro(gps.fix.lat, gps.fix.lng, "tu GPS (±" + Math.round(gps.fix.acc) + " m)"); return; }
+    if (!navigator.geolocation) { msg.textContent = "Este navegador no entrega la posición."; return; }
+    msg.textContent = "Buscando tu posición…";
+    navigator.geolocation.getCurrentPosition(function (p) { ponerCentro(p.coords.latitude, p.coords.longitude, "tu GPS (±" + Math.round(p.coords.accuracy) + " m)"); }, function () { msg.textContent = "No se pudo obtener la posición."; }, { enableHighAccuracy: true, timeout: 20000 });
+  } });
+  var bEnviar = el("button", { type: "button", class: "primario", texto: "Pedir mapa", onclick: async function () {
+    var d = leer(), e = validarPedido(d);
+    if (e) { msg.textContent = e; return; }
+    if (!confirm("¿Pedir el mapa «" + d.nombre + "»?\n\nCentro " + numDecimal(d.lat) + ", " + numDecimal(d.lon) + " · radio " + numDecimal(d.radio) + " km." + (d.soloMedir ? "\n\nSolo se mide: no se publica nada." : "\n\nSe publicará en el catálogo de mapas."))) return;
+    bEnviar.disabled = true; msg.textContent = "Enviando…";
+    var r = await enviarPedido(d);
+    if (r) { msg.textContent = r; bEnviar.disabled = false; } else cerrarPedir();
+  } });
+  var caja = el("div", { class: "modal" }, [
+    el("div", { class: "mp-panel-cab mp-gestor-cab" }, [el("h2", { texto: "Pedir mapa nuevo", style: "margin:0;font-size:1.1rem;" }), el("button", { type: "button", class: "mp-panel-x", texto: "✕", "aria-label": "Cerrar", onclick: cerrarPedir })]),
+    el("p", { class: "mp-suave", texto: "GitHub corta el mapa base y el relieve, actualiza el catálogo y lo publica. Después aparece en la lista para descargarlo." }),
+    fNom.nodo, fReg.nodo, fLat.nodo, fLon.nodo,
+    el("div", { class: "mp-fila", style: "margin:-4px 0 10px;" }, [bCentro, bGps]),
+    fRad.nodo,
+    el("label", { class: "mp-chk" }, [chk, el("span", { texto: "Solo medir el tamaño (no publica)" })]),
+    el("details", { style: "margin:8px 0;" }, [el("summary", { texto: "Opciones avanzadas", style: "font-weight:700;cursor:pointer;" }), fId.nodo, fZ.nodo, fMb.nodo]),
+    msg,
+    el("div", { class: "mp-fila" }, [el("button", { type: "button", texto: "Cancelar", onclick: cerrarPedir }), bEnviar])
+  ]);
+  modalPedir.appendChild(caja);
+  modalPedir.classList.add("on");
+}
+function cajaPedido() {
+  if (!pedido) return null;
+  var hijos = [el("p", { class: "mp-suave", texto: textoPedido() })];
+  if (!pedido.fin) hijos.push(el("progress", { max: "1" }));
+  var fila = [];
+  if (pedido.url) fila.push(el("button", { type: "button", texto: "Ver en GitHub", onclick: function () { window.open(pedido.url, "_blank", "noopener"); } }));
+  if (pedido.fin) fila.push(el("button", { type: "button", texto: "Cerrar aviso", onclick: function () { pedido = null; guardarPedido(); renderGestor(); } }));
+  if (fila.length) hijos.push(el("div", { class: "mp-fila" }, fila));
+  return el("div", { class: "mp-caja" }, [el("h3", { texto: "Pedido de mapa" })].concat(hijos));
+}
+
 function crearModal() {
   modal = el("div", { class: "modal-bg", id: "mp-modal-mapas" });
   var caja = el("div", { class: "modal" });
@@ -1885,9 +2054,11 @@ function renderGestor() {
       el("p", { class: "mp-suave", texto: "Espacio usado por la app: " + (almEst.usado != null ? mb(almEst.usado) : "?") + " de " + (almEst.cuota != null ? mb(almEst.cuota) : "?") + ". Almacenamiento protegido: " + (almEst.protegido == null ? "sin dato" : almEst.protegido ? "sí" : "no") + "." }),
       el("div", { class: "mp-fila" }, [
         el("button", { texto: "Actualizar catálogo", disabled: online ? null : "disabled", onclick: async function () { await cargarCatalogo(); await leerAlmacenamiento(); refrescarUI(); } }),
-        almEst.protegido === false ? el("button", { texto: "Pedir protección", onclick: async function () { try { await navigator.storage.persist(); } catch (e) {} await leerAlmacenamiento(); renderGestor(); } }) : null
+        almEst.protegido === false ? el("button", { texto: "Pedir protección", onclick: async function () { try { await navigator.storage.persist(); } catch (e) {} await leerAlmacenamiento(); renderGestor(); } }) : null,
+        adminMapas() ? el("button", { class: "primario", texto: "➕ Pedir mapa nuevo", disabled: (online && !(pedido && !pedido.fin)) ? null : "disabled", onclick: abrirPedir }) : null
       ])
     ]));
+    if (adminMapas() && pedido) cu.appendChild(cajaPedido());
     if (!online) cu.appendChild(el("p", { class: "mp-suave", texto: "Sin conexión solo puedes usar o eliminar los mapas instalados." }));
     /* Buscador: filtra por nombre, región, versión o nombre de capa, sin tildes ni mayúsculas.
        Solo se vuelve a dibujar la lista (no la caja), para no perder el foco del teclado al escribir. */
@@ -2113,6 +2284,7 @@ async function init(lc) {
   LC.actualizarPestanaMapa();
   if (LC.state.currentView === "mapa") alMostrar();
   precargarArchivos();
+  if (pedido && !pedido.fin && adminMapas()) sondearPedido();
 }
 
 window.MapaPro = {
