@@ -1306,7 +1306,7 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <div class="version-info" id="version-info">Comprobando versión...</div>
     </div>
     <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary><span class="n">🖼</span>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
-    <details class="cfg-bloque" id="cfg-gestion-mapas"><summary><span class="n">🗺</span>Gestión de mapas</summary><div class="cfg-bloque-cuerpo" id="config-mapa"></div></details>
+    <details class="cfg-bloque" id="cfg-gestion-mapas"><summary><span class="n">🗺</span>Gestión de mapas</summary><div class="cfg-bloque-cuerpo"><div id="config-mapa"></div><div id="config-mapa-admin"></div></div></details>
     <details class="cfg-bloque" id="cfg-sugerencias"><summary><span class="n">💡</span>Sugerencias de los campos</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
     <details class="cfg-bloque" id="cfg-datos"><summary><span class="n">🗂</span>Datos</summary><div class="cfg-bloque-cuerpo">
       <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
@@ -4011,7 +4011,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-16 · v2.69";
+var APP_BUILD = "2026-11-16 · v2.70";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -11907,6 +11907,79 @@ function mapaPedirDireccion(){
   document.getElementById("mapa-url-msg").textContent = "";
   m.classList.add("on");
 }
+/* v2.70: administrador de mapas. El token de GitHub se pega una vez en ESTE teléfono (nunca viaja en el código público ni en los respaldos).
+   Solo quien lo guarda ve el botón "Pedir mapa nuevo" en el gestor de mapas. Se revela tocando 5 veces la línea de versión en Config. */
+var MAPA_ADM_KEY = "libretacampo_mapa_admin_v1";
+var mapaAdminVisible = false;
+function mapaAdmin(){
+  try{
+    var a = JSON.parse(localStorage.getItem(MAPA_ADM_KEY) || "null");
+    if(a && typeof a.token==="string" && a.token.length>20 && /^[\w.-]+\/[\w.-]+$/.test(a.repo||"")) return { token:a.token, repo:a.repo, ref:a.ref||"main", workflow:a.workflow||"nueva-localidad.yml" };
+  }catch(e){}
+  return null;
+}
+function mapaAdminQuitar(){ try{ localStorage.removeItem(MAPA_ADM_KEY); }catch(e){} }
+function mapaAdminComprobar(token, repo){
+  return fetch("https://api.github.com/repos/"+repo+"/actions/workflows/nueva-localidad.yml", {
+    headers:{ "Authorization":"Bearer "+token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28" }, cache:"no-store"
+  }).then(function(r){
+    if(r.status===401) throw new Error("El token no es válido o venció.");
+    if(r.status===404) throw new Error("No se encontró el repositorio o el flujo. Revisa el nombre y que el token tenga acceso a ese repositorio.");
+    if(!r.ok) throw new Error("GitHub respondió "+r.status+".");
+    return true;
+  });
+}
+function renderConfigMapaAdmin(){
+  var cont = document.getElementById("config-mapa-admin"); if(!cont) return;
+  var a = mapaAdmin(), h = "";
+  if(a){
+    h = '<div class="mapa-cfg-card" style="margin-top:12px;"><p class="estado on">🔧 Administrador de mapas activo</p>'+
+      '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Repositorio: '+escapeHtml(a.repo)+'. En «Mapas descargados y catálogo» aparece el botón «Pedir mapa nuevo».</span>'+
+      '<button type="button" class="btnfull btn-secondary" id="btn-adm-cambiar" style="margin:0 0 8px;">🔑 Cambiar el token</button>'+
+      '<button type="button" class="btnfull btn-secondary" id="btn-adm-quitar" style="margin:0;">⏻ Quitar el modo administrador</button></div>';
+  } else if(mapaAdminVisible){
+    h = '<div class="mapa-cfg-card" style="margin-top:12px;"><p class="estado">🔧 Administrador de mapas</p>'+
+      '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Pega el token de GitHub (permiso «Actions: Read and write» sobre el repositorio de mapas). Queda guardado solo en este teléfono.</span>'+
+      '<div class="field"><label>Repositorio</label><input type="text" id="adm-repo" value="jperezsch/libreta-mapas" autocapitalize="off" autocomplete="off" spellcheck="false"></div>'+
+      '<div class="field"><label>Token</label><input type="password" id="adm-token" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></div>'+
+      '<p class="campo-ayuda" id="adm-msg" style="min-height:1.2em;"></p>'+
+      '<button type="button" class="btnfull btn-primary" id="btn-adm-guardar" style="margin:0;">Guardar y comprobar</button></div>';
+  }
+  cont.innerHTML = h;
+  var b;
+  if((b = document.getElementById("btn-adm-guardar"))) b.addEventListener("click", function(){
+    var tk = document.getElementById("adm-token").value.trim(), repo = document.getElementById("adm-repo").value.trim(), msg = document.getElementById("adm-msg");
+    if(tk.length<20){ msg.textContent = "Pega el token completo."; return; }
+    if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){ msg.textContent = "El repositorio debe tener la forma usuario/nombre."; return; }
+    msg.textContent = "Comprobando con GitHub…";
+    mapaAdminComprobar(tk, repo).then(function(){
+      if(!setLS(MAPA_ADM_KEY, JSON.stringify({token:tk, repo:repo, ref:"main", workflow:"nueva-localidad.yml"}))){ msg.textContent = "No se pudo guardar en este teléfono."; return; }
+      toast("🔧 Modo administrador activado");
+      renderConfigMapaAdmin();
+    }).catch(function(e){ msg.textContent = (navigator.onLine===false ? "Sin conexión: no se puede comprobar. " : "") + (e && e.message ? e.message : "No se pudo comprobar."); });
+  });
+  if((b = document.getElementById("btn-adm-cambiar"))) b.addEventListener("click", function(){ mapaAdminQuitar(); mapaAdminVisible = true; renderConfigMapaAdmin(); });
+  if((b = document.getElementById("btn-adm-quitar"))) b.addEventListener("click", function(){
+    if(!confirm("¿Quitar el modo administrador de este teléfono?\n\nSe borra el token guardado. El botón «Pedir mapa nuevo» deja de verse.")) return;
+    mapaAdminQuitar(); mapaAdminVisible = false; renderConfigMapaAdmin(); toast("Modo administrador quitado");
+  });
+}
+(function(){
+  var toques = 0, t0 = 0;
+  document.addEventListener("DOMContentLoaded", function(){ cablear(); });
+  function cablear(){
+    var v = document.getElementById("version-info"); if(!v) return;
+    v.addEventListener("click", function(){
+      var ahora = Date.now(); if(ahora - t0 > 3000) toques = 0; t0 = ahora; toques++;
+      if(toques >= 5){
+        toques = 0; mapaAdminVisible = true; renderConfigMapaAdmin();
+        toast(mapaAdmin() ? "🔧 Ya eres administrador de mapas" : "🔧 Abre «Gestión de mapas» para pegar el token", 4500);
+        var d = document.getElementById("cfg-gestion-mapas"); if(d) d.open = true;
+      }
+    });
+  }
+  if(document.readyState !== "loading") cablear();
+})();
 function renderConfigMapa(){
   var cont = document.getElementById("config-mapa"); if(!cont) return;
   var c = mapaCfg(), h = '<div class="mapa-cfg-card">';
@@ -11962,7 +12035,7 @@ function renderConfig(){
     });
   })();
   renderConfigCopia();
-  renderConfigMapa();
+  renderConfigMapa(); renderConfigMapaAdmin();
 }
 document.getElementById("btn-buscar-actualizacion").addEventListener("click", function(){
   if(!("serviceWorker" in navigator)){ toast("Este navegador no admite actualización automática"); return; }
@@ -12100,7 +12173,7 @@ window.LC = {
   verRegistroExistente: verRegistroExistente, abrirRegistro: abrirRegistro,
   obtenerPosicionMejorada: obtenerPosicionMejorada, gpsCapturaActiva: function(){ return gpsCapturaActiva; },
   aplicarPosicionAlBorrador: aplicarPosicionAlBorrador, exigirSesionActiva: exigirSesionActiva,
-  mapaCfg: mapaCfg, actualizarPestanaMapa: actualizarPestanaMapa,
+  mapaCfg: mapaCfg, mapaAdmin: mapaAdmin, actualizarPestanaMapa: actualizarPestanaMapa,
   guardarRecorridos: guardarRecorridos,
   viajeActivo: viajeActivo, viajePorId: viajePorId
 };
