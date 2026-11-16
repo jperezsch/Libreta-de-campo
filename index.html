@@ -758,8 +758,43 @@ details.cfg-bloque > summary::after{margin-left:auto;}
 details.cfg-bloque[open] > summary{border-bottom:1px solid var(--borde); margin-bottom:12px;}
 .version-info{font-size:.82rem;}
 /* modo "Consultar respaldo": sin acciones de edición en los menús ni en las herramientas de Registros */
-body.modo-visor #btn-seleccionar, body.modo-visor #btn-reg-nuevo-viaje, body.modo-visor .btn-menu-sesion, body.modo-visor #registros-avisos, body.modo-visor #selbar,
+body.modo-visor #btn-seleccionar, body.modo-visor #det-proyectos, body.modo-visor .btn-menu-sesion, body.modo-visor #registros-avisos, body.modo-visor #selbar,
 body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="borrar"]{display:none !important;}
+
+/* v2.69 · Registros: registros subordinados a su sesión, íconos por tipo, Gestión de proyectos */
+.sesion-regs{margin:0 0 12px 14px; padding:2px 0 0 10px; border-left:4px solid var(--verde);}
+.narr-sesion-header{margin-bottom:6px;}
+.sesion-regs .card{padding:10px 12px; margin-bottom:7px; box-shadow:none;}
+.sesion-regs .sesion-recs{margin:2px 0 4px 0;}
+.sesion-regs .sesion-vacia{padding:2px 2px 6px;}
+.reg-ic{width:38px; height:38px; font-size:1.2rem; border-radius:10px;}
+.reg-ic-coleccion{background:rgba(45,95,63,.18);}
+.reg-ic-observacion{background:rgba(11,92,138,.18);}
+.reg-ic-medicion{background:rgba(190,120,20,.2);}
+.reg-ic-nota{background:rgba(120,110,90,.2);}
+.reg-cod{font-weight:800; color:var(--verde-osc);}
+.reg-fh{font-weight:400; color:var(--texto-sec); font-size:.9em;}
+.reg-actions-sel{display:none;}
+.card.sel .reg-actions-sel{display:flex;}
+#det-proyectos{width:100%; box-sizing:border-box;}
+#det-proyectos summary{font-weight:800; color:var(--verde-osc);}
+.gp-fila{display:flex; gap:8px; margin:2px 0 10px;}
+.gp-sub{font-size:.84rem; font-weight:800; color:var(--verde-osc); margin:12px 0 4px; text-transform:uppercase; letter-spacing:.3px;}
+.gp-comp{font-size:.84rem; color:var(--texto-sec); margin:0 0 8px; line-height:1.4;}
+.gp-ses{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--borde); font-size:.9rem;}
+.gp-ses-n{flex:1; min-width:0; overflow-wrap:anywhere;}
+.gp-ses .cnt{color:var(--texto-sec);}
+.gp-acciones{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 6px;}
+#det-proyectos textarea{width:100%; box-sizing:border-box;}
+/* v2.69 · Consultando: código siempre visible en la barra superior, etiquetas sobre la sesión */
+.topbar-cons{flex-wrap:wrap; row-gap:8px;}
+.cons-codigo-top{flex:1 1 100%; background:rgba(255,255,255,.18); border-radius:10px; padding:6px 12px; font-family:ui-monospace,monospace; font-weight:800; font-size:1.55rem; line-height:1.2; letter-spacing:.02em; overflow-wrap:anywhere; text-align:center;}
+.cons-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; justify-content:flex-start;}
+html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
+.cons-chip{display:inline-block; font-size:.8rem; font-weight:700; padding:3px 10px; border-radius:20px; background:var(--verde-cl); color:var(--verde-osc);}
+.cons-chip.cons-estado{background:transparent; border:1.5px solid var(--borde); color:var(--texto-sec);}
+.cons-proyecto{font-size:.88rem; color:var(--texto-sec); margin:0 0 2px;}
+.cons-proyecto b{color:var(--texto);}
 </style>
 </head>
 <body>
@@ -779,6 +814,11 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
     </div>
   </div>
   <div class="pad">
+    <div class="bloque" id="bloque-proyecto-activo">
+      <div class="section-title"><span class="n">⭐</span>Proyecto activo</div>
+      <div class="field"><select id="ss-activo"></select><span class="campo-ayuda">Las sesiones nuevas se asignan a este proyecto y puedes grabar rutas desde el Mapa aunque no haya una sesión activa. Los proyectos se crean y administran en Registros, en «Gestión de proyectos».</span></div>
+    </div>
+
     <div class="bloque" id="bloque-sesion-principal">
       <div class="section-title"><span class="n">🧭</span>Sesión actual</div>
       <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
@@ -787,7 +827,7 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
         <button type="button" class="btnfull btn-secondary" id="btn-reactivar-sesion" style="display:none;">▶️ Reactivar sesión</button>
         <button type="button" class="btnfull btn-secondary" id="btn-editar-sesion" style="display:none;">✏️ Editar sesión</button>
       </div>
-      <div class="field" id="campo-ss-viaje"><label>Proyecto</label><select id="ss-viaje"></select><span class="campo-ayuda" id="ss-viaje-ayuda">Opcional: agrupa varias sesiones de una misma salida o campaña.</span></div>
+      <div class="field" id="campo-ss-viaje"><label>Asignar a proyecto</label><select id="ss-viaje"></select><span class="campo-ayuda" id="ss-viaje-ayuda">Opcional: agrupa varias sesiones de una misma salida o campaña.</span></div>
       <div class="field"><label>Localidad general</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Incluir comuna, provincia y región</span></div>
       <div class="row2 row-sesion-nombre">
         <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint">Diferencia sesiones con nombre idéntico</span></div>
@@ -878,10 +918,12 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
       <button type="button" class="vista-btn on" id="btn-vista-tarjetas">📋 Lista</button>
       <button type="button" class="vista-btn" id="btn-vista-narrativa">📖 Libreta</button>
     </div>
-    <div class="reg-toolbar">
-      <button type="button" class="mini-btn" id="btn-seleccionar">☑ Seleccionar</button>
-      <button type="button" class="mini-btn on" id="btn-reordenar-listo" style="display:none;">✔️ Listo</button>
-      <button type="button" class="mini-btn" id="btn-reg-nuevo-viaje">🧭 ＋ Proyecto</button>
+    <details class="filtros-det" id="det-proyectos">
+      <summary id="sum-proyectos">🧭 Gestión de proyectos</summary>
+      <div class="filtros-cuerpo" id="gp-cuerpo"></div>
+    </details>
+    <div class="reg-toolbar" id="reg-toolbar" style="display:none;">
+      <button type="button" class="mini-btn on" id="btn-reordenar-listo">✔️ Listo</button>
     </div>
     <details class="filtros-det" id="det-filtros">
       <summary id="sum-filtros">🔎 Orden y filtros</summary>
@@ -891,6 +933,10 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
           <button type="button" class="mini-btn on btn-orden-especies" id="btn-orden-registros-fecha">📅 Por fecha</button>
           <button type="button" class="mini-btn btn-orden-especies" id="btn-orden-registros-alfabetico">🔤 Alfabético</button>
           <button type="button" class="mini-btn" id="btn-modo-reordenar">↕️ Reordenar</button>
+        </div>
+        <div class="filtros-fila">
+          <span class="filtros-rotulo">Mover o borrar varios registros:</span>
+          <button type="button" class="mini-btn" id="btn-seleccionar">☑ Seleccionar</button>
         </div>
         <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
         <div class="chipbar" id="chipbar"></div>
@@ -1201,7 +1247,7 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
       <span class="campo-ayuda">Marca proyectos o sesiones completas. Con «Elegir registros…» puedes sumar registros sueltos sin marcar su sesión.</span>
     </div>
     <div class="bloque">
-      <div class="section-title"><span class="n">📤</span>Sacar lo elegido</div>
+      <div class="section-title"><span class="n">📤</span>Ejecutar exportación</div>
       <div class="bloque-subtitulo">Paquete y Darwin Core</div>
     <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Registros (.zip)</button>
     <div class="dwc-par">
@@ -1217,7 +1263,7 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
     </div>
     <div class="bloque">
-      <div class="section-title"><span class="n">📥</span>Traer respaldos</div>
+      <div class="section-title"><span class="n">📥</span>Importar</div>
       <div class="bloque-subtitulo">Carpeta del teléfono</div>
     <button type="button" class="btnfull btn-secondary" id="btn-explorar-carpeta">📂 Explorar carpeta del teléfono</button>
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Muestra el contenido de la carpeta elegida en Config («Gestión de imágenes»): fotos, videos y respaldos. Desde ahí puedes abrir archivos o importar un respaldo (.zip o .json). El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</p>
@@ -1273,7 +1319,7 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
 <div class="screen" id="s-consulta">
   <button type="button" class="cons-flecha cons-flecha-izq sin-destino" id="cons-flecha-izq" aria-label="Registro anterior (menor)">‹</button>
   <button type="button" class="cons-flecha cons-flecha-der sin-destino" id="cons-flecha-der" aria-label="Registro siguiente (mayor)">›</button>
-  <div class="topbar"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura — desliza a los lados para cambiar de registro</p></div></div></div>
+  <div class="topbar topbar-cons"><div class="brand"><span class="ic">👁</span><div><h2>Consultando registro</h2><p class="sub" id="consulta-posicion">Solo lectura. Desliza a los lados para cambiar de registro</p></div></div><div class="cons-codigo-top" id="consulta-codigo" style="display:none;"></div></div>
   <div class="pad">
     <div class="cons-fila-opciones">
       <label class="consulta-opcion" id="consulta-opcion-pantalla"><input type="checkbox" id="consulta-pantalla-activa"><span id="consulta-pantalla-texto">🔆 Pantalla encendida</span></label>
@@ -3965,7 +4011,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-16 · v2.68";
+var APP_BUILD = "2026-11-16 · v2.69";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -4872,6 +4918,7 @@ var SS_MAP = {"ss-proyecto":"proyecto","ss-objetivo":"objetivo",
   "ss-participantes":"participantes","ss-zona":"zona","ss-institucion":"institucion",
   "ss-clima":"clima","ss-notas":"notas","ss-prefijo":"prefijo"};
 function renderSesion(){
+  renderProyectoActivo();
   var s = sesionEnPantalla();
   if(!s) return;
   state.sesionEnPantallaId = s.id;
@@ -5369,6 +5416,7 @@ function obtenerListaFiltrada(){
   return lista;
 }
 function renderLista(justSavedId){
+  if(!gpSinRender) renderGestionProyectos();
   renderChips();
   renderPanelHuerfanos(); renderRecorridosHuerfanos(); renderPanelFechas();
   var smf = document.getElementById("sum-filtros");
@@ -5452,22 +5500,27 @@ function renderListaTarjetas(lista, justSavedId){
         var nombre = nombreRegistroLista(r);
         var cant = cantidadEjemplares(r);
         var cantTxt = cant!=null ? (" · "+cant+(cant==1?" ejemplar":" ejemplares")) : "";
-        return '<div class="card'+cls+'" data-id="'+r.id+'" data-sesion="'+escapeHtml(r.sesionId)+'" style="border-left:4px solid '+colorSesion(r.sesionId)+';">'+
+        var claseTipo = TIPOS[r.tipo] ? r.tipo : "nota";
+        var ident = r.codigo || r.notaTitulo || "";
+        var fh = ((r.fecha||"")+" "+(r.hora||"")).trim();
+        var tituloHtml = ident ? ('<span class="reg-cod">'+escapeHtml(ident)+'</span>'+(fh ? '<span class="reg-fh"> · '+escapeHtml(fh)+'</span>' : '')) : ('<span class="reg-fh">'+escapeHtml(fh)+'</span>');
+        return '<div class="card'+cls+'" data-id="'+r.id+'" data-sesion="'+escapeHtml(r.sesionId)+'">'+
           (modoReordenarRegistros ? '<div class="reg-handle" data-handle="1" title="Arrastra para reordenar">⠿</div>' : '')+
           (modoSeleccion ? '<input type="checkbox" class="reg-sel" data-id="'+r.id+'"'+(state.regSel[r.id]?' checked':'')+' aria-label="Seleccionar registro">' : '')+
-          '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
+          '<div class="reg-ic reg-ic-'+claseTipo+'" title="'+escapeHtml(ti.label)+'">'+ti.ic+'</div>'+
           '<div class="reg-info" style="flex:1; min-width:0;">'+
-            '<div class="reg-title">'+(r.codigo ? (escapeHtml(r.codigo)+' · ') : (r.notaTitulo ? (escapeHtml(r.notaTitulo)+' · ') : ''))+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
+            '<div class="reg-title">'+tituloHtml+'</div>'+
             '<div class="reg-meta"><span class="tag">'+ti.label+'</span>'+insigniaSubtipoNota(r)+' '+escapeHtml(nombre)+escapeHtml(cantTxt)+iconoFotosHtml(r)+'</div>'+
           '</div>'+
-          ((modoReordenarRegistros || modoSeleccion) ? '' : ('<div class="reg-actions">'+
-            '<button type="button" class="btn-icon" data-action="mapa" data-id="'+r.id+'" title="Ver en el mapa">🗺️</button>'+
-            '<button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar">🗑</button>'+
-          '</div>'))+'</div>';
+          (modoReordenarRegistros ? '' : (modoSeleccion
+            ? ('<div class="reg-actions reg-actions-sel"><button type="button" class="btn-icon btn-icon-danger" data-action="borrar" data-id="'+r.id+'" title="Borrar este registro">🗑</button></div>')
+            : ('<div class="reg-actions">'+
+                '<button type="button" class="btn-icon" data-action="mapa" data-id="'+r.id+'" title="Ver en el mapa">🗺️</button>'+
+              '</div>')))+'</div>';
       }).join("");
       var recsHtml = htmlRecorridosDeSesion(g.sesionId);
       var vacioHtml = g.registros.length ? '' : '<div class="sesion-vacia">Esta sesión no tiene registros.</div>';
-      return headerHtml + tarjetasHtml + vacioHtml + (recsHtml ? '<div class="sesion-recs">'+recsHtml+'</div>' : '');
+      return headerHtml + '<div class="sesion-regs" style="border-left-color:'+colorSesion(g.sesionId)+';">'+tarjetasHtml + vacioHtml + (recsHtml ? '<div class="sesion-recs">'+recsHtml+'</div>' : '')+'</div>';
     }, !hayFiltroRegistros(), true);
   }
   cont.querySelectorAll('.btn-icon[data-action="mapa"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); verRegistroEnMapa(b.dataset.id); }); });
@@ -6208,14 +6261,24 @@ function pedirNuevoViaje(cb){
     if(cb) cb(v); else refrescarVistasViaje();
   });
 }
-function alternarViajeActivo(id){
+function fijarViajeActivo(id){
   if(bloqueadoPorVisor()) return;
-  var v = viajePorId(id); if(!v) return;
-  state.viajeActivoId = (state.viajeActivoId===id) ? null : id;
+  var v = id ? viajePorId(id) : null;
+  if(id && !v) return;
+  var antes = state.viajeActivoId || null;
+  state.viajeActivoId = v ? v.id : null;
+  if(v) state.gpId = v.id;   // el desplegable «Gestión de proyectos» muestra el proyecto que se acaba de activar
   guardarViajeActivo();
-  toast(state.viajeActivoId ? ('Proyecto activo: "'+v.nombre+'". Permite notas y recorridos aunque no haya sesión activa.') : "Sin proyecto activo", 3800);
+  // la sesión nueva sin guardar acompaña al proyecto activo mientras no se le haya asignado otro a mano
+  var b = state.sesionBorrador;
+  if(b && (b.viajeId || null)===antes){ b.viajeId = state.viajeActivoId; guardarBorradorSesion(); }
+  toast(v ? ('Proyecto activo: "'+v.nombre+'". Las sesiones nuevas se asignan a este proyecto.') : "Sin proyecto activo", 3800);
   if(window.LC && LC.actualizarPestanaMapa) LC.actualizarPestanaMapa();
   refrescarVistasViaje();
+}
+function alternarViajeActivo(id){
+  if(!viajePorId(id)) return;
+  fijarViajeActivo(state.viajeActivoId===id ? null : id);
 }
 function renombrarViaje(id){
   if(bloqueadoPorVisor()) return;
@@ -6266,6 +6329,95 @@ function htmlRutasViaje(v){
   var rutas = recorridosDeRuta(v.id);
   if(!rutas.length) return "";
   return '<div class="sesion-recs"><div class="gestion-sub">Recorridos de ruta ('+rutas.length+')</div>'+rutas.map(htmlFilaRecorrido).join("")+'</div>';
+}
+
+/* ---------- v2.69 · Gestión de proyectos (desplegable en Registros) ---------- */
+state.gpId = null;            // proyecto que se muestra en el desplegable
+var gpSinRender = false;      // true mientras se guarda un campo, para no rehacer el panel con el cursor puesto
+function gpCampoHtml(id, rotulo, valor, ph, area){
+  var v = escapeHtml(valor||"");
+  return '<div class="field"><label for="'+id+'">'+rotulo+'</label>'+
+    (area ? '<textarea id="'+id+'" rows="2" spellcheck="true" placeholder="'+escapeHtml(ph||"")+'">'+v+'</textarea>'
+          : '<input type="text" id="'+id+'" spellcheck="true" autocomplete="off" placeholder="'+escapeHtml(ph||"")+'" value="'+v+'">')+'</div>';
+}
+function renderGestionProyectos(){
+  var cu = document.getElementById("gp-cuerpo"); if(!cu) return;
+  var n = state.viajes.length;
+  document.getElementById("sum-proyectos").textContent = "🧭 Gestión de proyectos"+(n ? " ("+n+")" : "");
+  var h = '<div class="gp-fila"><button type="button" class="mini-btn on" id="gp-nuevo">＋ Nuevo proyecto</button></div>';
+  var v = null;
+  if(!n){
+    h += '<p class="campo-ayuda">Aún no hay proyectos. Un proyecto agrupa varias sesiones, sus notas de bitácora y sus recorridos de ruta.</p>';
+  } else {
+    if(!viajePorId(state.gpId)) state.gpId = viajeActivo() ? state.viajeActivoId : viajesOrdenados()[0].id;
+    v = viajePorId(state.gpId);
+    var act = v.id===state.viajeActivoId;
+    var ses = sesionesDeViaje(v.id).sort(function(a,b){ return String(b.creada||"").localeCompare(String(a.creada||"")); });
+    var libres = state.sesiones.filter(function(s){ return s.viajeId!==v.id; }).sort(function(a,b){ return String(b.creada||"").localeCompare(String(a.creada||"")); });
+    var nReg = 0; ses.forEach(function(s){ nReg += state.registros.filter(function(r){ return r.sesionId===s.id; }).length; });
+    var nNotas = notasDeViaje(v.id).length, nRutas = recorridosDeRuta(v.id).length;
+    h += '<div class="field"><label for="gp-sel">Proyecto</label><select id="gp-sel">'+viajesOrdenados().map(function(x){
+      return '<option value="'+x.id+'"'+(x.id===v.id ? ' selected' : '')+'>'+escapeHtml(etiquetaOpcionViaje(x))+'</option>';
+    }).join("")+'</select></div>';
+    h += gpCampoHtml("gp-nombre","Nombre",v.nombre,"Nombre del proyecto",false);
+    h += gpCampoHtml("gp-objetivo","Objetivo",v.objetivo,"Qué se busca con este proyecto",true);
+    h += gpCampoHtml("gp-zona","Zona o región",v.zona,"Ej: Región de Los Lagos",false);
+    h += gpCampoHtml("gp-responsable","Responsable",v.responsable,"Quién dirige el proyecto",false);
+    h += '<div class="row2"><div class="field"><label for="gp-fecha-ini">Inicio</label><input type="date" id="gp-fecha-ini" value="'+escapeHtml(v.fechaIni||"")+'"></div>'+
+         '<div class="field"><label for="gp-fecha-fin">Término</label><input type="date" id="gp-fecha-fin" value="'+escapeHtml(v.fechaFin||"")+'"></div></div>';
+    h += gpCampoHtml("gp-financiamiento","Financiamiento y permisos",v.financiamiento,"Ej: proyecto, resolución de colecta",false);
+    h += gpCampoHtml("gp-notas","Notas del proyecto",v.notas,"",true);
+    h += '<div class="gp-sub">Composición</div>'+
+      '<div class="gp-comp">📁 '+ses.length+(ses.length===1?' sesión':' sesiones')+' · '+nReg+(nReg===1?' registro':' registros')+' · 📖 '+nNotas+(nNotas===1?' nota de bitácora':' notas de bitácora')+' · 🥾 '+nRutas+(nRutas===1?' recorrido de ruta':' recorridos de ruta')+'</div>';
+    h += ses.map(function(s){
+      var k = state.registros.filter(function(r){ return r.sesionId===s.id; }).length;
+      return '<div class="gp-ses"><span class="gp-ses-n">'+escapeHtml(iconoSesion(s.id)+" "+etiquetaSesionCorta(s.id))+' <span class="cnt">('+k+')</span></span>'+
+        '<button type="button" class="mini-btn" data-gp-quitar="'+s.id+'">Quitar</button></div>';
+    }).join("");
+    if(libres.length) h += '<div class="field"><select id="gp-agregar"><option value="">＋ Agregar una sesión a este proyecto…</option>'+libres.map(function(s){
+      var o = viajePorId(s.viajeId);
+      return '<option value="'+s.id+'">'+escapeHtml(etiquetaSesionCorta(s.id)+(o ? "  (hoy en: "+o.nombre+")" : ""))+'</option>';
+    }).join("")+'</select></div>';
+    h += '<div class="gp-acciones">'+
+      '<button type="button" class="mini-btn'+(act ? ' on' : '')+'" id="gp-activar">'+(act ? '★ Es el proyecto activo' : '☆ Hacer activo')+'</button>'+
+      '<button type="button" class="mini-btn" id="gp-bitacora">📖 Bitácora</button>'+
+      '<button type="button" class="mini-btn" id="gp-nota">＋ Nota</button>'+
+      '<button type="button" class="mini-btn peligro" id="gp-borrar">🗑 Borrar proyecto</button></div>';
+  }
+  cu.innerHTML = h;
+  document.getElementById("gp-nuevo").addEventListener("click", function(){ pedirNuevoViaje(function(nv){ state.gpId = nv.id; refrescarVistasViaje(); }); });
+  if(!v) return;
+  document.getElementById("gp-sel").addEventListener("change", function(){ state.gpId = this.value; renderGestionProyectos(); });
+  [["gp-nombre","nombre"],["gp-objetivo","objetivo"],["gp-zona","zona"],["gp-responsable","responsable"],["gp-fecha-ini","fechaIni"],["gp-fecha-fin","fechaFin"],["gp-financiamiento","financiamiento"],["gp-notas","notas"]].forEach(function(p){
+    document.getElementById(p[0]).addEventListener("change", function(){ gpGuardarCampo(p[1], this.value); });
+  });
+  cu.querySelectorAll("[data-gp-quitar]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var s = sesionPorId(b.dataset.gpQuitar); if(!s || bloqueadoPorVisor()) return;
+      s.viajeId = null; guardarListaSesiones(); refrescarVistasViaje();
+    });
+  });
+  var ag = document.getElementById("gp-agregar");
+  if(ag) ag.addEventListener("change", function(){
+    var s = sesionPorId(this.value); if(!s || bloqueadoPorVisor()) return;
+    s.viajeId = v.id; guardarListaSesiones(); refrescarVistasViaje();
+  });
+  document.getElementById("gp-activar").addEventListener("click", function(){ alternarViajeActivo(v.id); });
+  document.getElementById("gp-bitacora").addEventListener("click", function(){ abrirBitacora(v.id); });
+  document.getElementById("gp-nota").addEventListener("click", function(){ abrirNotaViaje(v.id, null); });
+  document.getElementById("gp-borrar").addEventListener("click", function(){ borrarViaje(v.id); });
+}
+function gpGuardarCampo(campo, valor){
+  var v = viajePorId(state.gpId); if(!v || bloqueadoPorVisor()) return;
+  valor = String(valor||"").trim();
+  if(campo==="nombre" && !valor){ toast("El proyecto necesita un nombre"); document.getElementById("gp-nombre").value = v.nombre; return; }
+  v[campo] = valor;
+  guardarViajes();
+  gpSinRender = true;
+  try{ renderLista(); }finally{ gpSinRender = false; }
+  if(campo==="nombre"){
+    var op = document.querySelector('#gp-sel option[value="'+v.id+'"]'); if(op) op.textContent = etiquetaOpcionViaje(v);
+  }
 }
 /* ---------- Menú de acciones (hoja inferior) ---------- */
 function menuAcciones(titulo, items){
@@ -6339,15 +6491,36 @@ document.addEventListener("click", function(e){
 }, true);
 
 /* ---------- Selector de proyecto en la pestaña Sesión ---------- */
+function etiquetaOpcionViaje(v, corta){
+  var act = v.id===state.viajeActivoId;
+  return (act ? "★ " : "🧭 ")+v.nombre+((act && !corta) ? " (activo)" : "");
+}
 function renderSelectorViajeSesion(s){
   var sel = document.getElementById("ss-viaje"); if(!sel || !s) return;
   sel.innerHTML = '<option value="">Sin proyecto</option>' + viajesOrdenados().map(function(v){
-    return '<option value="'+v.id+'">'+escapeHtml("🧭 "+v.nombre)+'</option>';
+    return '<option value="'+v.id+'"'+(v.id===state.viajeActivoId ? ' class="op-activo"' : '')+'>'+escapeHtml(etiquetaOpcionViaje(v))+'</option>';
   }).join("") + '<option value="__nuevo__">＋ Nuevo proyecto…</option>';
   sel.value = (s.viajeId && viajePorId(s.viajeId)) ? s.viajeId : "";
-  var av = viajeActivo();
-  document.getElementById("ss-viaje-ayuda").textContent = av ? ('Proyecto activo: "'+av.nombre+'" (se puede cambiar en Registros).') : "Opcional: agrupa varias sesiones de una misma salida o campaña.";
+  document.getElementById("ss-viaje-ayuda").textContent = "Opcional: agrupa varias sesiones de una misma salida o campaña.";
 }
+/* v2.69: bloque «Proyecto activo» al inicio de la pestaña Sesión */
+function renderProyectoActivo(){
+  var sel = document.getElementById("ss-activo"); if(!sel) return;
+  sel.innerHTML = '<option value="">Ninguno</option>' + viajesOrdenados().map(function(v){
+    return '<option value="'+v.id+'">'+escapeHtml(etiquetaOpcionViaje(v, true))+'</option>';
+  }).join("") + '<option value="__nuevo__">＋ Nuevo proyecto…</option>';
+  sel.value = viajeActivo() ? state.viajeActivoId : "";
+  sel.disabled = !!visorActivo;
+}
+document.getElementById("ss-activo").addEventListener("change", function(){
+  var sel = this;
+  if(sel.value==="__nuevo__"){
+    sel.value = viajeActivo() ? state.viajeActivoId : "";
+    pedirNuevoViaje(function(v){ fijarViajeActivo(v.id); });
+    return;
+  }
+  fijarViajeActivo(sel.value || null);
+});
 document.getElementById("ss-viaje").addEventListener("change", function(){
   var s = sesionEnPantalla(); if(!s) return;
   var sel = this;
@@ -6775,7 +6948,7 @@ function aplicarEstiloBotonReordenar(){
   var b = document.getElementById("btn-modo-reordenar");
   b.textContent = modoReordenarRegistros ? "✔️ Listo" : "↕️ Reordenar";
   b.classList.toggle("on", modoReordenarRegistros);
-  var l = document.getElementById("btn-reordenar-listo"); if(l) l.style.display = modoReordenarRegistros ? "" : "none";
+  var l = document.getElementById("reg-toolbar"); if(l) l.style.display = modoReordenarRegistros ? "" : "none";
 }
 function salirModoReordenar(){ modoReordenarRegistros = false; aplicarEstiloBotonReordenar(); }
 document.getElementById("btn-modo-reordenar").addEventListener("click", function(){
@@ -6820,10 +6993,10 @@ function salirSeleccion(){
   actualizarBarraSeleccion();
 }
 document.getElementById("btn-seleccionar").addEventListener("click", function(){
-  if(modoSeleccion){ salirSeleccion(); renderLista(); } else entrarSeleccion(null);
+  if(modoSeleccion){ salirSeleccion(); renderLista(); }
+  else { document.getElementById("det-filtros").open = false; entrarSeleccion(null); }
 });
 document.getElementById("btn-sel-cancelar").addEventListener("click", function(){ salirSeleccion(); renderLista(); });
-document.getElementById("btn-reg-nuevo-viaje").addEventListener("click", function(){ pedirNuevoViaje(); });
 document.getElementById("btn-sel-mover").addEventListener("click", function(){
   if(bloqueadoPorVisor()) return;
   var ids = idsRegSel(); if(!ids.length){ toast("Marca al menos un registro"); return; }
@@ -7713,12 +7886,13 @@ function htmlConsultaRegistro(r, conBotonMapa){
   var ti = TIPOS[r.tipo]||TIPOS.nota;
   var p = [];
   var sesR = sesionPorId(r.sesionId);
-  p.push('<div class="cons-sesion">'+iconoSesion(r.sesionId)+' '+escapeHtml(sesR ? nombreSesionMostrar(sesR) : "Sesión sin identificar")+
-    (sesR ? ' <span class="cons-sesion-estado">'+(sesR.id===state.sesionActivaId ? "🟢 activa" : "📁 archivada")+'</span>' : '')+'</div>');
+  var vjR = sesR ? viajePorId(sesR.viajeId) : null;
   var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (r.notaSubtipo==="operativo" ? " · 📌 Operativo" : " · 📖 Narrativo") : "";
-  var derecha = r.codigo ? ('<span class="narr-codigo">'+escapeHtml(r.codigo)+'</span>')
-    : (r.notaTitulo ? ('<span style="font-weight:800; color:var(--verde-osc); font-size:.9rem;">'+escapeHtml(r.notaTitulo)+'</span>') : '');
-  p.push('<div class="narr-cabecera"><span class="cons-tipo">'+ti.ic+' '+ti.label+subtipoTxt+'</span>'+derecha+'</div>');
+  // etiquetas (tipo de registro y estado de la sesión) sobre el proyecto y el nombre de la sesión
+  p.push('<div class="narr-cabecera cons-chips"><span class="cons-chip cons-tipo">'+ti.ic+' '+ti.label+subtipoTxt+'</span>'+
+    (sesR ? '<span class="cons-chip cons-estado">'+(sesR.id===state.sesionActivaId ? "🟢 Activa" : "📁 Archivada")+'</span>' : '')+'</div>');
+  p.push('<div class="cons-proyecto">🧭 Proyecto: '+(vjR ? '<b>'+escapeHtml(vjR.nombre)+'</b>' : 'sin proyecto')+'</div>');
+  p.push('<div class="cons-sesion">'+iconoSesion(r.sesionId)+' '+escapeHtml(sesR ? nombreSesionMostrar(sesR) : "Sesión sin identificar")+'</div>');
   // v2.50: los datos que se copian textualmente a la etiqueta del ejemplar van juntos en un bloque (Taxón, Localidad, Ubicación, Fecha, Colector, Hábitat, Microhábitat, Estación)
   var et = [];
   // Taxón
@@ -7880,8 +8054,10 @@ function renderConsulta(id){
   sincronizarOpcionesConsulta(r);
   renderFiltroConsulta();
   ajustarEspacioConsulta();
-  if(!r){ cont.className = "narr-entrada"; cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; posEl.textContent = "Solo lectura"; return; }
+  if(!r){ cont.className = "narr-entrada"; cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; posEl.textContent = "Solo lectura"; document.getElementById("consulta-codigo").style.display = "none"; return; }
   cont.className = "narr-entrada" + claseNota(r);
+  var elCod = document.getElementById("consulta-codigo"), identCons = r.codigo || r.notaTitulo || "";
+  elCod.textContent = identCons; elCod.style.display = identCons ? "" : "none";
   var listaNav = listaNavegacionConsulta();
   var idxNav = listaNav.findIndex(function(x){ return x.id===id; });
   posEl.textContent = (idxNav>=0 ? ("Registro "+(idxNav+1)+" de "+listaNav.length+(state.consultaFiltro.pendientes ? " por transcribir" : "")+" — ") : "") + "desliza a los lados para cambiar";
@@ -7926,7 +8102,7 @@ function textoRegistroConsulta(r, conFotos){
   var d = document.createElement("div");
   d.innerHTML = htmlConsultaRegistro(r, false);
   function limpio(t){ return String(t||"").replace(/\s+/g," ").trim(); }
-  var cab = "", sesion = "", cuerpo = [];
+  var cab = "", sesion = "", proyecto = "", cuerpo = [];
   var elementos = [];
   Array.prototype.forEach.call(d.children, function(el){
     if(el.classList.contains("cons-etiqueta")) Array.prototype.forEach.call(el.children, function(h){ elementos.push(h); });
@@ -7934,13 +8110,17 @@ function textoRegistroConsulta(r, conFotos){
   });
   elementos.forEach(function(el){
     if(el.classList.contains("cons-sesion")){ sesion = limpio(el.textContent); return; }
-    if(el.classList.contains("narr-cabecera")){ cab = Array.prototype.map.call(el.children, function(c){ return limpio(c.textContent); }).filter(Boolean).join(" · "); return; }
+    if(el.classList.contains("cons-proyecto")){ proyecto = limpio(el.textContent).replace(/^🧭\s*/, ""); if(/sin proyecto$/.test(proyecto)) proyecto = ""; return; }
+    if(el.classList.contains("narr-cabecera")){ var tp = el.querySelector(".cons-tipo"); cab = tp ? limpio(tp.textContent) : ""; return; }
     if(el.tagName==="UL"){ Array.prototype.forEach.call(el.children, function(li){ cuerpo.push("  • "+limpio(li.textContent)); }); return; }
     if(el.classList.contains("narr-notas")){ cuerpo.push(String(r.notas||"").trim()); return; }
     var t = limpio(el.textContent); if(t) cuerpo.push(t);
   });
   var L = [];
-  if(cab) L.push(cab);
+  var ident = r.codigo || r.notaTitulo || "";
+  var cabTxt = [cab, ident].filter(Boolean).join(" · ");
+  if(cabTxt) L.push(cabTxt);
+  if(proyecto) L.push(proyecto);
   if(sesion) L.push("Sesión: " + sesion);
   cuerpo.forEach(function(t){ L.push(t); });
   if(r.lat && r.lon) L.push("Mapa: https://www.google.com/maps?q=" + encodeURIComponent(r.lat) + "," + encodeURIComponent(r.lon));
