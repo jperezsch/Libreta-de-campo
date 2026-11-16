@@ -602,9 +602,66 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
 .mapa-cfg-card .estado{font-size:.86rem; margin:0 0 8px; font-weight:700;}
 .mapa-cfg-card .estado.on{color:#2e7d32;}
 #modal-mapa-url .modal input{width:100%;}
+
+/* v2.67: Proyectos, Bitácora, notas diferenciadas, filtros plegables, modo consulta de respaldo */
+.filtros-det{border:1.5px solid var(--borde); border-radius:10px; background:var(--card); margin:6px 0 10px; padding:0 12px;}
+.filtros-det summary{padding:10px 2px; font-size:.84rem; font-weight:700; color:var(--texto); cursor:pointer;}
+.filtros-cuerpo{padding:0 0 8px;}
+.mini-btn{font-size:.74rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); cursor:pointer; white-space:nowrap;}
+.mini-btn.on{background:var(--verde); color:#fff; border-color:var(--verde);}
+.mini-btn.peligro{color:var(--rojo, #b5473a); border-color:var(--rojo, #b5473a);}
+.viaje-header{display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:#efe6d2; border:1.5px solid #c9b88a; border-radius:10px; padding:8px 10px; margin:16px 0 6px; font-weight:800; color:#5a4616;}
+.viaje-header .vj-titulo{flex:1; min-width:130px; font-size:.92rem;}
+.viaje-header .vj-cnt{font-weight:400; font-size:.78rem;}
+.viaje-header .mini-btn{background:#fffaf0; border-color:#c9b88a; color:#5a4616;}
+.viaje-header .mini-btn.on{background:#5a4616; color:#fff;}
+.viaje-sin{background:var(--verde-cl); border-color:var(--borde); color:var(--texto-sec);}
+.viaje-sesiones{margin-left:5px; padding-left:7px; border-left:3px solid #c9b88a;}
+.viaje-card{border-color:#c9b88a; background:#f6efdc;}
+.card-nota-nar, .narr-entrada.nota-nar{background:#fbf6e3;}
+.card-nota-op, .narr-entrada.nota-op{background:#e8f0f7;}
+html[data-tema="noche"] .card-nota-nar, html[data-tema="noche"] .narr-entrada.nota-nar{background:#33301f;}
+html[data-tema="noche"] .card-nota-op, html[data-tema="noche"] .narr-entrada.nota-op{background:#1f2c38;}
+.tag-op{background:#d3e3f1; color:#1d4766;}
+.tag-nar{background:#f1e6bb; color:#5a4616;}
+.cita-foto{display:inline-block; background:#dcebe0; color:var(--verde-osc); border-radius:8px; padding:0 6px; font-weight:700; font-size:.88em; cursor:pointer;}
+.bit-entrada{background:var(--card); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:10px 12px; margin-bottom:10px; cursor:pointer;}
+.bit-entrada.nota-nar{background:#fbf6e3;}
+.bit-entrada.nota-op{background:#e8f0f7;}
+html[data-tema="noche"] .bit-entrada.nota-nar{background:#33301f;}
+html[data-tema="noche"] .bit-entrada.nota-op{background:#1f2c38;}
+.bit-cab{display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:.76rem; color:var(--texto-sec); margin-bottom:4px;}
+.bit-tit{font-weight:800; color:var(--verde-osc); margin-bottom:3px;}
+.bit-badge{font-size:.7rem; padding:1px 8px; border-radius:10px; background:var(--verde-cl); color:var(--verde-osc);}
+.nv-fotos{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0;}
+.nv-foto{position:relative; width:84px;}
+.nv-foto img{width:84px; height:84px; object-fit:cover; border-radius:8px; border:1px solid var(--borde); display:block;}
+.nv-foto .nv-n{position:absolute; left:3px; top:3px; background:rgba(0,0,0,.6); color:#fff; border-radius:8px; font-size:.7rem; padding:0 6px;}
+.nv-foto .nv-x{position:absolute; right:3px; top:3px; background:rgba(0,0,0,.6); color:#fff; border-radius:50%; width:20px; height:20px; text-align:center; font-size:.7rem; line-height:20px;}
+.gestion-rec{display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--borde); font-size:.8rem;}
+.gestion-rec .gestion-info{flex:1; min-width:0;}
+.gestion-rec.danado{background:#fdf1ea;}
+.gestion-rec .rc-b{cursor:pointer; font-size:1.05rem; padding:2px 5px;}
+.gestion-sub{font-size:.76rem; font-weight:800; color:var(--texto-sec); margin:10px 0 4px;}
+#bit-lista .vacio{color:var(--texto-sec); text-align:center; padding:26px 8px; font-size:.9rem;}
+/* modo "Consultar respaldo" (solo lectura) */
+#barra-visor{display:none; position:fixed; left:0; right:0; top:0; z-index:150; background:#1f3a5f; color:#fff; padding:8px 10px; font-size:.78rem; align-items:center; gap:8px; flex-wrap:wrap;}
+body.modo-visor #barra-visor{display:flex;}
+body.modo-visor{padding-top:56px;}
+#barra-visor .bv-nombre{flex:1; min-width:140px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#barra-visor button{border:1.5px solid #fff; background:transparent; color:#fff; border-radius:12px; padding:5px 10px; font-size:.76rem; cursor:pointer;}
+#barra-visor button.bv-imp{background:#fff; color:#1f3a5f; font-weight:800;}
+body.modo-visor .navbtn[data-s="form"], body.modo-visor .navbtn[data-s="exportar"], body.modo-visor .navbtn[data-s="config"]{display:none;}
+body.modo-visor .solo-edicion, body.modo-visor .btn-icon-danger, body.modo-visor .reg-handle, body.modo-visor #btn-modo-reordenar,
+body.modo-visor .btn-finalizar-sesion-inline, body.modo-visor #btn-nueva-salida, body.modo-visor #btn-editar-sesion,
+body.modo-visor #btn-reactivar-sesion, body.modo-visor #btn-guardar-sesion, body.modo-visor #btn-descartar-sesion-nueva,
+body.modo-visor .btn-restaurar-orden, body.modo-visor #btn-consulta-editar,
+body.modo-visor [data-vj-acc="activar"], body.modo-visor [data-vj-acc="nota"], body.modo-visor #btn-bit-nota,
+body.modo-visor #btn-bit-exportar-zip{display:none !important;}
 </style>
 </head>
 <body>
+<div id="barra-visor"><span class="bv-nombre" id="bv-nombre">Consultando respaldo</span><button type="button" id="bv-salir">Salir</button><button type="button" class="bv-imp" id="bv-importar">Importar a mi libreta…</button></div>
 
 <button id="temabtn">☀️ Normal</button>
 
@@ -628,6 +685,7 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
         <button type="button" class="btnfull btn-secondary" id="btn-reactivar-sesion" style="display:none;">▶️ Reactivar sesión</button>
         <button type="button" class="btnfull btn-secondary" id="btn-editar-sesion" style="display:none;">✏️ Editar sesión</button>
       </div>
+      <div class="field" id="campo-ss-viaje"><label>Proyecto</label><select id="ss-viaje"></select><span class="campo-ayuda" id="ss-viaje-ayuda">Opcional: agrupa varias sesiones de una misma salida o campaña.</span></div>
       <div class="field"><label>Localidad general</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Incluir comuna, provincia y región</span></div>
       <div class="row2 row-sesion-nombre">
         <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint">Diferencia sesiones con nombre idéntico</span></div>
@@ -693,19 +751,25 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
 <div class="screen" id="s-lista">
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Libreta de Campo</h2><p class="sub">WikiTaxa · Registro en terreno</p></div></div></div>
   <div class="pad">
-    <div class="field"><label>Sesión</label><select id="lista-selector-sesion"></select></div>
     <div class="vista-toggle">
       <button type="button" class="vista-btn on" id="btn-vista-tarjetas">📋 Lista</button>
       <button type="button" class="vista-btn" id="btn-vista-narrativa">📖 Libreta</button>
     </div>
-    <div style="display:flex; gap:6px; align-items:center; margin:8px 0;">
-      <span style="font-size:.76rem; color:var(--texto-sec);">Ordenar sesiones:</span>
-      <button type="button" class="btn-orden-especies on" id="btn-orden-registros-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
-      <button type="button" class="btn-orden-especies" id="btn-orden-registros-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
-      <button type="button" id="btn-modo-reordenar" style="margin-left:auto; font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">↕️ Reordenar</button>
+    <div style="display:flex; justify-content:flex-end; margin:8px 0 4px;">
+      <button type="button" id="btn-modo-reordenar" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">↕️ Reordenar</button>
     </div>
-    <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
-    <div class="chipbar" id="chipbar"></div>
+    <details class="filtros-det" id="det-filtros">
+      <summary id="sum-filtros">🔎 Orden y filtros</summary>
+      <div class="filtros-cuerpo">
+        <div style="display:flex; gap:6px; align-items:center; margin:2px 0 8px;">
+          <span style="font-size:.76rem; color:var(--texto-sec);">Ordenar sesiones:</span>
+          <button type="button" class="btn-orden-especies on" id="btn-orden-registros-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
+          <button type="button" class="btn-orden-especies" id="btn-orden-registros-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
+        </div>
+        <input type="search" class="search" id="buscador" placeholder="Buscar taxón, código, referencia...">
+        <div class="chipbar" id="chipbar"></div>
+      </div>
+    </details>
     <div id="lista-registros"></div>
     <div id="lista-narrativa" style="display:none;"></div>
     <div class="lista-footer-acciones">
@@ -838,7 +902,7 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
         <input type="text" class="manual" id="f-lat" placeholder="Latitud">
         <input type="text" class="manual" id="f-lon" placeholder="Longitud">
       </div>
-      <div class="field" style="margin-top:10px;"><label>Altitud (m)</label><input type="text" id="f-altitud"></div>
+      <div class="field" style="margin-top:10px;"><label>Altitud / profundidad (m)</label><input type="text" id="f-altitud" inputmode="text"><span class="campo-ayuda">Profundidad en negativo (ejemplo: -12). El GPS solo registra altitud.</span></div>
     </div>
     </div>
 
@@ -967,17 +1031,16 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
       <label>Título de la nota</label>
       <input type="text" id="f-nota-titulo" spellcheck="true" placeholder="Un título breve para identificar esta nota">
     </div>
-    <div id="nota-subtipo-wrap" class="vista-toggle" style="display:none; margin-bottom:12px;">
-      <button type="button" class="vista-btn" id="btn-nota-operativo">📌 Operativo</button>
-      <button type="button" class="vista-btn" id="btn-nota-narrativo">📖 Narrativo</button>
-    </div>
+    <div class="switch-row" id="nota-subtipo-wrap" style="display:none; margin-bottom:12px;"><div>📌 Operativa<span class="campo-ayuda" style="display:block;">Sin marcar, la nota es narrativa (relato del terreno).</span></div><input type="checkbox" id="f-nota-operativa"></div>
     <div class="switch-row" id="nota-codigo-wrap" style="display:none; margin-bottom:12px;"><div>Asignar código a esta nota</div><input type="checkbox" id="f-nota-con-codigo"></div>
     <div class="field">
       <div class="notas-toolbar">
         <button type="button" id="btn-notas-bold" title="Negrita"><b>N</b></button>
         <button type="button" id="btn-notas-italic" title="Cursiva"><i>C</i></button>
         <button type="button" id="btn-notas-lista" title="Lista de items">☰ Lista</button>
+        <button type="button" id="btn-notas-foto" title="Citar una foto de este registro en el texto">📷 Foto</button>
       </div>
+      <div id="notas-foto-chips" style="display:none; flex-wrap:wrap; gap:6px; margin-bottom:6px;"></div>
       <textarea id="f-notas" spellcheck="true" placeholder="Observaciones adicionales..."></textarea>
     </div>
     </div>
@@ -997,12 +1060,14 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
     <div class="field"><label>Sesiones a exportar</label>
       <div style="display:flex; gap:6px; align-items:center; margin:-2px 0 8px;">
         <button type="button" class="btn-orden-especies on" id="btn-orden-exportar-fecha" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">📅 Por fecha</button>
+        <button type="button" class="mini-btn" id="btn-exp-nuevo-viaje" style="margin-left:auto;">🧭 ＋ Proyecto</button>
         <button type="button" class="btn-orden-especies" id="btn-orden-exportar-alfabetico" style="font-size:.78rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto);">🔤 Alfabético</button>
       </div>
       <div id="exp-selector-sesion"></div>
       <div class="exp-sueltos-resumen" id="exp-sueltos-resumen" style="display:none;"></div>
       <span class="campo-ayuda">Marca sesiones completas, o abre «Gestionar» y marca registros sueltos sin marcar su sesión.</span>
     </div>
+    <div id="exp-rec-huerfanos" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;"></div>
     <div id="panel-huerfanos" style="display:none; background:#fdf1ea; border:1.5px solid var(--ambar); border-radius:10px; padding:14px; margin:10px 0;">
       <div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">⚠️ Registros sin sesión válida</div>
       <div style="font-size:.85rem; color:var(--texto-sec); margin-bottom:10px;">Estos registros no están asociados a ninguna sesión existente — por eso no aparecen al exportar, sin importar qué selecciones arriba. Reasígnalos a una sesión para poder incluirlos.</div>
@@ -1033,14 +1098,30 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
     <div class="section-title">Carpeta de respaldos</div>
     <button type="button" class="btnfull btn-secondary" id="btn-explorar-carpeta">📂 Explorar carpeta del teléfono</button>
     <p class="campo-ayuda" style="margin:-4px 0 12px;">Muestra el contenido de la carpeta elegida en Config («Gestión de imágenes»): fotos, videos y respaldos. Desde ahí puedes abrir archivos o importar un respaldo (.zip o .json). El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</p>
-    <div class="section-title">Respaldo e importación</div>
-    <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">⬆️ Importar respaldo(s) (.zip)</label>
+    <div class="section-title">Consultar e importar respaldos</div>
+    <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">📂 Consultar respaldo</label>
+    <p class="campo-ayuda" style="margin:-4px 0 12px;">Abre uno o varios respaldos (.zip o .json) solo para mirarlos, sin cambiar tus datos. Desde ahí puedes pasar a importarlos.</p>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
     <div id="importados-lista"></div>
     <div id="importados-acciones" style="display:none;">
       <button type="button" class="btnfull btn-primary" id="btn-importar-seleccionados">📲 Importar seleccionados a esta app</button>
       <button type="button" class="btnfull btn-secondary" id="btn-descargar-unificado">💾 Descargar respaldo unificado (.json)</button>
     </div>
+    <div style="height:90px;"></div>
+  </div>
+</div>
+
+<!-- ===================== BITÁCORA DE PROYECTO ===================== -->
+<div class="screen" id="s-bitacora">
+  <div class="topbar"><div class="brand"><span class="ic">📖</span><div><h2 id="bit-titulo">Bitácora</h2><p class="sub" id="bit-sub">Notas del proyecto y notas generales de sus sesiones</p></div></div></div>
+  <div class="pad">
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+      <button type="button" class="mini-btn" id="btn-bit-volver">← Volver</button>
+      <button type="button" class="mini-btn" id="btn-bit-nota">＋ Nota</button>
+      <button type="button" class="mini-btn" id="btn-bit-exportar">⬇️ Exportar (.html)</button>
+    </div>
+    <label class="consulta-opcion" style="margin-bottom:10px;"><input type="checkbox" id="bit-solo-narrativas"><span>Ocultar notas operativas</span></label>
+    <div id="bit-lista"></div>
     <div style="height:90px;"></div>
   </div>
 </div>
@@ -1077,7 +1158,7 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
       <button type="button" class="btn-compartir" id="btn-consulta-compartir">📤 Compartir</button>
     </div>
     <div class="narr-entrada" id="consulta-tarjeta"></div>
-    <label class="consulta-opcion" style="margin-top:12px;"><input type="checkbox" id="consulta-transcrito"><span>✍️ Ya transcrito en libreta física</span></label>
+    <label class="consulta-opcion solo-edicion" style="margin-top:12px;"><input type="checkbox" id="consulta-transcrito"><span>✍️ Ya transcrito en libreta física</span></label>
     <label class="cons-filtro-pend" id="cons-filtro-pend-lab"><input type="checkbox" id="cons-filtro-pend"><span id="cons-filtro-pend-txt">✍️ Solo los que faltan por transcribir</span></label>
     <div id="consulta-espacio" style="height:calc(190px + env(safe-area-inset-bottom, 0px));"></div>
   </div>
@@ -1098,6 +1179,39 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
   <button class="navbtn" data-s="config"><span class="ic">⚙️</span>Config</button>
 </div>
 
+
+<!-- Modal genérico v2.67: texto y/o lista de opciones -->
+<div class="modal-bg" id="modal-gen">
+  <div class="modal">
+    <button type="button" class="modal-x" id="mg-x">✕</button>
+    <h3 id="mg-titulo"></h3>
+    <p id="mg-msg" style="font-size:.9rem; line-height:1.45; margin:0 0 12px; display:none;"></p>
+    <div class="field" id="mg-campo-texto" style="display:none;"><input type="text" id="mg-texto" spellcheck="true"></div>
+    <div class="field" id="mg-campo-sel" style="display:none;"><select id="mg-sel"></select></div>
+    <button type="button" class="btnfull btn-primary" id="mg-ok">Aceptar</button>
+    <button type="button" class="btnfull btn-secondary" id="mg-cancelar" style="margin-bottom:0;">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal v2.67: nota de proyecto (bitácora) -->
+<div class="modal-bg" id="modal-nota-viaje">
+  <div class="modal">
+    <button type="button" class="modal-x" id="nv-x">✕</button>
+    <h3 id="nv-cabecera">📝 Nota del proyecto</h3>
+    <div class="field"><label>Título (opcional)</label><input type="text" id="nv-titulo" spellcheck="true" placeholder="Un título breve"></div>
+    <div class="switch-row"><div>📌 Operativa<span class="campo-ayuda" style="display:block;">Sin marcar, la nota es narrativa.</span></div><input type="checkbox" id="nv-operativa"></div>
+    <div class="field" style="margin-top:10px;">
+      <label>Texto</label>
+      <div class="notas-toolbar"><button type="button" id="nv-btn-foto">📷 Insertar foto</button></div>
+      <textarea id="nv-texto" spellcheck="true" style="min-height:150px;" placeholder="Relato, observaciones, hechos del día..."></textarea>
+      <span class="campo-ayuda">La foto queda citada en el texto como [📷1]; al tocar la cita se abre la foto.</span>
+    </div>
+    <div class="nv-fotos" id="nv-fotos"></div>
+    <input type="file" id="nv-input-foto" accept="image/*" multiple style="display:none;">
+    <button type="button" class="btnfull btn-primary" id="nv-guardar">💾 Guardar nota</button>
+    <button type="button" class="btnfull btn-secondary" id="nv-borrar" style="display:none; margin-bottom:0;">🗑 Borrar nota</button>
+  </div>
+</div>
 
 <!-- Modal: confirmación de guardado de sesión -->
 <div class="modal-bg" id="modal-confirm-sesion">
@@ -3719,10 +3833,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-10-21 · v2.66";
+var APP_BUILD = "2026-11-16 · v2.67";
 (function(){
 
-var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1"};
+var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
 
 var TIPOS = {
   coleccion:{label:"Recolección", ic:"🧪"}, observacion:{label:"Observación", ic:"👁"},
@@ -3780,7 +3894,8 @@ function sesionVacia(){
     proyecto:"", objetivo:"", participantes:"",
     zona:"", habitat:"", institucion:"", clima:"", notas:"",
     prefijo:"CAMPO", inicio:1, contador:1,
-    formatoNombre:2, correlativo:1, corrManual:false
+    formatoNombre:2, correlativo:1, corrManual:false,
+    viajeId: (typeof state!=="undefined" && state && state.viajeActivoId) || null
   };
 }
 
@@ -3831,12 +3946,14 @@ function nuevoBorradorSesion(){
   return nueva;
 }
 function guardarBorradorSesion(){
+  if(visorActivo) return true;
   if(state.sesionBorrador) return setLS(LSK.sesBorr, JSON.stringify(state.sesionBorrador));
   try{ localStorage.removeItem(LSK.sesBorr); }catch(e){}
   return true;
 }
 // Sin sesión activa no se puede registrar: avisa y lleva a la pestaña Sesión para crear y guardar una (o reactivar otra).
 function exigirSesionActiva(){
+  if(visorActivo){ bloqueadoPorVisor(); return false; }
   if(sesionActiva()) return true;
   if(!state.sesionBorrador){ state.sesionBorrador = nuevoBorradorSesion(); guardarBorradorSesion(); }
   state.sesionEnPantallaId = state.sesionBorrador.id;
@@ -3946,19 +4063,26 @@ function toast(msg, duracion){
   clearTimeout(toast._tm); toast._tm=setTimeout(function(){t.classList.remove("show");}, Math.max(duracion||2400, minimo));
 }
 function escapeHtml(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+/* v2.67: altitud con signo en un solo campo: valor negativo = profundidad (m), valor desde 0 = altitud (msnm) */
+function textoAltitud(v){
+  if(v==null || v==="") return "";
+  var n = parseFloat(String(v).replace(",", "."));
+  if(isNaN(n)) return "";
+  return n<0 ? "Prof. "+Math.abs(n)+" m" : "Alt. "+n+" msnm";
+}
 function formatearInlineNotas(textoEscapado){
   var t = textoEscapado.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
   t = t.replace(/\*(.+?)\*/g, "<i>$1</i>");
   return t;
 }
-function formatearNotasHtml(textoOriginal){
+function formatearNotasHtml(textoOriginal, ctx){
   if(!textoOriginal) return "";
   var lineas = String(textoOriginal).split("\n");
   var html = ""; var enLista = false;
   lineas.forEach(function(lineaOriginal){
     var esItem = /^\s*-\s+/.test(lineaOriginal);
     var contenido = esItem ? lineaOriginal.replace(/^\s*-\s+/, "") : lineaOriginal;
-    var formateado = formatearInlineNotas(escapeHtml(contenido));
+    var formateado = citasFoto(formatearInlineNotas(escapeHtml(contenido)), ctx);
     if(esItem){
       if(!enLista){ html += '<ul class="narr-notas-lista">'; enLista = true; }
       html += "<li>"+formateado+"</li>";
@@ -3990,6 +4114,7 @@ function pedirAlmacenamientoProtegido(){
 }
 pedirAlmacenamientoProtegido();   // v2.56: pide que el navegador no borre los datos de la app si falta espacio
 function setLS(key, value){
+  if(typeof visorActivo!=="undefined" && visorActivo) return true;   // v2.67: modo Consultar respaldo, no se guarda nada
   try{
     localStorage.setItem(key, value);
     if(!avisoCuotaMostrado && key === LSK.reg){
@@ -4019,6 +4144,9 @@ function cargar(){
   try{ var c=JSON.parse(localStorage.getItem(LSK.cfg)); if(c) state.config=c; }catch(e){}
   try{ var r=JSON.parse(localStorage.getItem(LSK.reg)); if(r) state.registros=r; }catch(e){}
   try{ var rc=JSON.parse(localStorage.getItem(LSK.rec)); if(rc && rc.length) state.recorridos=rc; }catch(e){}
+  try{ var vjs=JSON.parse(localStorage.getItem(LSK.viajes)); if(vjs && vjs.length) state.viajes=vjs; }catch(e){}
+  try{ var nvs=JSON.parse(localStorage.getItem(LSK.notasViaje)); if(nvs && nvs.length) state.notasViaje=nvs; }catch(e){}
+  try{ var vac=localStorage.getItem(LSK.viajeAct); if(vac && vac!=="-" && state.viajes.some(function(v){ return v.id===vac; })) state.viajeActivoId=vac; }catch(e){}
   // v2.45: si la app se cerró mientras se grababa un recorrido, el track queda guardado hasta el último punto y se marca como interrumpido
   var recInterrumpidos = 0;
   state.recorridos.forEach(function(rc){
@@ -4076,7 +4204,7 @@ function guardarSesion(){ guardarBorradorSesion(); return guardarListaSesiones()
 function guardarConfig(){ return setLS(LSK.cfg, JSON.stringify(state.config)); }
 function guardarRegistros(){ TABLA_FOTOS_EXPORT = null; return setLS(LSK.reg, JSON.stringify(state.registros)); }
 function guardarRecorridos(){ return setLS(LSK.rec, JSON.stringify(state.recorridos)); }
-function guardarDraft(){ if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
+function guardarDraft(){ if(visorActivo) return true; if(state.draft) return setLS(LSK.draft, JSON.stringify(state.draft)); localStorage.removeItem(LSK.draft); return true; }
 
 /* ---------------- Fotos: almacenamiento en IndexedDB (mucho más espacio que localStorage) ---------------- */
 var FOTOS_DB_NAME = "libretacampo_fotos_db", FOTOS_STORE = "fotos", ORIG_STORE = "originales";   // v2.49: "originales" guarda las copias en tamaño original hasta volcarlas a la carpeta del teléfono
@@ -4098,6 +4226,7 @@ function abrirFotosDB(){
   return fotosDbPromise;
 }
 function guardarFotoDB(id, dataURL){
+  if(visorActivo) return Promise.resolve();
   fotoCache[id] = dataURL;
   return abrirFotosDB().then(function(db){
     return new Promise(function(resolve, reject){
@@ -4109,6 +4238,7 @@ function guardarFotoDB(id, dataURL){
   });
 }
 function leerFotoDB(id){
+  if(visorActivo) return leerFotoVisor(id);
   if(fotoCache[id]) return Promise.resolve(fotoCache[id]);
   return abrirFotosDB().then(function(db){
     return new Promise(function(resolve, reject){
@@ -4120,6 +4250,7 @@ function leerFotoDB(id){
   });
 }
 function borrarFotoDB(id){
+  if(visorActivo) return Promise.resolve();
   delete fotoCache[id];
   if(typeof borrarOriginal === "function") borrarOriginal(id);
   return abrirFotosDB().then(function(db){
@@ -4380,6 +4511,7 @@ function actualizarAvisoCodigo(){
 
 /* ---------------- Navegación ---------------- */
 function irA(view, opts){
+  if(visorActivo && (view==="form" || view==="exportar" || view==="config")){ toast("Estás consultando un respaldo: usa «Salir» o «Importar a mi libreta…» de la barra superior", 3800); return; }
   var idResaltar = null;
   document.querySelectorAll(".screen").forEach(function(v){ v.classList.remove("on"); });
   document.querySelectorAll(".navbtn").forEach(function(b){ b.classList.remove("on"); });
@@ -4415,6 +4547,7 @@ function irA(view, opts){
   if(view==="exportar") renderExportar();
   if(view==="config") renderConfig();
   if(view==="consulta") renderConsulta(state.consultaId);
+  if(view==="bitacora") renderBitacora();
   if(window.MapaPro){ if(view==="mapa") MapaPro.alMostrar(); else MapaPro.alOcultar(); }
   if(view==="lista") irBajarFinal(idResaltar); else irSubirInicio();
   if(!(opts && opts.sinHistorial)) registrarVistaEnHistorial(view);
@@ -4618,6 +4751,7 @@ function renderSesion(){
   poblarTodasLasSugerenciasSesion();
   renderSesionModo();
   renderSelectorSesiones();
+  renderSelectorViajeSesion(s);
   aplicarModoEdicionSesion();
   mapaRenderSesion(s);
 }
@@ -4630,6 +4764,7 @@ function aplicarModoEdicionSesion(){
   var editando = !!state.sesionEditando || sesionEsNuevaVacia(s);
   IDS_CAMPOS_SESION.forEach(function(id){ document.getElementById(id).readOnly = !editando; });
   document.getElementById("ss-habitat").disabled = !editando;
+  document.getElementById("ss-viaje").disabled = !editando;
   document.getElementById("ss-habitat-otro").readOnly = !editando;
   document.getElementById("s-sesion").classList.toggle("sesion-consulta", !editando);
   document.getElementById("btn-editar-sesion").style.display = editando ? "none" : "";
@@ -4845,6 +4980,7 @@ function crearNuevaSalida(){
 }
 // Al guardar una sesión nueva pasa a ser la activa; la que estaba activa queda archivada.
 function activarSesionNueva(s){
+  if(bloqueadoPorVisor()) return;
   var actual = sesionActiva();
   if(actual){
     actual.archivada = true;
@@ -4876,6 +5012,7 @@ function descartarSesionNueva(){
 }
 // Finalizar: la sesión queda archivada y la app sin sesión activa hasta pulsar "Nueva sesión" (o "Nuevo", que crea una)
 function cerrarSesionActiva(){
+  if(bloqueadoPorVisor()) return;
   var actual = sesionActiva(); if(!actual) return;
   actual.archivada = true;
   var descartado = false;
@@ -4905,20 +5042,6 @@ function renderChips(){
   box.innerHTML = html;
   box.querySelectorAll(".chip").forEach(function(c){ c.addEventListener("click", function(){ state.filtroTipo=c.dataset.t; renderLista(); }); });
 }
-function renderSelectorListaSesiones(){
-  var sel = document.getElementById("lista-selector-sesion");
-  var ordenadas = state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); });
-  var opciones = '<option value="">Todas las sesiones</option>' + ordenadas.map(function(s){
-    var etiqueta = (s.id===state.sesionActivaId ? "🟢 " : "📁 ") + nombreSesionMostrar(s) + " · " + fechaSesion(s);
-    return '<option value="'+s.id+'">'+escapeHtml(etiqueta)+'</option>';
-  }).join("");
-  sel.innerHTML = opciones;
-  sel.value = state.filtroSesionLista;
-}
-document.getElementById("lista-selector-sesion").addEventListener("change", function(){
-  state.filtroSesionLista = this.value;
-  renderLista();
-});
 var ICONOS_SESION = ["🟩","🟦","🟪","🟧","🟨","🟥","🟫","🔷","🔶","🔵","🟣","🟠"];
 var COLORES_SESION = ["#2d5f3f","#2f6690","#7b4fa0","#c9762c","#b59a1f","#b5473a","#7a5230","#1f6ba0","#c98a1f","#2f7fb5","#8f3fa0","#c96a1f"];
 function colorSesion(sesionId){
@@ -5024,6 +5147,7 @@ function ordenarRegistrosDeSesion(sesionId, regs){
   });
 }
 function moverRegistroEnOrden(sesionId, idMov, idDestino, antes){
+  if(bloqueadoPorVisor()) return;
   var ses = sesionPorId(sesionId);
   if(!ses || idMov===idDestino) return false;
   var delSesion = state.registros.filter(function(r){ return r.sesionId===sesionId; });
@@ -5038,6 +5162,7 @@ function moverRegistroEnOrden(sesionId, idMov, idDestino, antes){
   return true;
 }
 function restaurarOrdenSesion(sesionId){
+  if(bloqueadoPorVisor()) return;
   var ses = sesionPorId(sesionId);
   if(!ses || !ses.ordenRegistros) return;
   delete ses.ordenRegistros;
@@ -5111,7 +5236,8 @@ function obtenerListaFiltrada(){
 }
 function renderLista(justSavedId){
   renderChips();
-  renderSelectorListaSesiones();
+  var smf = document.getElementById("sum-filtros");
+  if(smf){ var filtroAct = !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); smf.textContent = "🔎 Orden y filtros" + (filtroAct ? " · filtro activo" : ""); }
   var lista = obtenerListaFiltrada();
   if(state.vistaRegistros==="narrativa"){
     document.getElementById("lista-registros").style.display = "none";
@@ -5156,7 +5282,7 @@ function renderListaTarjetas(lista, justSavedId){
   var sActivaVacia = (lista.length===0 && sesionActiva() && !state.filtroSesionLista && !state.filtroTipo && !(document.getElementById("buscador").value||"").trim())
     ? '<div class="narr-sesion-header"><span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(state.sesionActivaId))+' <span style="font-weight:400; color:var(--texto-sec);">(0)</span></span><span class="narr-sesion-acciones">'+botonFinalizarInlineHtml(state.sesionActivaId)+'</span></div>' : "";
   if(lista.length===0){
-    cont.innerHTML = sActivaVacia + htmlDraft + '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>';
+    cont.innerHTML = sActivaVacia + htmlDraft + (hayFiltroRegistros() ? '' : conViajes([], function(){ return ""; }, true)) + '<div class="empty"><div class="ic">🧭</div>Aún no hay registros.<br>Toca "Nuevo" para comenzar.</div>';
   } else {
     var grupos = []; var indicePorSesion = {};
     lista.forEach(function(r){
@@ -5167,7 +5293,7 @@ function renderListaTarjetas(lista, justSavedId){
       grupos[indicePorSesion[r.sesionId]].registros.push(r);
     });
     grupos.sort(function(ga,gb){ return comparadorSesionesPorCriterio(state.ordenSesionesRegistros)(sesionPorId(ga.sesionId), sesionPorId(gb.sesionId)); });
-    cont.innerHTML = htmlDraft + grupos.map(function(g){
+    cont.innerHTML = htmlDraft + conViajes(grupos, function(g){
       var colapsada = listaSesionesColapsadas.has(g.sesionId);
       var sesG = sesionPorId(g.sesionId);
       var restaurarHtml = (modoReordenarRegistros && sesG && sesG.ordenRegistros) ? '<button type="button" class="btn-restaurar-orden" data-restaurar-orden="'+escapeHtml(g.sesionId)+'">↺ Orden por fecha</button>' : '';
@@ -5181,6 +5307,7 @@ function renderListaTarjetas(lista, justSavedId){
       var tarjetasHtml = registrosOrdenados.map(function(r){
         var ti = TIPOS[r.tipo]||TIPOS.nota;
         var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
+        if(r.tipo==="nota") cls += (r.notaSubtipo==="operativo" ? " card-nota-op" : " card-nota-nar");
         var nombre = nombreRegistroLista(r);
         var cant = cantidadEjemplares(r);
         var cantTxt = cant!=null ? (" · "+cant+(cant==1?" ejemplar":" ejemplares")) : "";
@@ -5189,7 +5316,7 @@ function renderListaTarjetas(lista, justSavedId){
           '<div class="reg-ic" title="Sesión">'+iconoSesion(r.sesionId)+'</div>'+
           '<div class="reg-info" style="flex:1; min-width:0;">'+
             '<div class="reg-title">'+(r.codigo ? (escapeHtml(r.codigo)+' · ') : (r.notaTitulo ? (escapeHtml(r.notaTitulo)+' · ') : ''))+(r.fecha||"")+' '+(r.hora||"")+'</div>'+
-            '<div class="reg-meta"><span class="tag">'+ti.label+'</span> '+escapeHtml(nombre)+escapeHtml(cantTxt)+iconoFotosHtml(r)+'</div>'+
+            '<div class="reg-meta"><span class="tag">'+ti.label+'</span>'+insigniaSubtipoNota(r)+' '+escapeHtml(nombre)+escapeHtml(cantTxt)+iconoFotosHtml(r)+'</div>'+
           '</div>'+
           (modoReordenarRegistros ? '' : ('<div class="reg-actions">'+
             '<button type="button" class="btn-icon" data-action="mapa" data-id="'+r.id+'" title="Ver en el mapa">🗺️</button>'+
@@ -5197,7 +5324,7 @@ function renderListaTarjetas(lista, justSavedId){
           '</div>'))+'</div>';
       }).join("");
       return headerHtml + tarjetasHtml;
-    }).join("");
+    }, !hayFiltroRegistros());
   }
   cont.querySelectorAll('.btn-icon[data-action="mapa"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); verRegistroEnMapa(b.dataset.id); }); });
   cont.querySelectorAll('.btn-icon[data-action="borrar"]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); borrarRegistroExistente(b.dataset.id); }); });
@@ -5253,7 +5380,7 @@ function textoEntradaNarrativa(r){
   var subtipoTxt = (r.tipo==="nota" && r.notaSubtipo) ? (r.notaSubtipo==="operativo" ? " · 📌 Operativo" : " · 📖 Narrativo") : "";
   partes.push('<div class="narr-tipo">'+ti.ic+' '+ti.label+subtipoTxt+'</div>');
   if(r.lat && r.lon){
-    partes.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+'</div>');
+    partes.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(textoAltitud(r.altitud)?(' · '+escapeHtml(textoAltitud(r.altitud))):'')+'</div>');
   }
   if(r.localidadEspecifica) partes.push('<div class="narr-linea"><b>Localidad específica:</b> '+escapeHtml(r.localidadEspecifica)+'</div>');
   if(r.estacion) partes.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
@@ -5305,7 +5432,7 @@ function textoEntradaNarrativa(r){
   if(r.condicion) partes.push('<div class="narr-linea"><b>Condición:</b> '+escapeHtml(etiquetaConservacion(r.condicion))+'</div>');
   if(r.tejidoConservado) partes.push('<div class="narr-linea">🧬 Se conservó muestra de tejido</div>');
   if(r.colector) partes.push('<div class="narr-linea"><b>'+(r.tipo==="coleccion"?"Colector":"Observador")+':</b> '+escapeHtml(r.colector)+'</div>');
-  if(r.notas) partes.push('<div class="narr-notas">'+formatearNotasHtml(r.notas)+'</div>');
+  if(r.notas) partes.push('<div class="narr-notas">'+formatearNotasHtml(r.notas, {reg:r.id})+'</div>');
   return partes.join("");
 }
 // v2.49: visor de fotos con zoom (pellizco, doble toque y rueda), navegación entre las fotos de TODOS los registros
@@ -5412,6 +5539,7 @@ document.getElementById("narr-foto-next").addEventListener("click", function(e){
 var narrOrigURL = null;
 function liberarOriginalVisor(){ if(narrOrigURL){ try{ URL.revokeObjectURL(narrOrigURL); }catch(e){} narrOrigURL = null; } }
 function rutaOriginalCarpeta(f){
+  if(visorActivo) return "";
   var c = f && f.copiaLocal ? String(f.copiaLocal) : "";
   return (c && !/^Descargas\//.test(c) && soportaCarpeta()) ? c : "";
 }
@@ -5575,7 +5703,8 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
     grupos[indicePorSesion[r.sesionId]].registros.push(r);
   });
   grupos.sort(function(ga,gb){ return comparadorSesionesPorCriterio(state.ordenSesionesRegistros)(sesionPorId(ga.sesionId), sesionPorId(gb.sesionId)); });
-  cont.innerHTML = grupos.map(function(g){
+  grupos.forEach(function(g){ g.registros = ordenarRegistrosDeSesion(g.sesionId, g.registros); });   // v2.67: mismo orden que la vista Lista (más reciente arriba, respetando el orden manual)
+  cont.innerHTML = conViajes(grupos, function(g){
     var idsGrupo = g.registros.map(function(r){return r.id;});
     var todosColapsados = idsGrupo.every(function(id){ return narrColapsadas.has(id); });
     var headerHtml = '<div class="narr-sesion-header">' +
@@ -5588,7 +5717,7 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
       if(colapsada){
         var ti = TIPOS[r.tipo]||TIPOS.nota;
         var nombreResumen = nombreRegistroLista(r);
-        return '<div class="narr-entrada narr-colapsada" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
+        return '<div class="narr-entrada narr-colapsada'+claseNota(r)+'" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
           '<div class="narr-toggle" data-toggle="'+r.id+'">▸</div>' +
           '<div class="narr-resumen-colapsado"><span class="tag">'+ti.label+'</span>'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+(r.fecha||"")+' '+(r.hora||"")+(nombreResumen?(' — '+escapeHtml(nombreResumen)):'')+'</div>' +
         '</div>';
@@ -5603,13 +5732,13 @@ function renderListaNarrativa(lista){  var cont = document.getElementById("lista
           return '<div class="narr-foto"><img id="narr-thumb-'+f.id+'" src=""><div class="cap">'+escapeHtml(f.comentario||f.nombre)+'</div></div>';
         }).join("")+'</div>';
       }
-      return '<div class="narr-entrada" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
+      return '<div class="narr-entrada'+claseNota(r)+'" style="border-left-color:'+colorSesion(r.sesionId)+'">' +
         '<div class="narr-toggle" data-toggle="'+r.id+'">▾</div>' +
         textoEntradaNarrativa(r)+fotosHtml +
       '</div>';
     }).join("");
     return headerHtml + entradasHtml;
-  }).join("");
+  }, !hayFiltroRegistros());
 
   cont.querySelectorAll(".narr-toggle").forEach(function(t){
     t.addEventListener("click", function(e){ e.stopPropagation(); toggleColapsoRegistroNarrativo(t.dataset.toggle); });
@@ -5666,8 +5795,21 @@ document.getElementById("btn-orden-registros-alfabetico").addEventListener("clic
 document.getElementById("btn-exportar-narrativa").addEventListener("click", function(){
   exportarLibretaHTML(obtenerListaFiltrada());
 });
+/* v2.67: ordena una lista plana igual que las vistas Lista y Libreta (sesiones según el criterio elegido; dentro de cada una, más reciente arriba o el orden manual) */
+function ordenarListaComoVista(lista){
+  var grupos = [], idx = {};
+  lista.forEach(function(r){
+    if(idx[r.sesionId]===undefined){ idx[r.sesionId] = grupos.length; grupos.push({sesionId:r.sesionId, registros:[]}); }
+    grupos[idx[r.sesionId]].registros.push(r);
+  });
+  grupos.sort(function(ga,gb){ return comparadorSesionesPorCriterio(state.ordenSesionesRegistros)(sesionPorId(ga.sesionId), sesionPorId(gb.sesionId)); });
+  var out = [];
+  grupos.forEach(function(g){ out = out.concat(ordenarRegistrosDeSesion(g.sesionId, g.registros)); });
+  return out;
+}
 function exportarLibretaHTML(lista){
   if(lista.length===0){ toast("No hay registros para exportar"); return; }
+  lista = ordenarListaComoVista(lista);
   var promesas = [];
   var fotosDataUrls = {};
   lista.forEach(function(r){
@@ -5697,7 +5839,7 @@ function exportarLibretaHTML(lista){
           return '<div class="narr-foto"><img src="'+src+'" onclick="verFoto(this.src,\''+cap.replace(/'/g,"&#39;")+'\')"><div class="cap">'+cap+'</div></div>';
         }).join("")+'</div>';
       }
-      return '<div class="narr-entrada" style="border-left-color:'+colorSesion(r.sesionId)+'">'+textoEntradaNarrativa(r)+fotosHtml+'</div>';
+      return '<div class="narr-entrada'+claseNota(r)+'" style="border-left-color:'+colorSesion(r.sesionId)+'">'+textoEntradaNarrativa(r)+fotosHtml+'</div>';
     }).join("");
     var estilos = document.querySelector("style").textContent;
     var visorHtml = '<div class="modal-bg narr-foto-bg" id="modal-narr-foto" onclick="if(event.target===this)this.classList.remove(\'on\')">'+
@@ -5721,10 +5863,10 @@ function exportarLibretaHTML(lista){
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 
-function generarPaqueteZip(idsSesiones, idsRegistros){
+function generarPaqueteZip(idsSesiones, idsRegistros, idsViajes){
   if(typeof JSZip === "undefined"){ toast("No se pudo cargar el componente de compresión"); return Promise.reject(); }
   // v2.43: admite sesiones completas y registros sueltos a la vez (se suman); sin ninguno de los dos, todo.
-  var haySel = !!(idsSesiones || idsRegistros);
+  var haySel = !!(idsSesiones || idsRegistros || idsViajes);
   var registrosFiltrados = !haySel ? state.registros : state.registros.filter(function(r){
     return (idsSesiones && idsSesiones.indexOf(r.sesionId)>=0) || (idsRegistros && idsRegistros.indexOf(r.id)>=0);
   });
@@ -5733,10 +5875,12 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
     (r.fotos||[]).forEach(function(f){ todasLasFotos.push({foto:f, registro:r}); });
   });
   // v2.45: los recorridos grabados viajan con su sesión (no con registros sueltos de otra sesión)
+  // v2.67: los recorridos de ruta (sin sesión) y las notas de bitácora viajan con su proyecto, cuando el proyecto está marcado
   var recorridosFiltrados = (state.recorridos||[]).filter(function(rc){
-    return rc && (rc.puntos||[]).length>=2 && (!haySel || (idsSesiones && idsSesiones.indexOf(rc.sesionId)>=0));
+    return rc && (rc.puntos||[]).length>=2 && (!haySel || (rc.sesionId && idsSesiones && idsSesiones.indexOf(rc.sesionId)>=0) || (!rc.sesionId && rc.viajeId && idsViajes && idsViajes.indexOf(rc.viajeId)>=0));
   });
-  if(todasLasFotos.length===0 && registrosFiltrados.length===0 && recorridosFiltrados.length===0){ toast("No hay registros para empaquetar en la(s) sesión(es) elegida(s)"); return Promise.reject(); }
+  var notasFiltradas = !haySel ? state.notasViaje : state.notasViaje.filter(function(n){ return idsViajes && idsViajes.indexOf(n.viajeId)>=0; });
+  if(todasLasFotos.length===0 && registrosFiltrados.length===0 && recorridosFiltrados.length===0 && notasFiltradas.length===0){ toast("No hay registros para empaquetar en la(s) sesión(es) elegida(s)"); return Promise.reject(); }
   var zip = new JSZip();
   var carpetaFotos = zip.folder("fotos");
   var carpetaTracks = zip.folder("tracks");
@@ -5755,6 +5899,15 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
       var filename = nombreFotoExport(item.registro, item.foto);
       carpetaFotos.file(filename, base64, {base64:true});
     }).catch(function(){});
+  });
+  notasFiltradas.forEach(function(n){
+    (n.fotos||[]).forEach(function(f){
+      promesas.push(leerFotoDB(f.id).then(function(dataURL){
+        if(!dataURL) return;
+        var conExif = incrustarExif(dataURL, f.comentario||"", "", "", null);
+        carpetaFotos.file(nombreArchivoFotoExport(n.id, f.nombre), conExif.split(",")[1], {base64:true});
+      }).catch(function(){}));
+    });
   });
   registrosFiltrados.forEach(function(r){
     var gpx = generarGPX(r);
@@ -5775,6 +5928,11 @@ function generarPaqueteZip(idsSesiones, idsRegistros){
     });
     var data = {sesiones:sesionesFiltradas, sesionActivaId:state.sesionActivaId, registros:registrosFiltrados};
     if(recorridosFiltrados.length) data.recorridos = recorridosFiltrados;
+    var viajesIncl = !haySel ? state.viajes : state.viajes.filter(function(v){
+      return (idsViajes && idsViajes.indexOf(v.id)>=0) || sesionesFiltradas.some(function(s){ return s.viajeId===v.id; });
+    });
+    if(viajesIncl.length) data.viajes = viajesIncl;
+    if(notasFiltradas.length) data.notasViaje = notasFiltradas;
     zip.file("respaldo.json", JSON.stringify(data, null, 2));
     var filasEstandar = construirFilasEstandar(registrosFiltrados);
     zip.file("planilla_estandar.json", JSON.stringify(filasEstandar, null, 2));
@@ -5793,10 +5951,10 @@ document.getElementById("btn-orden-exportar-alfabetico").addEventListener("click
 });
 document.getElementById("btn-descargar-zip").addEventListener("click", function(){
   var sel = seleccionExportar();
-  if(sel.vacia){ toast("Marca al menos una sesión o un registro para descargar"); return; }
+  if(sel.vacia){ toast("Marca al menos una sesión, un proyecto o un registro para descargar"); return; }
   var btn = this;
   btn.disabled = true; btn.textContent = "📦 Preparando paquete...";
-  generarPaqueteZip(sel.idsSesiones, sel.idsSueltos).then(function(blob){
+  generarPaqueteZip(sel.idsSesiones, sel.idsSueltos, sel.idsViajes).then(function(blob){
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     var nomZip = nombreDescarga(sel.sufijo, "respaldo", "zip");
@@ -5812,7 +5970,609 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
   });
 });
 
+/* ================= v2.67 · Proyectos (internamente "viaje"), notas de proyecto, Bitácora ================= */
+state.viajes = [];            // [{id, nombre, creado}]
+state.notasViaje = [];        // [{id, viajeId, creado, fecha, hora, titulo, texto, operativa, fotos:[{id,nombre,comentario}]}]
+state.viajeActivoId = null;   // proyecto activo: permite notas y recorridos sin sesión activa
+state.viajesSel = {};         // proyectos marcados en Exportar
+state.viajeGestionId = null;  // panel de gestión abierto en Exportar
+state.bitacoraViajeId = null;
+state.bitacoraVolverA = "lista";
+function guardarViajes(){ return setLS(LSK.viajes, JSON.stringify(state.viajes)); }
+function guardarNotasViaje(){ return setLS(LSK.notasViaje, JSON.stringify(state.notasViaje)); }
+function guardarViajeActivo(){ return setLS(LSK.viajeAct, state.viajeActivoId || "-"); }
+function viajePorId(id){ return id ? (state.viajes.filter(function(v){ return v.id===id; })[0] || null) : null; }
+function viajeActivo(){ return viajePorId(state.viajeActivoId); }
+function crearViaje(nombre){
+  var v = {id:"vj"+uid(), nombre:String(nombre||"").trim(), creado:new Date().toISOString()};
+  state.viajes.push(v); guardarViajes();
+  return v;
+}
+function sesionesDeViaje(id){ return state.sesiones.filter(function(s){ return s.viajeId===id; }); }
+function notasDeViaje(id){ return state.notasViaje.filter(function(n){ return n.viajeId===id; }); }
+function recorridosDeRuta(id){ return (state.recorridos||[]).filter(function(rc){ return rc.viajeId===id && !rc.sesionId; }); }
+function nombreCortoViaje(v){ return limpiarParaNombre(v && v.nombre, 40) || "proyecto"; }
+function descargarBlobArchivo(blob, nombre){
+  var url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+}
+function refrescarVistasViaje(){
+  var v = state.currentView;
+  if(v==="lista") renderLista();
+  else if(v==="exportar") renderExportar();
+  else if(v==="bitacora") renderBitacora();
+  else if(v==="sesion") renderSesion();
+}
+
+/* ---------- Ventana genérica (texto y/o lista de opciones) ---------- */
+var modalGenCb = null, modalGenOpts = null;
+function modalGen(o, cb){
+  modalGenOpts = o; modalGenCb = cb;
+  document.getElementById("mg-titulo").textContent = o.titulo || "";
+  var msg = document.getElementById("mg-msg");
+  msg.textContent = o.mensaje || ""; msg.style.display = o.mensaje ? "block" : "none";
+  var tx = document.getElementById("mg-texto");
+  document.getElementById("mg-campo-texto").style.display = o.texto ? "block" : "none";
+  if(o.texto){ tx.value = o.texto.valor || ""; tx.placeholder = o.texto.placeholder || ""; }
+  var sel = document.getElementById("mg-sel");
+  document.getElementById("mg-campo-sel").style.display = o.opciones ? "block" : "none";
+  sel.innerHTML = (o.opciones || []).map(function(op){ return '<option value="'+escapeHtml(op.v)+'">'+escapeHtml(op.l)+'</option>'; }).join("");
+  document.getElementById("mg-ok").textContent = o.ok || "Aceptar";
+  document.getElementById("modal-gen").classList.add("on");
+  if(o.texto) setTimeout(function(){ try{ tx.focus(); }catch(e){} }, 60);
+}
+function cerrarModalGen(){ document.getElementById("modal-gen").classList.remove("on"); modalGenCb = null; modalGenOpts = null; }
+document.getElementById("mg-x").addEventListener("click", cerrarModalGen);
+document.getElementById("mg-cancelar").addEventListener("click", cerrarModalGen);
+document.getElementById("modal-gen").addEventListener("click", function(e){ if(e.target===this) cerrarModalGen(); });
+document.getElementById("mg-ok").addEventListener("click", function(){
+  var cb = modalGenCb, o = modalGenOpts || {};
+  var t = document.getElementById("mg-texto").value.trim(), s = document.getElementById("mg-sel").value;
+  if(o.texto && o.texto.requerido && !t){ toast("Escribe un nombre"); return; }
+  cerrarModalGen();
+  if(cb) cb(t, s);
+});
+
+/* ---------- Alta, activación, nombre y borrado de proyectos ---------- */
+function pedirNuevoViaje(cb){
+  if(bloqueadoPorVisor()) return;
+  modalGen({titulo:"🧭 Nuevo proyecto", mensaje:"Un proyecto agrupa varias sesiones, sus notas de bitácora y los recorridos de ruta.", texto:{valor:"", placeholder:"Nombre del proyecto", requerido:true}, ok:"Crear proyecto"}, function(t){
+    var v = crearViaje(t);
+    toast('Proyecto "'+v.nombre+'" creado');
+    if(cb) cb(v); else refrescarVistasViaje();
+  });
+}
+function alternarViajeActivo(id){
+  if(bloqueadoPorVisor()) return;
+  var v = viajePorId(id); if(!v) return;
+  state.viajeActivoId = (state.viajeActivoId===id) ? null : id;
+  guardarViajeActivo();
+  toast(state.viajeActivoId ? ('Proyecto activo: "'+v.nombre+'". Permite notas y recorridos aunque no haya sesión activa.') : "Sin proyecto activo", 3800);
+  if(window.LC && LC.actualizarPestanaMapa) LC.actualizarPestanaMapa();
+  refrescarVistasViaje();
+}
+function renombrarViaje(id){
+  if(bloqueadoPorVisor()) return;
+  var v = viajePorId(id); if(!v) return;
+  modalGen({titulo:"✏️ Nombre del proyecto", texto:{valor:v.nombre, placeholder:"Nombre del proyecto", requerido:true}, ok:"Guardar"}, function(t){
+    v.nombre = t; guardarViajes(); refrescarVistasViaje();
+  });
+}
+function borrarViaje(id){
+  if(bloqueadoPorVisor()) return;
+  var v = viajePorId(id); if(!v) return;
+  var notas = notasDeViaje(id), rutas = recorridosDeRuta(id), sesiones = sesionesDeViaje(id);
+  var nFotos = notas.reduce(function(t,n){ return t + (n.fotos||[]).length; }, 0);
+  var msg = '¿Borrar el proyecto "'+v.nombre+'"?\n\n'+
+    'Se borrarán sus '+notas.length+(notas.length===1?' nota de bitácora':' notas de bitácora')+(nFotos?(' ('+nFotos+(nFotos===1?' foto':' fotos')+')'):'')+' y '+rutas.length+(rutas.length===1?' recorrido de ruta':' recorridos de ruta')+'.\n'+
+    (sesiones.length ? ('Las '+sesiones.length+(sesiones.length===1?' sesión que contiene NO se borra':' sesiones que contiene NO se borran')+': quedan "Sin proyecto", con todos sus registros.\n') : '')+
+    '\nEsta acción NO se puede deshacer.';
+  if(!confirm(msg)) return;
+  notas.forEach(function(n){ (n.fotos||[]).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); }); });
+  state.notasViaje = state.notasViaje.filter(function(n){ return n.viajeId!==id; });
+  if(rutas.length){ state.recorridos = state.recorridos.filter(function(rc){ return !(rc.viajeId===id && !rc.sesionId); }); guardarRecorridos(); }
+  sesiones.forEach(function(s){ s.viajeId = null; });
+  if(state.sesionBorrador && state.sesionBorrador.viajeId===id){ state.sesionBorrador.viajeId = null; guardarBorradorSesion(); }
+  state.viajes = state.viajes.filter(function(x){ return x.id!==id; });
+  if(state.viajeActivoId===id){ state.viajeActivoId = null; guardarViajeActivo(); }
+  delete state.viajesSel[id];
+  if(state.viajeGestionId===id) state.viajeGestionId = null;
+  guardarListaSesiones(); guardarNotasViaje(); guardarViajes();
+  if(window.LC && LC.actualizarPestanaMapa) LC.actualizarPestanaMapa();
+  toast('Proyecto "'+v.nombre+'" borrado');
+  refrescarVistasViaje();
+}
+
+/* ---------- Árbol Proyecto > Sesión en Registros ---------- */
+var viajesColapsados = new Set();
+function htmlCabeceraViaje(v, nSes){
+  var act = v.id===state.viajeActivoId, col = viajesColapsados.has(v.id);
+  return '<div class="viaje-header" data-viaje="'+v.id+'">'+
+    '<span class="vj-titulo">🧭 '+escapeHtml(v.nombre)+' <span class="vj-cnt">('+nSes+(nSes===1?' sesión':' sesiones')+')</span></span>'+
+    '<button type="button" class="mini-btn'+(act?' on':'')+'" data-vj-acc="activar" data-id="'+v.id+'">'+(act?'★ Activo':'☆ Activar')+'</button>'+
+    '<button type="button" class="mini-btn" data-vj-acc="nota" data-id="'+v.id+'">＋ Nota</button>'+
+    '<button type="button" class="mini-btn" data-vj-acc="bitacora" data-id="'+v.id+'">📖 Bitácora</button>'+
+    '<button type="button" class="mini-btn" data-vj-acc="colapsar" data-id="'+v.id+'" aria-label="Plegar o desplegar">'+(col?'▾':'▸')+'</button>'+
+  '</div>';
+}
+function viajesOrdenados(){
+  return state.viajes.slice().sort(function(a,b){
+    if(a.id===state.viajeActivoId) return -1; if(b.id===state.viajeActivoId) return 1;
+    return (b.creado||"").localeCompare(a.creado||"");
+  });
+}
+/* grupos: [{sesionId, ...}] ya ordenados; fnGrupo(g) devuelve el HTML de un grupo. Sin proyectos creados, no cambia nada. */
+function conViajes(grupos, fnGrupo, mostrarVacios){
+  if(!state.viajes.length) return grupos.map(fnGrupo).join("");
+  var porViaje = {}, sin = [];
+  grupos.forEach(function(g){
+    var s = sesionPorId(g.sesionId), v = s ? viajePorId(s.viajeId) : null;
+    if(v) (porViaje[v.id] = porViaje[v.id] || []).push(g); else sin.push(g);
+  });
+  var html = "";
+  viajesOrdenados().forEach(function(v){
+    var gs = porViaje[v.id] || [];
+    if(!gs.length && !mostrarVacios) return;
+    html += htmlCabeceraViaje(v, gs.length) + (viajesColapsados.has(v.id) ? "" : '<div class="viaje-sesiones">'+gs.map(fnGrupo).join("")+'</div>');
+  });
+  if(sin.length) html += '<div class="viaje-header viaje-sin"><span class="vj-titulo">Sin proyecto <span class="vj-cnt">('+sin.length+(sin.length===1?' sesión':' sesiones')+')</span></span></div><div class="viaje-sesiones">'+sin.map(fnGrupo).join("")+'</div>';
+  return html;
+}
+function hayFiltroRegistros(){ return !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); }
+document.addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("[data-vj-acc]") : null;
+  if(!b) return;
+  e.stopPropagation();
+  var id = b.dataset.id, acc = b.dataset.vjAcc;
+  if(acc==="activar") alternarViajeActivo(id);
+  else if(acc==="nota") abrirNotaViaje(id, null);
+  else if(acc==="bitacora") abrirBitacora(id);
+  else if(acc==="colapsar"){ if(viajesColapsados.has(id)) viajesColapsados.delete(id); else viajesColapsados.add(id); refrescarVistasViaje(); }
+}, true);
+
+/* ---------- Selector de proyecto en la pestaña Sesión ---------- */
+function renderSelectorViajeSesion(s){
+  var sel = document.getElementById("ss-viaje"); if(!sel || !s) return;
+  sel.innerHTML = '<option value="">Sin proyecto</option>' + viajesOrdenados().map(function(v){
+    return '<option value="'+v.id+'">'+escapeHtml("🧭 "+v.nombre)+'</option>';
+  }).join("") + '<option value="__nuevo__">＋ Nuevo proyecto…</option>';
+  sel.value = (s.viajeId && viajePorId(s.viajeId)) ? s.viajeId : "";
+  var av = viajeActivo();
+  document.getElementById("ss-viaje-ayuda").textContent = av ? ('Proyecto activo: "'+av.nombre+'" (se puede cambiar en Registros o en Exportar).') : "Opcional: agrupa varias sesiones de una misma salida o campaña.";
+}
+document.getElementById("ss-viaje").addEventListener("change", function(){
+  var s = sesionEnPantalla(); if(!s) return;
+  var sel = this;
+  if(sel.value==="__nuevo__"){
+    sel.value = s.viajeId || "";
+    pedirNuevoViaje(function(v){ s.viajeId = v.id; guardarSesion(); renderSesion(); });
+    return;
+  }
+  s.viajeId = sel.value || null;
+  guardarSesion();
+});
+
+/* ---------- Notas de proyecto ---------- */
+var notaViajeEdit = null;
+function abrirNotaViaje(viajeId, notaId){
+  if(bloqueadoPorVisor()) return;
+  var v = viajePorId(viajeId); if(!v) return;
+  var n = notaId ? state.notasViaje.filter(function(x){ return x.id===notaId; })[0] : null;
+  var ahora = new Date();
+  notaViajeEdit = {
+    viajeId:viajeId, esNueva:!n, fotosNuevas:[], fotosQuitadas:[],
+    nota: n ? JSON.parse(JSON.stringify(n)) : {id:"nv"+uid(), viajeId:viajeId, creado:ahora.toISOString(), fecha:fechaLocalISO(ahora), hora:horaLocalHM(ahora), titulo:"", texto:"", operativa:false, fotos:[]}
+  };
+  document.getElementById("nv-cabecera").textContent = "📝 Nota de "+v.nombre;
+  document.getElementById("nv-titulo").value = notaViajeEdit.nota.titulo || "";
+  document.getElementById("nv-texto").value = notaViajeEdit.nota.texto || "";
+  document.getElementById("nv-operativa").checked = !!notaViajeEdit.nota.operativa;
+  document.getElementById("nv-borrar").style.display = n ? "block" : "none";
+  renderFotosNotaViaje();
+  document.getElementById("modal-nota-viaje").classList.add("on");
+}
+function renderFotosNotaViaje(){
+  var box = document.getElementById("nv-fotos"), fs = notaViajeEdit ? notaViajeEdit.nota.fotos : [];
+  box.innerHTML = fs.map(function(f, i){
+    return '<div class="nv-foto" data-i="'+i+'"><img id="nv-thumb-'+f.id+'" src="" alt="foto '+(i+1)+'"><span class="nv-n">📷'+(i+1)+'</span><span class="nv-x" data-quitar="'+i+'">✕</span></div>';
+  }).join("");
+  fs.forEach(function(f){ leerFotoDB(f.id).then(function(dt){ var im = document.getElementById("nv-thumb-"+f.id); if(im && dt) im.src = dt; }); });
+  box.querySelectorAll(".nv-foto img").forEach(function(im){
+    im.addEventListener("click", function(){ insertarCitaEn(document.getElementById("nv-texto"), parseInt(im.parentNode.dataset.i,10)+1); });
+  });
+  box.querySelectorAll(".nv-x").forEach(function(x){
+    x.addEventListener("click", function(e){ e.stopPropagation(); quitarFotoNotaViaje(parseInt(x.dataset.quitar,10)); });
+  });
+}
+function insertarCitaEn(ta, n){
+  var c = "[📷"+n+"]", pos = ta.selectionStart==null ? ta.value.length : ta.selectionStart, fin = ta.selectionEnd==null ? pos : ta.selectionEnd;
+  ta.value = ta.value.slice(0,pos) + c + ta.value.slice(fin);
+  ta.selectionStart = ta.selectionEnd = pos + c.length;
+  try{ ta.focus(); }catch(e){}
+  ta.dispatchEvent(new Event("input", {bubbles:true}));
+}
+/* al quitar la foto k, su cita desaparece y las siguientes bajan un número */
+function renumerarCitasAlQuitar(texto, k){
+  return String(texto||"").replace(/\[📷(\d+)\]/g, function(m, n){
+    n = parseInt(n,10);
+    if(n===k) return "";
+    return n>k ? "[📷"+(n-1)+"]" : m;
+  });
+}
+function quitarFotoNotaViaje(i){
+  var e = notaViajeEdit; if(!e) return;
+  var f = e.nota.fotos[i]; if(!f) return;
+  if(!confirm("¿Quitar esta foto de la nota? Su cita en el texto también se elimina.")) return;
+  e.nota.fotos.splice(i,1);
+  if(e.fotosNuevas.indexOf(f.id)>=0){ e.fotosNuevas = e.fotosNuevas.filter(function(x){ return x!==f.id; }); borrarFotoDB(f.id); }
+  else e.fotosQuitadas.push(f.id);
+  var ta = document.getElementById("nv-texto");
+  ta.value = renumerarCitasAlQuitar(ta.value, i+1);
+  renderFotosNotaViaje();
+}
+document.getElementById("nv-btn-foto").addEventListener("click", function(){ document.getElementById("nv-input-foto").click(); });
+document.getElementById("nv-input-foto").addEventListener("change", function(){
+  var files = Array.prototype.slice.call(this.files || []); this.value = "";
+  var e = notaViajeEdit; if(!e || !files.length) return;
+  toast("Procesando foto...");
+  var p = Promise.resolve();
+  files.forEach(function(file){
+    p = p.then(function(){
+      return comprimirImagen(file, 1280, 0.72, null).then(function(dataURL){
+        var id = uid();
+        return guardarFotoDB(id, dataURL).then(function(){
+          if(!notaViajeEdit) return;
+          notaViajeEdit.nota.fotos.push({id:id, nombre:"foto"+(notaViajeEdit.nota.fotos.length+1), comentario:""});
+          notaViajeEdit.fotosNuevas.push(id);
+          insertarCitaEn(document.getElementById("nv-texto"), notaViajeEdit.nota.fotos.length);
+          renderFotosNotaViaje();
+        });
+      }).catch(function(){ toast("No se pudo procesar "+file.name); });
+    });
+  });
+});
+function cerrarNotaViaje(descartar){
+  var e = notaViajeEdit;
+  if(e && descartar) e.fotosNuevas.forEach(function(id){ borrarFotoDB(id); });
+  notaViajeEdit = null;
+  document.getElementById("modal-nota-viaje").classList.remove("on");
+}
+document.getElementById("nv-x").addEventListener("click", function(){ cerrarNotaViaje(true); });
+document.getElementById("modal-nota-viaje").addEventListener("click", function(e){ if(e.target===this) cerrarNotaViaje(true); });
+document.getElementById("nv-guardar").addEventListener("click", function(){
+  var e = notaViajeEdit; if(!e) return;
+  var n = e.nota;
+  n.titulo = document.getElementById("nv-titulo").value.trim();
+  n.texto = document.getElementById("nv-texto").value.replace(/\s+$/,"");
+  n.operativa = document.getElementById("nv-operativa").checked;
+  if(!n.titulo && !n.texto && !(n.fotos||[]).length){ toast("Escribe algo o agrega una foto"); return; }
+  e.fotosQuitadas.forEach(function(id){ borrarFotoDB(id); });
+  if(e.esNueva) state.notasViaje.push(n);
+  else state.notasViaje = state.notasViaje.map(function(x){ return x.id===n.id ? n : x; });
+  guardarNotasViaje();
+  notaViajeEdit = null;
+  document.getElementById("modal-nota-viaje").classList.remove("on");
+  toast("Nota guardada en la bitácora");
+  refrescarVistasViaje();
+});
+document.getElementById("nv-borrar").addEventListener("click", function(){
+  var e = notaViajeEdit; if(!e || e.esNueva) return;
+  if(!confirm("¿Borrar esta nota de la bitácora (con sus fotos)? No se puede deshacer.")) return;
+  (e.nota.fotos||[]).forEach(function(f){ borrarFotoDB(f.id); });
+  e.fotosNuevas.forEach(function(id){ borrarFotoDB(id); });
+  state.notasViaje = state.notasViaje.filter(function(x){ return x.id!==e.nota.id; });
+  guardarNotasViaje();
+  notaViajeEdit = null;
+  document.getElementById("modal-nota-viaje").classList.remove("on");
+  refrescarVistasViaje();
+});
+
+/* ---------- Citas de fotos en el texto: [📷1] abre la foto 1 del registro o de la nota ---------- */
+function citasFoto(html, ctx){
+  return String(html).replace(/\[📷(\d+)\]/g, function(m, n){
+    var at = ctx && ctx.reg ? ' data-reg="'+ctx.reg+'"' : (ctx && ctx.nv ? ' data-nv="'+ctx.nv+'"' : '');
+    return '<span class="cita-foto" data-n="'+n+'"'+at+'>📷'+n+'</span>';
+  });
+}
+document.addEventListener("click", function(e){
+  var c = e.target.closest ? e.target.closest(".cita-foto") : null;
+  if(!c) return;
+  e.stopPropagation();
+  var n = parseInt(c.dataset.n,10), fotos = null;
+  if(c.dataset.reg){ var r = state.registros.filter(function(x){ return x.id===c.dataset.reg; })[0]; fotos = r && r.fotos; }
+  else if(c.dataset.nv){ var nv = state.notasViaje.filter(function(x){ return x.id===c.dataset.nv; })[0]; fotos = nv && nv.fotos; }
+  if(!fotos || !fotos[n-1]){ toast("Esa foto ya no está en el registro", 3000); return; }
+  abrirFotoNarrativa(fotos.map(function(f){ return {id:f.id, nombre:f.nombre, comentario:f.comentario, copiaLocal:f.copiaLocal}; }), n-1, null);
+}, true);
+function claseNota(r){ return (r && r.tipo==="nota") ? (r.notaSubtipo==="operativo" ? " nota-op" : " nota-nar") : ""; }
+function insigniaSubtipoNota(r){
+  if(!r || r.tipo!=="nota") return "";
+  return r.notaSubtipo==="operativo" ? ' <span class="tag tag-op">📌 Operativa</span>' : ' <span class="tag tag-nar">📖 Narrativa</span>';
+}
+/* botón "📷 Foto" de las Notas del formulario: cita una foto del propio registro */
+document.getElementById("btn-notas-foto").addEventListener("click", function(){
+  var n = state.fotosTemp.length;
+  if(!n){ toast("Primero agrega fotos en la sección Fotografías de este registro", 3600); return; }
+  var ta = document.getElementById("f-notas");
+  if(n===1){ insertarCitaEn(ta, 1); return; }
+  var box = document.getElementById("notas-foto-chips");
+  if(box.style.display==="flex"){ box.style.display = "none"; return; }
+  box.innerHTML = state.fotosTemp.map(function(f,i){ return '<button type="button" class="mini-btn" data-n="'+(i+1)+'">📷'+(i+1)+(f.nombre?(' · '+escapeHtml(f.nombre)):'')+'</button>'; }).join("");
+  box.style.display = "flex";
+  box.querySelectorAll("button").forEach(function(b){ b.addEventListener("click", function(){ insertarCitaEn(ta, parseInt(b.dataset.n,10)); box.style.display = "none"; }); });
+});
+
+/* ---------- Bitácora ---------- */
+function abrirBitacora(viajeId){
+  if(!viajePorId(viajeId)) return;
+  state.bitacoraViajeId = viajeId;
+  state.bitacoraVolverA = (state.currentView==="exportar") ? "exportar" : "lista";
+  irA("bitacora");
+}
+function entradasBitacora(v){
+  var out = [];
+  notasDeViaje(v.id).forEach(function(n){
+    out.push({k:"nv", id:n.id, fecha:n.fecha||"", hora:n.hora||"", titulo:n.titulo||"", texto:n.texto||"", operativa:!!n.operativa, fotos:n.fotos||[], sesionId:null});
+  });
+  sesionesDeViaje(v.id).forEach(function(s){
+    state.registros.forEach(function(r){
+      if(r.sesionId!==s.id || r.tipo!=="nota") return;
+      out.push({k:"reg", id:r.id, fecha:r.fecha||"", hora:r.hora||"", titulo:(r.notaTitulo||r.codigo||""), texto:r.notas||"", operativa:r.notaSubtipo==="operativo", fotos:r.fotos||[], sesionId:s.id, codigo:r.codigo||""});
+    });
+  });
+  out.sort(function(a,b){
+    var ta = a.fecha+"T"+a.hora, tb = b.fecha+"T"+b.hora;
+    return ta<tb ? -1 : (ta>tb ? 1 : String(a.id).localeCompare(String(b.id)));
+  });
+  return out;
+}
+function renderBitacora(){
+  var v = viajePorId(state.bitacoraViajeId);
+  var cont = document.getElementById("bit-lista");
+  if(!v){ cont.innerHTML = '<div class="vacio">Este proyecto ya no existe.</div>'; return; }
+  document.getElementById("bit-titulo").textContent = "Bitácora · "+v.nombre;
+  var soloNar = document.getElementById("bit-solo-narrativas").checked;
+  var ent = entradasBitacora(v).filter(function(x){ return !(soloNar && x.operativa); });
+  if(!ent.length){ cont.innerHTML = '<div class="vacio">Aún no hay notas en esta bitácora.<br>Usa «＋ Nota» o crea una Nota general dentro de una sesión del proyecto.</div>'; return; }
+  cont.innerHTML = ent.map(function(x){
+    var ctx = x.k==="nv" ? {nv:x.id} : {reg:x.id};
+    var color = x.sesionId ? colorSesion(x.sesionId) : "#5a4616";
+    var origen = x.sesionId ? ('<span class="bit-badge">'+escapeHtml(iconoSesion(x.sesionId)+" "+etiquetaSesionCorta(x.sesionId))+'</span>') : '<span class="bit-badge" style="background:#efe6d2; color:#5a4616;">🧭 Proyecto</span>';
+    var fotosHtml = x.fotos.length ? '<div class="nv-fotos">'+x.fotos.map(function(f,i){ return '<div class="nv-foto" data-i="'+i+'"><img id="bit-th-'+x.id+'-'+f.id+'" src="" alt="foto '+(i+1)+'"><span class="nv-n">📷'+(i+1)+'</span></div>'; }).join("")+'</div>' : "";
+    return '<div class="bit-entrada '+(x.operativa?'nota-op':'nota-nar')+'" data-k="'+x.k+'" data-id="'+x.id+'" style="border-left-color:'+color+';">'+
+      '<div class="bit-cab"><span>'+escapeHtml(x.fecha)+' · '+escapeHtml(x.hora)+'</span>'+origen+(x.operativa?'<span class="bit-badge" style="background:#d3e3f1; color:#1d4766;">📌 Operativa</span>':'')+'</div>'+
+      (x.titulo ? '<div class="bit-tit">'+escapeHtml(x.titulo)+'</div>' : '')+
+      (x.texto ? '<div class="narr-notas">'+formatearNotasHtml(x.texto, ctx)+'</div>' : '')+
+      fotosHtml+'</div>';
+  }).join("");
+  ent.forEach(function(x){
+    if(!x.fotos.length) return;
+    Promise.all(x.fotos.map(function(f){ return leerFotoDB(f.id).then(function(dt){ return {id:f.id, nombre:f.nombre, comentario:f.comentario, dataURL:dt}; }); })).then(function(fs){
+      fs.forEach(function(f, i){
+        var im = document.getElementById("bit-th-"+x.id+"-"+f.id);
+        if(im && f.dataURL){ im.src = f.dataURL; im.addEventListener("click", function(e){ e.stopPropagation(); abrirFotoNarrativa(fs, i, null); }); }
+      });
+    });
+  });
+  cont.querySelectorAll(".bit-entrada").forEach(function(el){
+    el.addEventListener("click", function(){
+      if(el.dataset.k==="nv"){ if(!visorActivo) abrirNotaViaje(state.bitacoraViajeId, el.dataset.id); }
+      else verRegistroExistente(el.dataset.id);
+    });
+  });
+}
+document.getElementById("bit-solo-narrativas").addEventListener("change", renderBitacora);
+document.getElementById("btn-bit-volver").addEventListener("click", function(){ irA(state.bitacoraVolverA || "lista"); });
+document.getElementById("btn-bit-nota").addEventListener("click", function(){ if(state.bitacoraViajeId) abrirNotaViaje(state.bitacoraViajeId, null); });
+document.getElementById("btn-bit-exportar").addEventListener("click", function(){ exportarBitacoraHTML(viajePorId(state.bitacoraViajeId)); });
+function exportarBitacoraHTML(v){
+  if(!v) return;
+  var ent = entradasBitacora(v);
+  if(!ent.length){ toast("La bitácora está vacía"); return; }
+  var urls = {}, proms = [];
+  ent.forEach(function(x){ x.fotos.forEach(function(f){ proms.push(leerFotoDB(f.id).then(function(dt){ urls[f.id] = dt || ""; })); }); });
+  toast("Preparando bitácora...");
+  Promise.all(proms).then(function(){
+    var cuerpo = ent.map(function(x){
+      var color = x.sesionId ? colorSesion(x.sesionId) : "#5a4616";
+      var origen = x.sesionId ? escapeHtml(iconoSesion(x.sesionId)+" "+etiquetaSesionCorta(x.sesionId)) : "🧭 Proyecto";
+      var fotos = x.fotos.length ? '<div class="narr-fotos">'+x.fotos.map(function(f,i){
+        var cap = escapeHtml("📷"+(i+1)+(f.comentario?(" · "+f.comentario):""));
+        return '<div class="narr-foto"><img src="'+(urls[f.id]||"")+'" onclick="verFoto(this.src,\''+cap.replace(/'/g,"&#39;")+'\')"><div class="cap">'+cap+'</div></div>';
+      }).join("")+'</div>' : "";
+      return '<div class="narr-entrada '+(x.operativa?'nota-op':'nota-nar')+'" style="border-left-color:'+color+'">'+
+        '<div class="bit-cab"><span>'+escapeHtml(x.fecha)+' · '+escapeHtml(x.hora)+'</span><span class="bit-badge">'+origen+'</span>'+(x.operativa?'<span class="bit-badge">📌 Operativa</span>':'')+'</div>'+
+        (x.titulo ? '<div class="bit-tit">'+escapeHtml(x.titulo)+'</div>' : '')+
+        (x.texto ? '<div class="narr-notas">'+formatearNotasHtml(x.texto, {estatico:true})+'</div>' : '')+fotos+'</div>';
+    }).join("");
+    var estilos = document.querySelector("style").textContent;
+    var visorHtml = '<div class="modal-bg narr-foto-bg" id="modal-narr-foto" onclick="if(event.target===this)this.classList.remove(\'on\')"><div class="narr-foto-inner"><img id="narr-foto-img"><div class="narr-foto-cap" id="narr-foto-cap"></div></div></div>'+
+      '<script>function verFoto(src,cap){document.getElementById("narr-foto-img").src=src;document.getElementById("narr-foto-cap").textContent=cap;document.getElementById("modal-narr-foto").classList.add("on");}<\/script>';
+    var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Bitácora · '+escapeHtml(v.nombre)+'</title><style>'+estilos+
+      'body{background:#f7f5f0; padding:20px; max-width:700px; margin:0 auto; display:block;} .narr-entrada{page-break-inside:avoid; cursor:default;} .narr-foto img{cursor:pointer;} #barra-visor{display:none;}</style></head><body>'+
+      '<h1 style="color:#1e4029;">🧭 '+escapeHtml(v.nombre)+' · Bitácora</h1><p style="color:#6b6b64;">Generado '+new Date().toLocaleString("es-CL")+'</p>'+cuerpo+visorHtml+'</body></html>';
+    var blob = new Blob([html], {type:"text/html"});
+    var nom = nombreDescarga(nombreCortoViaje(v), "bitacora", "html");
+    descargarBlobArchivo(blob, nom);
+    copiarARespaldos("Libreta", nom, blob, destinoRespaldos(sesionesDeViaje(v.id).map(function(s){ return s.id; })));
+    toast("✅ Bitácora exportada");
+  });
+}
+
+/* ================= v2.67 · Exportar: árbol Proyecto > Sesión y gestión de recorridos ================= */
+function textoDistanciaApp(m){ return m>=1000 ? (m/1000).toFixed(2).replace(".", ",")+" km" : Math.round(m||0)+" m"; }
+function textoDuracionApp(ms){
+  var m = Math.max(0, Math.round((ms||0)/60000)), h = Math.floor(m/60);
+  return h ? h+" h "+(m%60<10?"0":"")+(m%60)+" min" : m+" min";
+}
+/* un recorrido es válido si tiene al menos un tramo con 2 o más puntos con coordenadas (igual que el mapa) */
+function recorridoValido(rc){
+  var act = 0, ok = false;
+  (rc.puntos||[]).forEach(function(p, i){
+    var la = parseFloat(p && p.lat), lo = parseFloat(p && p.lon);
+    if(!isFinite(la) || !isFinite(lo)) return;
+    if(i>0 && p.corte && act){ if(act>=2) ok = true; act = 0; }
+    act++;
+  });
+  if(act>=2) ok = true;
+  return ok;
+}
+function recorridoHuerfano(rc){
+  var enSesion = rc.sesionId && sesionPorId(rc.sesionId);
+  var enRuta = !rc.sesionId && rc.viajeId && viajePorId(rc.viajeId);
+  return !enSesion && !enRuta;
+}
+function htmlFilaRecorrido(rc){
+  var valido = recorridoValido(rc), pts = rc.puntos || [], nP = pts.length;
+  var fin = rc.finTs || (nP ? pts[nP-1].horaTs : 0) || rc.inicioTs;
+  var txt = (rc.nombre || "Recorrido")+" · "+textoDistanciaApp(rc.distanciaM)+" · "+textoDuracionApp((fin||0)-(rc.inicioTs||0))+" · "+nP+(nP===1?" punto":" puntos")+(rc.interrumpido?" · interrumpido":"")+(rc.enCurso?" · grabando":"");
+  if(!valido) txt += " · sin tramo válido (fragmento)";
+  return '<div class="gestion-rec'+(valido?'':' danado')+'" data-rc="'+rc.id+'">'+
+    '<span class="gestion-info">'+(valido?'🥾 ':'⚠️ ')+escapeHtml(txt)+'</span>'+
+    (valido ? '<span class="rc-b" data-rc-acc="ver" data-id="'+rc.id+'" title="Ver en el mapa">🗺️</span>' : '')+
+    '<span class="rc-b" data-rc-acc="mover" data-id="'+rc.id+'" title="Mover a otra sesión o proyecto">↪️</span>'+
+    '<span class="rc-b" data-rc-acc="borrar" data-id="'+rc.id+'" title="Borrar">🗑</span></div>';
+}
+function recorridoPorId(id){ return (state.recorridos||[]).filter(function(x){ return x.id===id; })[0] || null; }
+function verRecorridoEnMapa(rc){
+  if(!(window.MapaPro && MapaPro.verRecorrido) || !mapaCfg().activo){ toast("Para ver el recorrido en el mapa, activa el mapa en Config", 4200); return; }
+  MapaPro.verRecorrido(rc.id);
+}
+function borrarRecorridoApp(rc){
+  if(bloqueadoPorVisor()) return;
+  if(rc.enCurso){ toast("Este recorrido se está grabando: detén la grabación en el mapa antes de borrarlo", 4200); return; }
+  if(!confirm('¿Borrar "'+(rc.nombre||"este recorrido")+'" ('+textoDistanciaApp(rc.distanciaM)+', '+(rc.puntos||[]).length+' puntos)?\n\nNo se puede deshacer.')) return;
+  state.recorridos = state.recorridos.filter(function(x){ return x.id!==rc.id; });
+  guardarRecorridos();
+  toast("Recorrido borrado");
+  refrescarVistasViaje();
+}
+function moverRecorridoDialogo(rc){
+  var ops = [];
+  state.sesiones.slice().sort(function(a,b){ return b.creada.localeCompare(a.creada); }).forEach(function(s){
+    if(s.id!==rc.sesionId) ops.push({v:"s:"+s.id, l:iconoSesion(s.id)+" Sesión: "+nombreSesionMostrar(s)});
+  });
+  viajesOrdenados().forEach(function(v){
+    if(!(rc.viajeId===v.id && !rc.sesionId)) ops.push({v:"v:"+v.id, l:"🧭 Ruta del proyecto: "+v.nombre});
+  });
+  if(!ops.length){ toast("No hay otra sesión ni proyecto a donde moverlo"); return; }
+  modalGen({titulo:"↪️ Mover recorrido", mensaje:'"'+(rc.nombre||"Recorrido")+'" pasará a:', opciones:ops, ok:"Mover"}, function(t, sel){ moverRecorrido(rc, sel); });
+}
+function moverRecorrido(rc, dest){
+  if(bloqueadoPorVisor()) return;
+  var enSes = dest.indexOf("s:")===0, id = dest.slice(2);
+  var n = 1;
+  state.recorridos.forEach(function(x){
+    if(x===rc) return;
+    var mismo = enSes ? (x.sesionId===id) : (!x.sesionId && x.viajeId===id);
+    if(mismo && (x.n||0)>=n) n = (x.n||0)+1;
+  });
+  if(enSes){ rc.sesionId = id; delete rc.viajeId; }
+  else { rc.sesionId = null; rc.viajeId = id; }
+  rc.n = n;
+  if(/^Recorrido \d+$/.test(rc.nombre||"")) rc.nombre = "Recorrido "+n;
+  guardarRecorridos();
+  toast("Recorrido movido");
+  refrescarVistasViaje();
+}
+document.addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("[data-rc-acc]") : null;
+  if(!b) return;
+  e.stopPropagation();
+  var rc = recorridoPorId(b.dataset.id); if(!rc) return;
+  var acc = b.dataset.rcAcc;
+  if(acc==="ver") verRecorridoEnMapa(rc);
+  else if(acc==="mover") moverRecorridoDialogo(rc);
+  else if(acc==="borrar") borrarRecorridoApp(rc);
+}, true);
+function renderRecorridosHuerfanos(){
+  var box = document.getElementById("exp-rec-huerfanos"); if(!box) return;
+  var lista = (state.recorridos||[]).filter(function(rc){ return rc && !rc.enCurso && (recorridoHuerfano(rc) || !recorridoValido(rc)); });
+  if(!lista.length){ box.style.display = "none"; box.innerHTML = ""; return; }
+  box.style.display = "block";
+  box.innerHTML = '<div style="font-weight:800; color:var(--ambar-osc); margin-bottom:6px;">〰 Recorridos sin sesión o dañados</div>'+
+    '<div class="gestion-ayuda" style="margin-bottom:8px;">Fragmentos con menos de 2 puntos o recorridos cuya sesión ya no existe. Puedes moverlos a una sesión o proyecto, verlos en el mapa o borrarlos.</div>'+
+    lista.map(htmlFilaRecorrido).join("")+
+    '<button type="button" class="btnfull btn-secondary" id="btn-rec-limpiar" style="margin:10px 0 0;">🧹 Borrar los '+lista.length+' de esta lista</button>';
+  document.getElementById("btn-rec-limpiar").addEventListener("click", function(){
+    if(!confirm("¿Borrar los "+lista.length+" recorridos de esta lista?\n\nNo se puede deshacer.")) return;
+    var ids = {}; lista.forEach(function(rc){ ids[rc.id] = 1; });
+    state.recorridos = state.recorridos.filter(function(rc){ return !ids[rc.id]; });
+    guardarRecorridos();
+    toast("Recorridos borrados");
+    refrescarVistasViaje();
+  });
+}
+function htmlRecorridosDeSesion(sesionId){
+  var recs = (state.recorridos||[]).filter(function(rc){ return rc.sesionId===sesionId; });
+  if(!recs.length) return "";
+  return '<div class="gestion-sub">Recorridos grabados ('+recs.length+')</div>'+recs.map(htmlFilaRecorrido).join("");
+}
+function renderPanelGestionViaje(v){
+  var notas = notasDeViaje(v.id), rutas = recorridosDeRuta(v.id), sesiones = sesionesDeViaje(v.id);
+  var act = v.id===state.viajeActivoId;
+  return '<div class="gestion-panel">'+
+    '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">'+
+      '<button type="button" class="mini-btn" data-vjp="renombrar" data-id="'+v.id+'">✏️ Renombrar</button>'+
+      '<button type="button" class="mini-btn'+(act?' on':'')+'" data-vj-acc="activar" data-id="'+v.id+'">'+(act?'★ Activo':'☆ Activar')+'</button>'+
+      '<button type="button" class="mini-btn" data-vj-acc="nota" data-id="'+v.id+'">＋ Nota</button>'+
+      '<button type="button" class="mini-btn" data-vj-acc="bitacora" data-id="'+v.id+'">📖 Bitácora</button>'+
+    '</div>'+
+    '<div class="gestion-ayuda">'+sesiones.length+(sesiones.length===1?' sesión':' sesiones')+' · '+notas.length+(notas.length===1?' nota de bitácora':' notas de bitácora')+'. Marcar el proyecto incluye en el .zip todas sus sesiones, sus notas y sus recorridos de ruta.</div>'+
+    (rutas.length ? ('<div class="gestion-sub">Recorridos de ruta ('+rutas.length+')</div>'+rutas.map(htmlFilaRecorrido).join("")) : '<div class="gestion-ayuda">Sin recorridos de ruta. Se graban en el mapa cuando el proyecto está activo y no hay sesión activa.</div>')+
+    '<button type="button" class="btn-borrar-sesion-panel" data-vjp="borrar" data-id="'+v.id+'" style="margin-top:12px;">🗑 Borrar este proyecto</button>'+
+  '</div>';
+}
+function htmlTarjetaViajeExp(v, nSes){
+  var exp = state.viajeGestionId===v.id, act = v.id===state.viajeActivoId;
+  return '<div class="sesion-exportar-card viaje-card'+(exp?' gestionando':'')+'" data-viaje="'+v.id+'"><div class="sesion-exportar-header">'+
+    '<input type="checkbox" class="viaje-check-export" data-id="'+v.id+'"'+(state.viajesSel[v.id]?' checked':'')+'>'+
+    '<span class="sesion-exportar-label">🧭 '+escapeHtml(v.nombre)+' <span style="font-weight:400;">('+nSes+')</span> '+(act?'<span class="badge-activa">ACTIVO</span>':'')+'</span>'+
+    '<button type="button" class="btn-gestionar'+(exp?' on':'')+'" data-viaje-gest="'+v.id+'">'+(exp?'▾':'▸')+' Gestionar</button></div>'+
+    (exp ? renderPanelGestionViaje(v) : '')+'</div>';
+}
+function conViajesExp(sesiones, fn){
+  if(!state.viajes.length) return sesiones.map(fn).join("");
+  var porViaje = {}, sin = [];
+  sesiones.forEach(function(s){
+    var v = viajePorId(s.viajeId);
+    if(v) (porViaje[v.id] = porViaje[v.id] || []).push(s); else sin.push(s);
+  });
+  var html = "";
+  viajesOrdenados().forEach(function(v){
+    var ss = porViaje[v.id] || [];
+    html += htmlTarjetaViajeExp(v, ss.length) + '<div class="viaje-sesiones">'+ss.map(fn).join("")+'</div>';
+  });
+  if(sin.length) html += '<div class="viaje-header viaje-sin"><span class="vj-titulo">Sin proyecto</span></div><div class="viaje-sesiones">'+sin.map(fn).join("")+'</div>';
+  return html;
+}
+function idsViajesMarcados(){
+  return Object.keys(state.viajesSel).filter(function(id){ return state.viajesSel[id] && viajePorId(id); });
+}
+function ligarEventosViajesExportar(box){
+  box.querySelectorAll(".viaje-check-export").forEach(function(c){
+    c.addEventListener("change", function(){
+      state.viajesSel[c.dataset.id] = c.checked;
+      sesionesDeViaje(c.dataset.id).forEach(function(s){
+        var cb = box.querySelector('.sesion-check-export[data-id="'+s.id+'"]'); if(cb) cb.checked = c.checked;
+      });
+      state.expVacioManual = sesionesSeleccionadasExportar().length===0 && !idsViajesMarcados().length;
+      actualizarStatsExportar();
+    });
+  });
+  box.querySelectorAll("[data-viaje-gest]").forEach(function(b){
+    b.addEventListener("click", function(){ state.viajeGestionId = (state.viajeGestionId===b.dataset.viajeGest) ? null : b.dataset.viajeGest; renderExportar(); });
+  });
+  box.querySelectorAll("[data-vjp]").forEach(function(b){
+    b.addEventListener("click", function(){ if(b.dataset.vjp==="renombrar") renombrarViaje(b.dataset.id); else if(b.dataset.vjp==="borrar") borrarViaje(b.dataset.id); });
+  });
+}
+document.getElementById("btn-exp-nuevo-viaje").addEventListener("click", function(){ pedirNuevoViaje(); });
+
 function finalizarSesionActiva(){
+  if(bloqueadoPorVisor()) return;
   var pendiente = (state.draft && !state.draft._viendo && sesionActiva() && state.draft.sesionId===sesionActiva().id)
     ? "\n\nHay un registro sin guardar en curso: se descartará." : "";
   if(!confirm("¿Finalizar la sesión activa?\n\nQueda guardada con todos sus registros y accesible desde el selector de la pestaña Sesión. La app queda sin sesión activa hasta que pulses \"Nueva sesión\" (o toques \"Nuevo\", que crea una sesión nueva automáticamente)."+pendiente)) return;
@@ -6029,7 +6789,7 @@ function actualizarGpsBox(){
     else { calidad = "baja"; colorClase = "precision-baja"; }
     var textoAcc = acc!=null ? ("±"+Math.round(acc)+" m, "+calidad) : "desconocida";
     document.getElementById("gps-estado").innerHTML = '📍 Ubicación capturada — '+(d.hora||"")+' <span class="'+colorClase+'" style="font-weight:600;">· Precisión: '+textoAcc+'</span>';
-    document.getElementById("gps-coords-txt").textContent = "Lat: "+d.lat+"  ·  Lon: "+d.lon+(d.altitud!=null?("  ·  Alt: "+d.altitud+" m"):"");
+    document.getElementById("gps-coords-txt").textContent = "Lat: "+d.lat+"  ·  Lon: "+d.lon+(textoAltitud(d.altitud)?("  ·  "+textoAltitud(d.altitud)):"");
   } else {
     document.getElementById("gps-estado").textContent = "📍 Sin capturar";
     document.getElementById("gps-coords-txt").textContent = 'Toca "Capturar ubicación" para registrar coordenada, altitud, fecha y hora juntas.';
@@ -6524,7 +7284,7 @@ function capturarGPS(){
     var ahora = new Date();
     state.draft.lat = lat.toFixed(6);
     state.draft.lon = lon.toFixed(6);
-    state.draft.altitud = alt!=null ? Math.round(alt) : null;
+    state.draft.altitud = alt!=null ? Math.max(0, Math.round(alt)) : null;
     state.draft.precisionGps = accuracy!=null ? accuracy : null;
     state.draft.fecha = fechaLocalISO(ahora);
     state.draft.hora = horaLocalHM(ahora);
@@ -6570,6 +7330,7 @@ document.getElementById("f-lat").addEventListener("input", function(){ document.
 document.getElementById("f-lon").addEventListener("input", function(){ document.getElementById("gps-manual-wrap").classList.remove("resaltado"); actualizarGpsBox(); });
 
 function abrirRegistro(){
+  if(bloqueadoPorVisor()) return;
   // Sin sesión activa un borrador de registro queda sin sesión a la que pertenecer: se descarta (editar uno ya guardado sí se permite)
   if(!sesionActiva() && state.draft && !state.draft._viendo && !state.draft._editando){ state.draft = null; guardarDraft(); }
   if(!state.draft){ iniciarNuevoRegistro(); return; }
@@ -6712,7 +7473,7 @@ function htmlConsultaRegistro(r, conBotonMapa){
   if(r.lat && r.lon){
     var prec = precisionGpsDeRegistro(r);
     var clsPrec = prec==null ? "" : (prec<=10 ? "" : (prec<=25 ? "precision-moderada" : "precision-baja"));
-    et.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(r.altitud!=null&&r.altitud!==""?(' · Alt. '+escapeHtml(String(r.altitud))+' m'):'')+
+    et.push('<div class="narr-linea"><b>Ubicación:</b> '+escapeHtml(r.lat)+', '+escapeHtml(r.lon)+(textoAltitud(r.altitud)?(' · '+escapeHtml(textoAltitud(r.altitud))):'')+
       (prec!=null?(' · <span class="'+clsPrec+'" style="font-weight:600;">±'+Math.round(prec)+' m</span>'):'')+
       (conBotonMapa && mapaPestanaVisible() ? ' <button type="button" class="cons-ubic-mapa">🗺️ Ver en el mapa</button>' : '')+'</div>');
   }
@@ -6727,7 +7488,7 @@ function htmlConsultaRegistro(r, conBotonMapa){
   if(r.estacion) et.push('<div class="narr-linea"><b>Estación:</b> '+escapeHtml(r.estacion)+'</div>');
   if(et.length) p.push('<div class="cons-etiqueta">'+et.join("")+'</div>');
   // Notas
-  if(r.notas) p.push('<div class="narr-linea"><b>Notas:</b></div><div class="narr-notas" style="margin-top:0;">'+formatearNotasHtml(r.notas)+'</div>');
+  if(r.notas) p.push('<div class="narr-linea"><b>Notas:</b></div><div class="narr-notas" style="margin-top:0;">'+formatearNotasHtml(r.notas, {reg:r.id})+'</div>');
   // Resto de la información registrada
   if(r.sustrato) p.push('<div class="narr-linea"><b>Sustrato:</b> '+escapeHtml(r.sustrato)+'</div>');
   if(r.metodo) p.push('<div class="narr-linea"><b>Método:</b> '+escapeHtml(r.metodo)+'</div>');
@@ -6850,7 +7611,8 @@ function renderConsulta(id){
   sincronizarOpcionesConsulta(r);
   renderFiltroConsulta();
   ajustarEspacioConsulta();
-  if(!r){ cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; posEl.textContent = "Solo lectura"; return; }
+  if(!r){ cont.className = "narr-entrada"; cont.innerHTML = '<div class="empty">Este registro ya no existe.</div>'; posEl.textContent = "Solo lectura"; return; }
+  cont.className = "narr-entrada" + claseNota(r);
   var listaNav = listaNavegacionConsulta();
   var idxNav = listaNav.findIndex(function(x){ return x.id===id; });
   posEl.textContent = (idxNav>=0 ? ("Registro "+(idxNav+1)+" de "+listaNav.length+(state.consultaFiltro.pendientes ? " por transcribir" : "")+" — ") : "") + "desliza a los lados para cambiar";
@@ -7042,6 +7804,7 @@ function confirmarDescartarEdicionSiCorresponde(idDestino){
   return true;
 }
 function editarRegistroExistente(id){
+  if(bloqueadoPorVisor()) return;
   if(!confirmarDescartarEdicionSiCorresponde(id)) return;
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   if(!r) return;
@@ -7073,6 +7836,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(e){
 /* v2.56: al borrar un registro también se borran sus fotos y videos de la base de la app (antes quedaban huérfanos en IndexedDB)
    y sus copias originales (HD) de la carpeta local. El permiso de la carpeta se pide antes de la confirmación, mientras sigue vigente el toque. */
 function eliminarRegistroPorId(id, despues){
+  if(bloqueadoPorVisor()) return;
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   if(!r) return;
   var rutas = archivosLocalesDeRegistros([r]);
@@ -7090,6 +7854,7 @@ function eliminarRegistroPorId(id, despues){
   });
 }
 function borrarRegistroExistente(id){
+  if(bloqueadoPorVisor()) return;
   eliminarRegistroPorId(id, function(r){
     toast("Registro "+(r.codigo||r.notaTitulo||"sin identificar")+" borrado");
     renderLista();
@@ -7395,8 +8160,7 @@ document.getElementById("btn-notas-lista").addEventListener("click", function(){
 });
 function actualizarBotonesNotaSubtipo(){
   var d = state.draft; if(!d) return;
-  document.getElementById("btn-nota-operativo").classList.toggle("on", d.notaSubtipo==="operativo");
-  document.getElementById("btn-nota-narrativo").classList.toggle("on", d.notaSubtipo!=="operativo");
+  document.getElementById("f-nota-operativa").checked = (d.notaSubtipo==="operativo");
 }
 // v2.48: las Notas generales pueden llevar código o no (por defecto no). Con código entran en la numeración correlativa.
 document.getElementById("f-nota-con-codigo").addEventListener("change", function(){
@@ -7408,16 +8172,9 @@ document.getElementById("f-nota-con-codigo").addEventListener("change", function
   actualizarAvisoCodigo();
   guardarDraft();
 });
-document.getElementById("btn-nota-operativo").addEventListener("click", function(){
+document.getElementById("f-nota-operativa").addEventListener("change", function(){
   if(!state.draft) return;
-  state.draft.notaSubtipo = "operativo";
-  actualizarBotonesNotaSubtipo();
-  guardarDraft();
-});
-document.getElementById("btn-nota-narrativo").addEventListener("click", function(){
-  if(!state.draft) return;
-  state.draft.notaSubtipo = "narrativo";
-  actualizarBotonesNotaSubtipo();
+  state.draft.notaSubtipo = this.checked ? "operativo" : "narrativo";
   guardarDraft();
 });
 document.getElementById("f-metodo-med").addEventListener("change", function(){
@@ -7922,9 +8679,9 @@ function origTx(modo, fn){
     });
   });
 }
-function guardarOriginal(id, blob, extra){ var o = {id:id, blob:blob}; Object.keys(extra||{}).forEach(function(k){ o[k] = extra[k]; }); return origTx("readwrite", function(s){ return s.put(o); }); }
+function guardarOriginal(id, blob, extra){ if(visorActivo) return Promise.resolve(); var o = {id:id, blob:blob}; Object.keys(extra||{}).forEach(function(k){ o[k] = extra[k]; }); return origTx("readwrite", function(s){ return s.put(o); }); }
 function leerOriginal(id){ return origTx("readonly", function(s){ return s.get(id); }); }
-function borrarOriginal(id){ return origTx("readwrite", function(s){ return s.delete(id); }).catch(function(){}); }
+function borrarOriginal(id){ if(visorActivo) return Promise.resolve(); return origTx("readwrite", function(s){ return s.delete(id); }).catch(function(){}); }
 function idsOriginalesPendientes(){
   return origTx("readonly", function(s){ return s.getAllKeys(); }).then(function(ks){ return (ks||[]).filter(function(k){ return String(k).indexOf("__")!==0; }); }).catch(function(){ return []; });
 }
@@ -8678,7 +9435,8 @@ function generarGPXRecorrido(rc, sesion){
     act.push(p);
   });
   if(act.length) segs.push(act);
-  var nombre = (rc.nombre || "Recorrido") + (sesion ? " · " + nombreSesionMostrar(sesion) : "");
+  var vjGpx = (!sesion && rc.viajeId) ? viajePorId(rc.viajeId) : null;
+  var nombre = (rc.nombre || "Recorrido") + (sesion ? " · " + nombreSesionMostrar(sesion) : (vjGpx ? " · " + vjGpx.nombre : ""));
   var cuerpo = segs.map(function(sg){
     return '    <trkseg>\n' + sg.map(function(p){
       return '      <trkpt lat="'+p.lat+'" lon="'+p.lon+'"><time>'+new Date(p.horaTs).toISOString()+'</time></trkpt>';
@@ -8693,7 +9451,8 @@ function generarGPXRecorrido(rc, sesion){
     '</gpx>\n';
 }
 function nombreArchivoRecorrido(rc, sesion){
-  return sanitizarNombreArchivo(sesion ? nombreSesionMostrar(sesion) : "sesion")+"__recorrido_"+pad(rc.n||1,2)+".gpx";
+  var vj = (!sesion && rc.viajeId) ? viajePorId(rc.viajeId) : null;
+  return sanitizarNombreArchivo(sesion ? nombreSesionMostrar(sesion) : (vj ? "Ruta_"+vj.nombre : "sesion"))+"__recorrido_"+pad(rc.n||1,2)+".gpx";
 }
 // v2.50: si la foto tiene copia HD/original en la carpeta del teléfono, la foto reducida del .zip lleva la ruta a esa copia en su comentario EXIF
 // (la ruta ya viaja también en respaldo.json, campo copiaLocal de cada foto). Solo ASCII: las rutas ya vienen saneadas.
@@ -9567,7 +10326,9 @@ function eliminarSesionVacia(id){
   if(state.draft && !state.draft._viendo && state.draft.sesionId===id){ toast("No se puede eliminar: hay un registro sin guardar en curso asociado a esta sesión. Guárdalo o descártalo primero."); return; }
   var eraActiva = (id === state.sesionActivaId);
   var mensajeExtra = eraActiva ? " Como era la sesión activa, te quedarás sin sesión activa hasta que guardes una nueva o reactives otra." : "";
-  if(!confirm('¿Eliminar la sesión "'+nombreSesionMostrar(s)+'"? No tiene registros asociados. Esta acción no se puede deshacer.'+mensajeExtra)) return;
+  var nRecsVacia = (state.recorridos||[]).filter(function(rc){ return rc.sesionId===id; }).length;
+  if(!confirm('¿Eliminar la sesión "'+nombreSesionMostrar(s)+'"? No tiene registros asociados'+(nRecsVacia ? (' (sí tiene '+nRecsVacia+(nRecsVacia===1?' recorrido grabado, que también se borrará)':' recorridos grabados, que también se borrarán)')) : '')+'. Esta acción no se puede deshacer.'+mensajeExtra)) return;
+  if(nRecsVacia){ state.recorridos = state.recorridos.filter(function(rc){ return rc.sesionId!==id; }); guardarRecorridos(); }
 
   if(eraActiva && state.draft && state.draft.sesionId===id){
     state.draft = null; guardarDraft();
@@ -9691,13 +10452,14 @@ document.getElementById("btn-revisadas-fechas").addEventListener("click", functi
 });
 function renderExportar(){
   renderPanelHuerfanos();
+  renderRecorridosHuerfanos();
   renderPanelFechas();
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
   var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesExportar));
   // v2.43: si la persona dejó todas las sesiones sin marcar (para exportar solo registros sueltos), se respeta.
   var seleccion = seleccionPrevia.length ? seleccionPrevia : (state.expVacioManual ? [] : [state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : "")]);
-  box.innerHTML = ordenadas.map(function(s){
+  box.innerHTML = conViajesExp(ordenadas, function(s){
     var esActiva = s.id===state.sesionActivaId;
     var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + fechaSesion(s);
     var badgeActiva = esActiva ? '<span class="badge-activa">ACTIVA</span>' : "";
@@ -9710,14 +10472,15 @@ function renderExportar(){
         '<button type="button" class="btn-gestionar'+(expandida?" on":"")+'" data-sesion="'+s.id+'">'+(expandida?"▾":"▸")+' Gestionar</button>'+
       '</div>'+panelHtml+
     '</div>';
-  }).join("");
+  });
   box.querySelectorAll(".sesion-check-export").forEach(function(c){
     c.addEventListener("change", function(){
-      state.expVacioManual = sesionesSeleccionadasExportar().length===0;
+      state.expVacioManual = sesionesSeleccionadasExportar().length===0 && !idsViajesMarcados().length;
       actualizarStatsExportar();
     });
   });
-  box.querySelectorAll(".btn-gestionar").forEach(function(b){
+  ligarEventosViajesExportar(box);
+  box.querySelectorAll(".btn-gestionar[data-sesion]").forEach(function(b){
     b.addEventListener("click", function(){ toggleGestionSesion(b.dataset.sesion); });
   });
   box.querySelectorAll(".sesion-exportar-label").forEach(function(el){
@@ -9776,6 +10539,7 @@ function idsSueltosElegidos(){
 function seleccionExportar(){
   var idsSes = sesionesSeleccionadasExportar();
   var sueltos = idsSueltosElegidos();
+  var idsViajes = idsViajesMarcados();
   var registros = state.registros.filter(function(r){ return idsSes.indexOf(r.sesionId)>=0 || sueltos.indexOf(r.id)>=0; });
   var extra = sueltos.filter(function(id){
     var r = state.registros.filter(function(x){ return x.id===id; })[0];
@@ -9790,9 +10554,14 @@ function seleccionExportar(){
   } else {
     sufijo = idsSes.length+(idsSes.length===1?"_sesion":"_sesiones")+"_y_"+extra.length+(extra.length===1?"_suelto":"_sueltos");
   }
+  if(idsViajes.length===1 && !extra.length){
+    var vjSel = viajePorId(idsViajes[0]);
+    var delVj = sesionesDeViaje(vjSel.id).map(function(s){ return s.id; });
+    if(delVj.length===idsSes.length && delVj.every(function(x){ return idsSes.indexOf(x)>=0; })) sufijo = nombreCortoViaje(vjSel);
+  }
   var idsCarpeta = idsSes.slice();
   registros.forEach(function(r){ if(idsCarpeta.indexOf(r.sesionId) < 0) idsCarpeta.push(r.sesionId); });
-  return {idsSesiones:idsSes, idsSueltos:extra, registros:registros, sufijo:sufijo, idsCarpeta:idsCarpeta, vacia:(!idsSes.length && !extra.length)};
+  return {idsSesiones:idsSes, idsSueltos:extra, idsViajes:idsViajes, registros:registros, sufijo:sufijo, idsCarpeta:idsCarpeta, vacia:(!idsSes.length && !extra.length && !idsViajes.length)};
 }
 function actualizarResumenSueltos(){
   var box = document.getElementById("exp-sueltos-resumen"); if(!box) return;
@@ -9834,7 +10603,7 @@ function renderPanelGestionSesion(sesionId){
   }).join("");
   if(registros.length===0){
     var borrarSesionBtn = '<button type="button" class="btn-borrar-sesion-panel" data-sesion="'+sesionId+'">🗑 Borrar esta sesión</button>';
-    return '<div class="gestion-panel">'+editarBtn+
+    return '<div class="gestion-panel">'+editarBtn+htmlRecorridosDeSesion(sesionId)+
       '<div class="gestion-vacio">Esta sesión no tiene registros.</div>'+
       borrarSesionBtn+
     '</div>';
@@ -9844,7 +10613,7 @@ function renderPanelGestionSesion(sesionId){
   var opcionesDestino = otrasSesiones.map(function(s){
     return '<option value="'+s.id+'">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+'</option>';
   }).join("");
-  return '<div class="gestion-panel">'+editarBtn+
+  return '<div class="gestion-panel">'+editarBtn+htmlRecorridosDeSesion(sesionId)+
     '<div class="gestion-ayuda">Marca registros para descargarlos sueltos (botones de arriba, sin marcar la sesión) o para moverlos.</div>'+
     '<div class="gestion-lista">'+filasHtml+'</div>'+
     '<div class="gestion-contador" id="gestion-contador">'+nMarcados+(nMarcados===1 ? " registro seleccionado" : " registros seleccionados")+'</div>'+
@@ -10171,7 +10940,7 @@ function filasACsv(cols, filas){
 // Selección, filas y nombre comunes a las descargas .csv y .xlsx (sesiones marcadas + registros sueltos)
 function prepararDescargaDwc(){
   var sel = seleccionExportar();
-  if(sel.vacia){ toast("Marca al menos una sesión o un registro para descargar"); return null; }
+  if(sel.vacia){ toast("Marca al menos una sesión, un proyecto o un registro para descargar"); return null; }
   var filas = construirFilasDarwinCore(sel.registros);
   if(filas.length===0){ toast("Lo seleccionado no tiene registros de Recolección ni de Observación"); return null; }
   return {filas:filas, sufijo:sel.sufijo, idsCarpeta:sel.idsCarpeta};
@@ -10309,32 +11078,26 @@ function procesarArchivoZip(file){
       var sesiones = data.sesiones || [];
       var registros = data.registros || [];
       var recorridos = data.recorridos || [];
-      var promesasFotos = [];
+      var viajes = data.viajes || [], notasViaje = data.notasViaje || [];
+      // v2.67: las fotos no se guardan al leer el paquete (así se puede consultar sin tocar los datos): se guardan al importar
+      var fotosZip = {};
       registros.forEach(function(r){
         (r.fotos||[]).forEach(function(f){
-          var nombreEsperado = sanitizarNombreArchivo(r.codigo || r.id)+"__"+sanitizarNombreArchivo(f.nombre)+".jpg";
-          var entry = archivosFoto[nombreEsperado];
-          if(entry){
-            promesasFotos.push(entry.async("base64").then(function(b64){
-              return guardarFotoDB(f.id, "data:image/jpeg;base64,"+b64);
-            }));
-          }
+          var entry = archivosFoto[sanitizarNombreArchivo(r.codigo || r.id)+"__"+sanitizarNombreArchivo(f.nombre)+".jpg"];
+          if(entry) fotosZip[f.id] = entry;
         });
       });
-      return Promise.all(promesasFotos).then(function(){
-        return {nombre:file.name, sesiones:sesiones, registros:registros, recorridos:recorridos, seleccionado:true, valido:true, fotosImportadas:promesasFotos.length};
+      notasViaje.forEach(function(n){
+        (n.fotos||[]).forEach(function(f){
+          var entry = archivosFoto[sanitizarNombreArchivo(n.id)+"__"+sanitizarNombreArchivo(f.nombre)+".jpg"];
+          if(entry) fotosZip[f.id] = entry;
+        });
       });
+      return {nombre:file.name, sesiones:sesiones, registros:registros, recorridos:recorridos, viajes:viajes, notasViaje:notasViaje, fotosZip:fotosZip, seleccionado:true, valido:true, fotosImportadas:Object.keys(fotosZip).length};
     });
   });
 }
-document.getElementById("input-import-json").addEventListener("change", function(e){
-  cargarArchivosRespaldo(Array.prototype.slice.call(e.target.files||[]));
-  e.target.value = "";
-});
-function cargarArchivosRespaldo(files){
-  if(files.length===0) return;
-  toast("Procesando archivo(s)...");
-  var promesas = files.map(function(file){
+function leerUnRespaldo(file){
     var esZip = /\.zip$/i.test(file.name) || file.type==="application/zip";
     if(esZip){
       if(typeof JSZip === "undefined") return Promise.resolve({nombre:file.name, valido:false});
@@ -10355,14 +11118,18 @@ function cargarArchivosRespaldo(files){
           } else {
             sesiones = [];
           }
-          resolve({nombre:file.name, sesiones:sesiones, registros:registros, recorridos:data.recorridos||[], seleccionado:true, valido:true});
+          resolve({nombre:file.name, sesiones:sesiones, registros:registros, recorridos:data.recorridos||[], viajes:data.viajes||[], notasViaje:data.notasViaje||[], fotosZip:{}, seleccionado:true, valido:true, fotosImportadas:0});
         }catch(err){
           resolve({nombre:file.name, valido:false});
         }
       };
       reader.readAsText(file);
     });
-  });
+}
+function cargarArchivosRespaldo(files){
+  if(files.length===0) return;
+  toast("Procesando archivo(s)...");
+  var promesas = files.map(leerUnRespaldo);
   Promise.all(promesas).then(function(resultados){
     var totalFotos = 0;
     resultados.forEach(function(r){
@@ -10370,7 +11137,7 @@ function cargarArchivosRespaldo(files){
       else toast('"'+r.nombre+'" no es un respaldo válido, se omitió');
     });
     renderImportados();
-    if(totalFotos>0) toast("✅ "+totalFotos+" foto(s) recuperadas del paquete — revisa la lista abajo antes de importar");
+    if(totalFotos>0) toast("📦 Paquete leído ("+totalFotos+" foto(s)): revisa la lista abajo y pulsa «Importar» para incorporarlo");
   });
 }
 
@@ -10448,13 +11215,12 @@ function listarCarpetaActual(){
     archivos.forEach(function(h){
       var esResp = /\.(zip|json)$/i.test(h.name), extra = null;
       if(esResp){
-        extra = document.createElement("button"); extra.type = "button"; extra.className = "btn-secondary"; extra.textContent = "⬆️ Importar";
+        extra = document.createElement("button"); extra.type = "button"; extra.className = "btn-secondary"; extra.textContent = "📂 Consultar";
         extra.style.cssText = "margin-left:auto; padding:6px 10px; border-radius:8px; font-size:.78rem; white-space:nowrap;";
         extra.addEventListener("click", function(e){
           e.stopPropagation();
           h.getFile().then(function(file){
-            cerrarExploradorCarpeta(); cargarArchivosRespaldo([file]);
-            toast("Respaldo cargado: revisa la lista de «Respaldo e importación» antes de importar", 5000);
+            cerrarExploradorCarpeta(); abrirVisorRespaldo([file]);
           }).catch(function(){ toast("No se pudo leer el archivo"); });
         });
       }
@@ -10477,6 +11243,113 @@ function abrirArchivoDeCarpeta(fh){
     setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   }).catch(function(){ toast("No se pudo abrir el archivo"); });
 }
+/* ================= v2.67 · Consultar respaldo (solo lectura) ================= */
+/* Los datos del respaldo se cargan en memoria en lugar de los datos vivos. Mientras el modo está activo, nada se guarda
+   (localStorage, IndexedDB, borradores): al salir, los datos propios vuelven tal como estaban. */
+var visorActivo = false, visor = null;
+function bloqueadoPorVisor(){
+  if(!visorActivo) return false;
+  toast("Estás consultando un respaldo: solo lectura. Sal del modo consulta para editar.", 3600);
+  return true;
+}
+function leerFotoVisor(id){
+  if(fotoCache[id]) return Promise.resolve(fotoCache[id]);
+  var e = visor && visor.fotosZip ? visor.fotosZip[id] : null;
+  if(!e) return Promise.resolve(null);
+  return e.async("base64").then(function(b64){
+    var u = "data:image/jpeg;base64,"+b64;
+    if(visorActivo) fotoCache[id] = u;
+    return u;
+  }).catch(function(){ return null; });
+}
+function abrirVisorRespaldo(files){
+  files = (files||[]).filter(Boolean);
+  if(!files.length) return;
+  if(visorActivo){ toast("Ya estás consultando un respaldo: sal primero para abrir otro"); return; }
+  var obsEnCurso = state.draft && !state.draft._viendo && state.draft.obsInicio && !state.draft.obsTermino;
+  if(obsEnCurso || (state.recorridos||[]).some(function(rc){ return rc.enCurso; })){
+    toast("Hay una observación o un recorrido en curso. Termínalo antes de consultar un respaldo.", 5000);
+    return;
+  }
+  toast("Abriendo respaldo...");
+  Promise.all(files.map(leerUnRespaldo)).then(function(res){
+    var validos = res.filter(function(r){ return r && r.valido; });
+    res.forEach(function(r){ if(!r || !r.valido) toast('"'+(r && r.nombre ? r.nombre : "archivo")+'" no es un respaldo válido, se omitió'); });
+    if(!validos.length) return;
+    entrarVisor(validos);
+  });
+}
+function entrarVisor(items){
+  var snap = {
+    sesiones:state.sesiones, registros:state.registros, recorridos:state.recorridos, viajes:state.viajes, notasViaje:state.notasViaje,
+    viajeActivoId:state.viajeActivoId, sesionActivaId:state.sesionActivaId, sesionBorrador:state.sesionBorrador, sesionEnPantallaId:state.sesionEnPantallaId,
+    draft:state.draft, consultaId:state.consultaId, filtroSesionLista:state.filtroSesionLista, filtroTipo:state.filtroTipo, sesionEditando:state.sesionEditando,
+    sesionGestionId:state.sesionGestionId, viajeGestionId:state.viajeGestionId, bitacoraViajeId:state.bitacoraViajeId, resaltarRegistroId:state.resaltarRegistroId
+  };
+  var comb = {sesiones:[], registros:[], recorridos:[], viajes:[], notasViaje:[]}, ids = {}, fotosZip = {};
+  function sumar(lista, destino, clave){
+    (lista||[]).forEach(function(x){
+      if(!x || !x.id) return;
+      var k = clave+":"+x.id; if(ids[k]) return; ids[k] = 1;
+      destino.push(x);
+    });
+  }
+  items.forEach(function(a){
+    sumar(a.sesiones, comb.sesiones, "s"); sumar(a.registros, comb.registros, "r"); sumar(a.recorridos, comb.recorridos, "c");
+    sumar(a.viajes, comb.viajes, "v"); sumar(a.notasViaje, comb.notasViaje, "n");
+    Object.keys(a.fotosZip||{}).forEach(function(id){ fotosZip[id] = a.fotosZip[id]; });
+  });
+  comb.registros.forEach(migrarLocalidadEspecifica);
+  comb.recorridos.forEach(function(rc){ rc.enCurso = false; });
+  visor = {snap:snap, items:items, fotosZip:fotosZip, fotoCacheVivo:fotoCache, nombres:items.map(function(a){ return a.nombre; })};
+  visorActivo = true;                       // desde aquí nada se guarda
+  fotoCache = {};
+  state.sesiones = comb.sesiones; state.registros = comb.registros; state.recorridos = comb.recorridos;
+  state.viajes = comb.viajes; state.notasViaje = comb.notasViaje;
+  state.viajeActivoId = null; state.sesionActivaId = null; state.sesionBorrador = null; state.draft = null; state.consultaId = null;
+  state.filtroSesionLista = ""; state.filtroTipo = ""; state.sesionEditando = false; state.sesionGestionId = null; state.viajeGestionId = null;
+  state.sesionEnPantallaId = (ultimaSesion() && ultimaSesion().id) || null;
+  document.body.classList.add("modo-visor");
+  var nom = visor.nombres.length===1 ? visor.nombres[0] : (visor.nombres.length+" respaldos combinados");
+  document.getElementById("bv-nombre").textContent = "Consultando respaldo: "+nom;
+  if(window.LC && LC.actualizarPestanaMapa) LC.actualizarPestanaMapa();
+  toast("Modo consulta: "+state.sesiones.length+" sesión(es), "+state.registros.length+" registro(s). Tus datos no se tocan.", 4800);
+  irA("lista");
+}
+function salirVisorRespaldo(){
+  if(!visorActivo || !visor) return null;
+  var v = visor, sn = v.snap;
+  visorActivo = false; visor = null;
+  fotoCache = v.fotoCacheVivo;
+  state.sesiones = sn.sesiones; state.registros = sn.registros; state.recorridos = sn.recorridos; state.viajes = sn.viajes; state.notasViaje = sn.notasViaje;
+  state.viajeActivoId = sn.viajeActivoId; state.sesionActivaId = sn.sesionActivaId; state.sesionBorrador = sn.sesionBorrador; state.sesionEnPantallaId = sn.sesionEnPantallaId;
+  state.draft = sn.draft; state.consultaId = sn.consultaId; state.filtroSesionLista = sn.filtroSesionLista; state.filtroTipo = sn.filtroTipo;
+  state.sesionEditando = sn.sesionEditando; state.sesionGestionId = sn.sesionGestionId; state.viajeGestionId = sn.viajeGestionId;
+  state.bitacoraViajeId = sn.bitacoraViajeId; state.resaltarRegistroId = sn.resaltarRegistroId;
+  document.body.classList.remove("modo-visor");
+  document.querySelectorAll(".modal-bg.on").forEach(function(m){ m.classList.remove("on"); });
+  if(window.LC && LC.actualizarPestanaMapa) LC.actualizarPestanaMapa();
+  return v.items;
+}
+document.getElementById("bv-salir").addEventListener("click", function(){
+  if(!salirVisorRespaldo()) return;
+  toast("Saliste del modo consulta. Tus datos siguen como estaban.", 3600);
+  irA("exportar");
+});
+document.getElementById("bv-importar").addEventListener("click", function(){
+  var items = salirVisorRespaldo(); if(!items) return;
+  archivosImportados = items.map(function(a){ a.seleccionado = true; return a; });
+  renderImportados();
+  irA("exportar");
+  toast("Respaldo listo en «Importar»: revisa la lista y pulsa «Importar seleccionados a esta app»", 6000);
+  var lista = document.getElementById("importados-lista");
+  if(lista && lista.scrollIntoView) setTimeout(function(){ lista.scrollIntoView({block:"center"}); }, 150);
+});
+document.getElementById("input-import-json").addEventListener("change", function(e){
+  abrirVisorRespaldo(Array.prototype.slice.call(e.target.files||[]));
+  e.target.value = "";
+});
+
 function renderImportados(){
   var box = document.getElementById("importados-lista");
   var acciones = document.getElementById("importados-acciones");
@@ -10498,12 +11371,28 @@ function combinarConSeleccionados(){
   var idsReg = {}; registrosComb.forEach(function(r){ idsReg[r.id]=true; });
   var recorridosComb = (state.recorridos||[]).slice();
   var idsRec = {}; recorridosComb.forEach(function(rc){ idsRec[rc.id]=true; });
+  var viajesComb = state.viajes.slice(), idsVj = {}; viajesComb.forEach(function(v){ idsVj[v.id]=true; });
+  var notasComb = state.notasViaje.slice(), idsNv = {}; notasComb.forEach(function(n){ idsNv[n.id]=true; });
   archivosImportados.filter(function(a){return a.seleccionado;}).forEach(function(a){
+    (a.viajes||[]).forEach(function(v){ if(v && v.id && !idsVj[v.id]){ viajesComb.push(v); idsVj[v.id]=true; } });
+    (a.notasViaje||[]).forEach(function(n){ if(n && n.id && !idsNv[n.id]){ notasComb.push(n); idsNv[n.id]=true; } });
     (a.recorridos||[]).forEach(function(rc){ if(rc && rc.id && !idsRec[rc.id]){ rc.enCurso = false; recorridosComb.push(rc); idsRec[rc.id]=true; } });
     a.sesiones.forEach(function(s){ if(!idsSes[s.id]){ sesionesComb.push(s); idsSes[s.id]=true; } });
     a.registros.forEach(function(r){ migrarLocalidadEspecifica(r); if(!idsReg[r.id]){ registrosComb.push(r); idsReg[r.id]=true; } });
   });
-  return {sesiones:sesionesComb, registros:registrosComb, recorridos:recorridosComb};
+  return {sesiones:sesionesComb, registros:registrosComb, recorridos:recorridosComb, viajes:viajesComb, notasViaje:notasComb};
+}
+/* v2.67: guarda en el teléfono las fotos del paquete, solo de lo que se importa */
+function guardarFotosDeImportados(items){
+  var p = Promise.resolve(), n = 0;
+  items.forEach(function(a){
+    Object.keys(a.fotosZip||{}).forEach(function(id){
+      p = p.then(function(){
+        return a.fotosZip[id].async("base64").then(function(b64){ n++; return guardarFotoDB(id, "data:image/jpeg;base64,"+b64); }).catch(function(){});
+      });
+    });
+  });
+  return p.then(function(){ return n; });
 }
 
 document.getElementById("btn-importar-seleccionados").addEventListener("click", function(){
@@ -10511,20 +11400,31 @@ document.getElementById("btn-importar-seleccionados").addEventListener("click", 
   var agregadasSes = combinado.sesiones.length - state.sesiones.length;
   var agregadosReg = combinado.registros.length - state.registros.length;
   var agregadosRec = combinado.recorridos.length - (state.recorridos||[]).length;
+  var agregadosNotas = combinado.notasViaje.length - state.notasViaje.length;
+  var agregadosViajes = combinado.viajes.length - state.viajes.length;
+  var itemsSel = archivosImportados.filter(function(a){ return a.seleccionado; });
   state.sesiones = combinado.sesiones;
   state.registros = combinado.registros;
   state.recorridos = combinado.recorridos;
-  guardarListaSesiones(); guardarRegistros(); guardarRecorridos();
+  state.viajes = combinado.viajes;
+  state.notasViaje = combinado.notasViaje;
+  guardarListaSesiones(); guardarRegistros(); guardarRecorridos(); guardarViajes(); guardarNotasViaje();
   archivosImportados = [];
   renderImportados();
-  toast("Importado: "+agregadasSes+" sesión(es) y "+agregadosReg+" registro(s) nuevos"+(agregadosRec>0 ? " y "+agregadosRec+" recorrido(s)" : ""));
-  renderExportar();
+  var btnImp = this; btnImp.disabled = true;
+  guardarFotosDeImportados(itemsSel).then(function(nFotos){
+    btnImp.disabled = false;
+    toast("Importado: "+agregadasSes+" sesión(es) y "+agregadosReg+" registro(s) nuevos"+(agregadosRec>0 ? ", "+agregadosRec+" recorrido(s)" : "")+(agregadosViajes>0 ? ", "+agregadosViajes+" proyecto(s)" : "")+(agregadosNotas>0 ? " y "+agregadosNotas+" nota(s) de bitácora" : "")+(nFotos ? " · "+nFotos+" foto(s)" : ""), 5200);
+    renderExportar();
+  });
 });
 
 document.getElementById("btn-descargar-unificado").addEventListener("click", function(){
   var combinado = combinarConSeleccionados();
   var data = {sesiones:combinado.sesiones, sesionActivaId:state.sesionActivaId, registros:combinado.registros};
   if(combinado.recorridos.length) data.recorridos = combinado.recorridos;
+  if(combinado.viajes.length) data.viajes = combinado.viajes;
+  if(combinado.notasViaje.length) data.notasViaje = combinado.notasViaje;
   var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   var url = URL.createObjectURL(blob); var a = document.createElement("a");
   var nomUni = nombreDescarga("todas_las_sesiones", "respaldo_unificado", "json");
@@ -10553,10 +11453,12 @@ function mapaInstalados(){ try{ return JSON.parse(localStorage.getItem(MAPA_IDX_
 function mapaPestanaVisible(){
   var c = mapaCfg(); if(!c.activo) return false;
   if(c.pestana==="siempre") return true;
+  if(!sesionActiva() && viajeActivo()) return true;   // v2.67: con un proyecto activo se pueden grabar recorridos de ruta sin sesión
   var s = sesionActiva() || sesionEnPantalla();
   return !!(s && s.mapaId && mapaInstalados()[s.mapaId]);
 }
 function navOrderActual(){
+  if(visorActivo){ var ov = ["sesion","lista"]; if(mapaPestanaVisible()) ov.push("mapa"); return ov; }
   var o = ["sesion","form","lista"];
   if(mapaPestanaVisible()) o.push("mapa");
   o.push("exportar","config");
@@ -10746,6 +11648,9 @@ document.getElementById("btn-borrar-todo").addEventListener("click", function(){
   if(!confirm("Esto eliminará TODOS los registros y TODAS las sesiones guardadas (activa y archivadas), dejando la app como recién instalada. ¿Continuar?")) return;
   state.registros = [];
   state.recorridos = [];
+  state.notasViaje.forEach(function(n){ (n.fotos||[]).forEach(function(f){ if(f && f.id) borrarFotoDB(f.id); }); });
+  state.viajes = []; state.notasViaje = []; state.viajeActivoId = null; state.viajesSel = {}; state.viajeGestionId = null;
+  guardarViajes(); guardarNotasViaje(); guardarViajeActivo();
   state.draft = null;
   state.sesiones = [];
   state.sesionActivaId = null;
@@ -10823,7 +11728,7 @@ function aplicarPosicionAlBorrador(lat, lon, alt, accuracy, nLecturas){
   var ahora = new Date();
   state.draft.lat = lat.toFixed(6);
   state.draft.lon = lon.toFixed(6);
-  state.draft.altitud = alt!=null ? Math.round(alt) : null;
+  state.draft.altitud = alt!=null ? Math.max(0, Math.round(alt)) : null;
   state.draft.precisionGps = accuracy!=null ? accuracy : null;
   state.draft.fecha = fechaLocalISO(ahora);
   state.draft.hora = horaLocalHM(ahora);
@@ -10848,7 +11753,8 @@ window.LC = {
   obtenerPosicionMejorada: obtenerPosicionMejorada, gpsCapturaActiva: function(){ return gpsCapturaActiva; },
   aplicarPosicionAlBorrador: aplicarPosicionAlBorrador, exigirSesionActiva: exigirSesionActiva,
   mapaCfg: mapaCfg, actualizarPestanaMapa: actualizarPestanaMapa,
-  guardarRecorridos: guardarRecorridos
+  guardarRecorridos: guardarRecorridos,
+  viajeActivo: viajeActivo, viajePorId: viajePorId
 };
 
 init();
