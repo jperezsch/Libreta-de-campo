@@ -241,6 +241,20 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .narr-foto-hd.no-hallada{border-color:#f0a8a0; color:#ffd7d2;}
 .narr-foto-hd:active{background:rgba(0,0,0,.8);}
 .narr-foto-cap{color:#fff; font-size:.85rem; padding:12px 14px; text-align:center;}
+/* v2.74: visor a pantalla completa, con giro, tamaño real y apertura como archivo */
+#modal-narr-foto.grande{padding:0; align-items:stretch; justify-content:stretch;}
+#modal-narr-foto.grande .narr-foto-inner{max-width:none; max-height:none; width:100%; height:100%; border-radius:0;}
+#modal-narr-foto.grande .narr-foto-imgwrap{flex:1 1 auto; min-height:0; display:flex; overflow:hidden;}
+#modal-narr-foto.grande #narr-foto-box{position:relative; flex:none; margin:auto; width:100%; height:100%;}
+#modal-narr-foto.grande .narr-foto-imgwrap img{position:absolute; max-height:none; width:auto; height:auto; max-width:none; transform-origin:center center;}
+#modal-narr-foto.grande .narr-foto-imgwrap.real{overflow:auto; touch-action:pan-x pan-y pinch-zoom; -webkit-overflow-scrolling:touch;}
+#modal-narr-foto.grande .narr-foto-imgwrap.real img{touch-action:pan-x pan-y pinch-zoom;}
+.narr-foto-herr{display:flex; gap:6px; padding:8px 10px 0; justify-content:center; flex-wrap:wrap;}
+.narr-foto-herr button{flex:1 1 0; min-width:0; padding:9px 4px; border-radius:10px; border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.12); color:#fff; font-size:.78rem; font-weight:700; cursor:pointer; white-space:nowrap;}
+.narr-foto-herr button.on{background:#fff; color:#111;}
+#modal-narr-foto.grande .narr-foto-tit{padding:6px 14px 0; font-size:.8rem;}
+#modal-narr-foto.grande .narr-foto-cap{padding:4px 14px 6px; font-size:.78rem; max-height:3.6em; overflow:auto;}
+#modal-narr-foto.grande .narr-foto-ver{margin:0 10px 8px; padding:8px; font-size:.82rem; width:calc(100% - 20px);}
 .version-info{font-size:.75rem; color:var(--texto-sec); text-align:center; margin:8px 0 4px;}
 .empty .ic{font-size:2.8rem; margin-bottom:10px;}
 
@@ -1431,16 +1445,21 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
 </div>
 
 <!-- Visor de fotos de solo lectura, para la vista narrativa (Libreta) -->
-<div class="modal-bg narr-foto-bg" id="modal-narr-foto">
+<div class="modal-bg narr-foto-bg grande" id="modal-narr-foto">
   <div class="narr-foto-inner">
     <div class="narr-foto-imgwrap" id="narr-foto-imgwrap">
-      <img id="narr-foto-img">
+      <div id="narr-foto-box"><img id="narr-foto-img"></div>
       <button type="button" class="narr-foto-nav prev" id="narr-foto-prev" style="display:none;">‹</button>
       <button type="button" class="narr-foto-nav next" id="narr-foto-next" style="display:none;">›</button>
       <button type="button" class="narr-foto-x" id="narr-foto-x" aria-label="Cerrar">✕</button>
       <button type="button" class="narr-foto-hd" id="narr-foto-hd" aria-label="Esta imagen tiene copia HD en la carpeta local. Toca para ir a la carpeta">📁 HD en carpeta</button>
       <div class="narr-foto-contador" id="narr-foto-contador" style="display:none;"></div>
       <div class="narr-foto-zoom" id="narr-foto-zoom"></div>
+    </div>
+    <div class="narr-foto-herr">
+      <button type="button" id="narr-foto-girar" aria-label="Girar la foto 90 grados">⟳ Girar</button>
+      <button type="button" id="narr-foto-real" aria-label="Alternar entre foto ajustada a la pantalla y tamaño real">🔍 Tamaño real</button>
+      <button type="button" id="narr-foto-archivo" aria-label="Abrir la foto como archivo en otra pestaña">↗ Abrir archivo</button>
     </div>
     <div class="narr-foto-tit" id="narr-foto-tit"></div>
     <div class="narr-foto-cap" id="narr-foto-cap"></div>
@@ -4011,7 +4030,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-16 · v2.74";
+var APP_BUILD = "2026-11-16 · v2.75";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -5257,8 +5276,8 @@ function sumaComponentes(comps){
 function nombreRegistroLista(r){
   var comps = componentesDeRegistro(r);
   if(comps.length){
-    var base = r.taxonLibre || (comps[0].taxon || "");
-    return base + (base ? " · " : "") + comps.length + (comps.length===1 ? " taxón" : " taxones");
+    var base = r.taxonLibre || "Muestra mixta";   // v2.74: sin nombre general ya no se toma el del primer taxón
+    return base + " · " + comps.length + (comps.length===1 ? " taxón" : " taxones");
   }
   return r.taxonLibre || r.referencia || "";
 }
@@ -5659,6 +5678,8 @@ var narrFotosActuales = [];
 var narrFotoIndiceActual = 0;
 var narrZoom = {s:1, x:0, y:0};
 var narrFotoToken = 0;
+var narrRot = 0;       // v2.74: giro en grados (0, 90, 180, 270)
+var narrReal = false;  // v2.74: tamaño real (sin ajustar a la pantalla), con desplazamiento
 function listaGaleriaGlobal(){
   var items = [];
   state.registros.forEach(function(r){
@@ -5671,9 +5692,26 @@ function listaGaleriaGlobal(){
   });
   return items;
 }
+/* v2.74: calcula el tamaño de la foto según el modo (ajustada a la pantalla o tamaño real) y el giro */
+function disponerFotoNarr(){
+  var img = document.getElementById("narr-foto-img"), box = document.getElementById("narr-foto-box"), wrap = document.getElementById("narr-foto-imgwrap");
+  var nw = img.naturalWidth, nh = img.naturalHeight; if(!nw || !nh) return;
+  var cw = wrap.clientWidth, ch = wrap.clientHeight; if(!cw || !ch) return; var giro = narrRot % 180 !== 0;
+  var bw = giro ? nh : nw, bh = giro ? nw : nh, k = narrReal ? 1 : Math.min(cw/bw, ch/bh);
+  var w = nw*k, h = nh*k, RW = giro ? h : w, RH = giro ? w : h;
+  if(narrReal){ box.style.width = RW+"px"; box.style.height = RH+"px"; }
+  else { box.style.width = "100%"; box.style.height = "100%"; RW = cw; RH = ch; }
+  img.style.width = w+"px"; img.style.height = h+"px";
+  img.style.left = ((RW-w)/2)+"px"; img.style.top = ((RH-h)/2)+"px";
+  wrap.classList.toggle("real", narrReal);
+  var br = document.getElementById("narr-foto-real"); if(br){ br.classList.toggle("on", narrReal); br.textContent = narrReal ? "🔍 Ajustar" : "🔍 Tamaño real"; }
+  if(narrReal){ wrap.scrollLeft = Math.max(0,(RW-cw)/2); wrap.scrollTop = Math.max(0,(RH-ch)/2); }
+  aplicarZoomNarr();
+}
 function aplicarZoomNarr(){
-  var img = document.getElementById("narr-foto-img");
-  img.style.transform = narrZoom.s===1 ? "" : "translate("+narrZoom.x+"px,"+narrZoom.y+"px) scale("+narrZoom.s+")";
+  var img = document.getElementById("narr-foto-img"), box = document.getElementById("narr-foto-box");
+  img.style.transform = narrRot ? "rotate("+narrRot+"deg)" : "";
+  box.style.transform = (narrZoom.s===1 || narrReal) ? "" : "translate("+narrZoom.x+"px,"+narrZoom.y+"px) scale("+narrZoom.s+")";
   var z = document.getElementById("narr-foto-zoom");
   z.style.display = narrZoom.s>1.01 ? "block" : "none";
   z.textContent = Math.round(narrZoom.s*100)+"%";
@@ -5687,10 +5725,28 @@ function limitarZoomNarr(){
   narrZoom.y = Math.max(-my, Math.min(my, narrZoom.y));
 }
 function reiniciarZoomNarr(){ narrZoom = {s:1, x:0, y:0}; aplicarZoomNarr(); }
+document.getElementById("narr-foto-img").addEventListener("load", disponerFotoNarr);
+window.addEventListener("resize", function(){ if(document.getElementById("modal-narr-foto").classList.contains("on")) disponerFotoNarr(); });
+document.getElementById("narr-foto-girar").addEventListener("click", function(e){ e.stopPropagation(); narrRot = (narrRot+90)%360; reiniciarZoomNarr(); disponerFotoNarr(); });
+document.getElementById("narr-foto-real").addEventListener("click", function(e){ e.stopPropagation(); narrReal = !narrReal; reiniciarZoomNarr(); disponerFotoNarr(); });
+/* v2.74: abre la foto (la original de la carpeta, si se está viendo, o la de la app) como archivo en otra pestaña, para verla con el visor del teléfono */
+document.getElementById("narr-foto-archivo").addEventListener("click", function(e){
+  e.stopPropagation();
+  var f = narrFotosActuales[narrFotoIndiceActual]; if(!f) return;
+  var nombre = f.nombre || "foto.jpg", w2 = null;
+  try{ w2 = window.open("", "_blank"); }catch(err){}
+  var p = narrOrigFile ? Promise.resolve(narrOrigFile) : (f.dataURL ? fetch(f.dataURL).then(function(r){ return r.blob(); }) : Promise.reject());
+  p.then(function(blob){
+    var url = URL.createObjectURL(blob);
+    if(w2){ w2.location.href = url; }
+    else { var a = document.createElement("a"); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); toast("Se descargó la foto: ábrela desde Archivos o Descargas", 4500); }
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(err){} }, 300000);
+  }).catch(function(){ if(w2) w2.close(); toast("La foto todavía no está cargada. Intenta de nuevo", 3500); });
+});
 function mostrarFotoNarrativaEnIndice(){
   var f = narrFotosActuales[narrFotoIndiceActual];
   if(!f) return;
-  reiniciarZoomNarr();
+  narrRot = 0; narrReal = false; reiniciarZoomNarr();
   var token = ++narrFotoToken;
   var img = document.getElementById("narr-foto-img");
   if(f.dataURL) img.src = f.dataURL;
@@ -5742,20 +5798,20 @@ function abrirFotoNarrativa(listaFotosDelRegistro, indiceInicial, regId){
       listaFotosDelRegistro.forEach(function(f){ g.forEach(function(it){ if(it.fotoId===f.id && !it.dataURL && f.dataURL) it.dataURL = f.dataURL; }); });
       narrFotosActuales = g; narrFotoIndiceActual = idx;
       mostrarFotoNarrativaEnIndice();
-      document.getElementById("modal-narr-foto").classList.add("on");
+      document.getElementById("modal-narr-foto").classList.add("on"); disponerFotoNarr();
       return;
     }
   }
   narrFotosActuales = listaFotosDelRegistro.map(function(f){ return {regId:null, fotoId:f.id, nombre:f.nombre, comentario:f.comentario, copiaLocal:f.copiaLocal||"", dataURL:f.dataURL, titulo:""}; });
   narrFotoIndiceActual = indiceInicial;
   mostrarFotoNarrativaEnIndice();
-  document.getElementById("modal-narr-foto").classList.add("on");
+  document.getElementById("modal-narr-foto").classList.add("on"); disponerFotoNarr();
 }
 document.getElementById("narr-foto-prev").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(-1); });
 document.getElementById("narr-foto-next").addEventListener("click", function(e){ e.stopPropagation(); navegarFotoNarrativa(1); });
 /* v2.54: la foto original guardada en la carpeta local se abre dentro del visor */
-var narrOrigURL = null;
-function liberarOriginalVisor(){ if(narrOrigURL){ try{ URL.revokeObjectURL(narrOrigURL); }catch(e){} narrOrigURL = null; } }
+var narrOrigURL = null, narrOrigFile = null;
+function liberarOriginalVisor(){ if(narrOrigURL){ try{ URL.revokeObjectURL(narrOrigURL); }catch(e){} narrOrigURL = null; } narrOrigFile = null; }
 function rutaOriginalCarpeta(f){
   if(visorActivo) return "";
   var c = f && f.copiaLocal ? String(f.copiaLocal) : "";
@@ -5773,7 +5829,7 @@ document.getElementById("narr-foto-orig").addEventListener("click", function(e){
   var f = narrFotosActuales[narrFotoIndiceActual], btn = this, img = document.getElementById("narr-foto-img");
   if(!f) return;
   if(narrOrigURL){   // ya se muestra el original: volver a la imagen de la app
-    liberarOriginalVisor(); reiniciarZoomNarr();
+    liberarOriginalVisor(); narrReal = false; narrRot = 0; reiniciarZoomNarr();
     if(f.dataURL) img.src = f.dataURL;
     btn.textContent = "🖼️ Ver original (carpeta)";
     return;
@@ -5785,7 +5841,7 @@ document.getElementById("narr-foto-orig").addEventListener("click", function(e){
     return archivoDeCarpeta(dir, ruta);
   }).then(function(file){
     if(f !== narrFotosActuales[narrFotoIndiceActual]) return;
-    narrOrigURL = URL.createObjectURL(file); reiniciarZoomNarr();
+    narrOrigURL = URL.createObjectURL(file); narrOrigFile = file; narrReal = true; narrRot = 0; reiniciarZoomNarr();   // v2.74: el original se abre en tamaño real, con desplazamiento
     img.onerror = function(){
       img.onerror = null; liberarOriginalVisor(); if(f.dataURL) img.src = f.dataURL;
       btn.textContent = "🖼️ Ver original (carpeta)";
@@ -5843,6 +5899,7 @@ document.getElementById("narr-foto-ver-reg").addEventListener("click", function(
   }
   wrap.addEventListener("pointerdown", function(e){
     if(e.target.closest && e.target.closest(".narr-foto-nav, .narr-foto-x, .narr-foto-hd")) return;
+    if(narrReal) return;   // v2.74: en tamaño real la foto se desplaza con el desplazamiento nativo
     punteros[e.pointerId] = {x:e.clientX, y:e.clientY};
     try{ wrap.setPointerCapture(e.pointerId); }catch(err){}
     var l = lista();
@@ -5887,6 +5944,7 @@ document.getElementById("narr-foto-ver-reg").addEventListener("click", function(
   wrap.addEventListener("pointerup", soltar);
   wrap.addEventListener("pointercancel", soltar);
   wrap.addEventListener("wheel", function(e){
+    if(narrReal) return;
     e.preventDefault();
     zoomEn({x:e.clientX, y:e.clientY}, Math.max(1, Math.min(6, narrZoom.s * (e.deltaY<0 ? 1.2 : 1/1.2))));
   }, {passive:false});
@@ -7390,6 +7448,7 @@ function aplicarModoCompuesta(){
   ni.readOnly = on;
   document.getElementById("label-nind").textContent = on ? "🔒 N° individuos (suma de los taxones)" : "N° individuos";
   document.getElementById("label-taxon-libre").textContent = on ? "Nombre general de la muestra (taxón más inclusivo)" : "Taxón / descripción";
+  document.getElementById("f-taxon-libre").placeholder = on ? "Ej.: Isopoda, Coleoptera… (distinto del primer taxón de la lista)" : "";
   document.getElementById("label-condicion").textContent = on ? "Condición / conservación de la muestra" : "Condición / conservación";
   if(on) actualizarResumenComp();
 }
@@ -7411,8 +7470,9 @@ document.getElementById("f-compuesta").addEventListener("change", function(){
     if(!(d.componentes && d.componentes.length)){
       var tax = document.getElementById("f-taxon-libre").value.trim(), n = document.getElementById("f-nind").value;
       d.componentes = [];
-      if((tax || n) && confirm("¿Usar «"+(tax || "sin nombre")+"»"+(n ? " ("+n+" individuos)" : "")+" como primer taxón de la lista?\n\nAceptar: queda como primer taxón y el campo Taxón pasa a ser el nombre general de la muestra (puedes cambiarlo).\nCancelar: la lista parte vacía.")){
+      if((tax || n) && confirm("¿Usar «"+(tax || "sin nombre")+"»"+(n ? " ("+n+" individuos)" : "")+" como primer taxón de la lista?\n\nAceptar: pasa a ser el primer taxón de la lista, y el campo Taxón queda vacío para que escribas el nombre general de la muestra (por ejemplo, el grupo más inclusivo).\nCancelar: la lista parte vacía y «"+tax+"» queda como nombre general.")){
         d.componentes.push({id:uid(), taxon:tax, nind:n, condicion:"", referencia:"", interacciones:"", tejido:document.getElementById("f-tejido").checked});
+        d.taxonLibre = ""; document.getElementById("f-taxon-libre").value = "";   // v2.74: el nombre de la muestra y el del primer taxón son cosas distintas
       }
       if(d.componentes.length < 1) d.componentes.push(nuevoComponente());
     }
