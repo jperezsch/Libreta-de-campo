@@ -1294,10 +1294,19 @@ function construirEstilo(sinMapas) {
     })(),
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
   /* v2.58: punto marcado a mano con un toque sostenido */
+  /* v2.76: medición con varios puntos temporales: línea que los une, rótulo de cada tramo y número de cada punto */
+  capas.push({ id: "nav-medida", type: "line", source: "nav", filter: ["==", ["get", "tipo"], "medida"], layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#d64545", "line-width": 3, "line-opacity": 0.9 } });
   capas.push({ id: "nav-manual-halo", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
-    paint: { "circle-radius": 17, "circle-color": "#d64545", "circle-opacity": 0.22 } });
+    paint: { "circle-radius": ["case", ["==", ["get", "sel"], 1], 20, 15], "circle-color": "#d64545", "circle-opacity": 0.22 } });
   capas.push({ id: "nav-manual", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
-    paint: { "circle-radius": 8, "circle-color": "#d64545", "circle-stroke-color": "#ffffff", "circle-stroke-width": 3 } });
+    paint: { "circle-radius": 10, "circle-color": "#d64545", "circle-stroke-color": "#ffffff", "circle-stroke-width": ["case", ["==", ["get", "sel"], 1], 4, 2.5] } });
+  capas.push({ id: "nav-manual-n", type: "symbol", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
+    layout: { "text-field": ["get", "n"], "text-font": ["NotoSans-Medium"], "text-size": 11, "text-allow-overlap": true, "text-ignore-placement": true },
+    paint: { "text-color": "#ffffff" } });
+  capas.push({ id: "nav-tramo", type: "symbol", source: "nav", filter: ["==", ["get", "tipo"], "tramo"],
+    layout: { "text-field": ["get", "etq"], "text-font": ["NotoSans-Medium"], "text-size": 11, "text-offset": [0, -1.1], "text-allow-overlap": true },
+    paint: { "text-color": "#a32626", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
   capas.push({ id: "nav-linea", type: "line", source: "nav", filter: ["==", ["get", "tipo"], "linea"], layout: { "line-cap": "round" },
     paint: { "line-color": "#c9962c", "line-width": 3, "line-dasharray": [2, 2] } });
   capas.push({ id: "nav-destino", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "destino"],
@@ -1346,6 +1355,10 @@ function crearMapa() {
     cerrarPanelPuntos(); panelTracks(false);
     if (resaltado) ponerResaltado(null);
     var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
+    if (puntosManuales.length && map.getLayer("nav-manual")) {
+      var fm = map.queryRenderedFeatures(caja, { layers: ["nav-manual"] });
+      if (fm.length) { seleccionarPuntoManual(parseInt(fm[0].properties.n, 10) - 1); return; }
+    }
     if (map.getLayer("areas-centro")) {
       var fa = map.queryRenderedFeatures(caja, { layers: ["areas-centro"] });
       if (fa.length && inst[fa[0].properties.id]) { enfocarArea(inst[fa[0].properties.id].area, true); return; }
@@ -1539,7 +1552,8 @@ function actualizarNorte() {
 
 /* ---------- navegar hasta un punto (pulsación larga): brújula, distancia y tiempo estimado ---------- */
 var nav = null;                 /* { destino:{lng,lat,nombre}, hist:[{t,lng,lat}], vel:null, rumbo:null } */
-var puntoManual = null;         /* v2.58: { lng, lat } marcado con toque sostenido en un lugar sin registros */
+var puntosManuales = [];        /* v2.58 / v2.76: puntos { lng, lat } marcados con toque sostenido, uno tras otro; sirven para medir rutas */
+var selManual = -1;             /* índice del punto manual seleccionado */
 var pulsacionReciente = false;  /* el clic que sigue a una pulsación larga no debe abrir el registro */
 function distanciaM(a, b) {
   var R = 6371000, r = Math.PI / 180, dLa = (b.lat - a.lat) * r, dLo = (b.lng - a.lng) * r;
@@ -1559,7 +1573,15 @@ function textoTiempo(seg) {
 }
 function geoNav() {
   var fc = { type: "FeatureCollection", features: [] };
-  if (puntoManual) fc.features.push({ type: "Feature", properties: { tipo: "manual" }, geometry: { type: "Point", coordinates: [puntoManual.lng, puntoManual.lat] } });
+  var pm = puntosManuales;
+  if (pm.length > 1) {
+    fc.features.push({ type: "Feature", properties: { tipo: "medida" }, geometry: { type: "LineString", coordinates: pm.map(function (q) { return [q.lng, q.lat]; }) } });
+    for (var i = 1; i < pm.length; i++) {
+      fc.features.push({ type: "Feature", properties: { tipo: "tramo", etq: textoDistancia(distanciaM(pm[i - 1], pm[i])) },
+        geometry: { type: "Point", coordinates: [(pm[i - 1].lng + pm[i].lng) / 2, (pm[i - 1].lat + pm[i].lat) / 2] } });
+    }
+  }
+  pm.forEach(function (q, i) { fc.features.push({ type: "Feature", properties: { tipo: "manual", n: String(i + 1), sel: i === selManual ? 1 : 0 }, geometry: { type: "Point", coordinates: [q.lng, q.lat] } }); });
   if (!nav) return fc;
   fc.features.push({ type: "Feature", properties: { tipo: "destino" }, geometry: { type: "Point", coordinates: [nav.destino.lng, nav.destino.lat] } });
   if (gps.fix) fc.features.push({ type: "Feature", properties: { tipo: "linea" }, geometry: { type: "LineString", coordinates: [[gps.fix.lng, gps.fix.lat], [nav.destino.lng, nav.destino.lat]] } });
@@ -1634,10 +1656,20 @@ function destinoEn(pt) {
   return { lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], nombre: pr.codigo || pr.nombre || pr.estacion || "el punto" };
 }
 function textoCoordenada(p) { return p.lat.toFixed(6) + ", " + p.lng.toFixed(6); }
+function distanciaTotalManual(hasta) {
+  var t = 0; for (var i = 1; i <= hasta && i < puntosManuales.length; i++) t += distanciaM(puntosManuales[i - 1], puntosManuales[i]);
+  return t;
+}
 function marcarPuntoManual(lng, lat) {
-  puntoManual = { lng: lng, lat: lat };
+  puntosManuales.push({ lng: lng, lat: lat });
+  selManual = puntosManuales.length - 1;
   refrescarNavMapa();
   mostrarTarjetaPuntoManual();
+  if (puntosManuales.length > 1) LC.toast("Punto " + puntosManuales.length + " · total " + textoDistancia(distanciaTotalManual(puntosManuales.length - 1)), 2600);
+}
+function seleccionarPuntoManual(i) {
+  if (i < 0 || i >= puntosManuales.length) return;
+  selManual = i; refrescarNavMapa(); mostrarTarjetaPuntoManual();
 }
 /* v2.74: guarda el punto marcado a mano como un registro nuevo (misma vía que "Guardar punto aquí", con la coordenada marcada y sin precisión de GPS) */
 function guardarPuntoManual(pm) {
@@ -1646,31 +1678,47 @@ function guardarPuntoManual(pm) {
   var d = LC.state.draft;
   if (!d || d._editando || d._viendo) { LC.toast("Hay un registro en edición. Usa Capturar ubicación dentro de Nuevo.", 5000); return; }
   LC.aplicarPosicionAlBorrador(pm.lat, pm.lng, null, null, 0);
-  quitarPuntoManual();
+  quitarPuntoManual(puntosManuales.indexOf(pm));
 }
-function quitarPuntoManual() { puntoManual = null; refrescarNavMapa(); cerrarTarjeta(); }
+/* quita un punto (por defecto el seleccionado); la línea y los tramos se recalculan con los que quedan */
+function quitarPuntoManual(i) {
+  if (typeof i !== "number") i = selManual;
+  if (i >= 0 && i < puntosManuales.length) puntosManuales.splice(i, 1);
+  if (!puntosManuales.length) { selManual = -1; refrescarNavMapa(); cerrarTarjeta(); return; }
+  selManual = Math.min(Math.max(i - 1, 0), puntosManuales.length - 1);
+  refrescarNavMapa(); mostrarTarjetaPuntoManual();
+}
+function quitarTodosManuales() { puntosManuales = []; selManual = -1; refrescarNavMapa(); cerrarTarjeta(); }
 function mostrarTarjetaPuntoManual() {
-  var t = $("mp-tarjeta"); if (!t || !puntoManual) return;
-  var pm = puntoManual, txt = textoCoordenada(pm);
+  var t = $("mp-tarjeta"); if (!t || selManual < 0 || !puntosManuales[selManual]) return;
+  var pm = puntosManuales[selManual], n = puntosManuales.length, txt = textoCoordenada(pm);
   t.textContent = "";
-  t.appendChild(el("b", { texto: "Punto marcado" }));
+  t.appendChild(el("b", { texto: n > 1 ? "Punto " + (selManual + 1) + " de " + n : "Punto marcado" }));
   t.appendChild(el("div", { texto: "Lat " + pm.lat.toFixed(6) + "  ·  Lon " + pm.lng.toFixed(6) }));
+  if (n > 1) {
+    var ant = selManual > 0 ? distanciaM(puntosManuales[selManual - 1], pm) : null;
+    t.appendChild(el("div", { class: "mp-medida", texto: "Distancia total de la ruta: " + textoDistancia(distanciaTotalManual(n - 1)) }));
+    if (ant !== null) t.appendChild(el("div", { class: "mp-suave", texto: "Desde el punto " + selManual + ": " + textoDistancia(ant) + " · acumulado hasta aquí: " + textoDistancia(distanciaTotalManual(selManual)) }));
+    else t.appendChild(el("div", { class: "mp-suave", texto: "Es el inicio de la ruta medida." }));
+  }
   if (gps.fix) {
     var yo = { lng: gps.fix.lng, lat: gps.fix.lat };
     t.appendChild(el("div", { class: "mp-suave", texto: "A " + textoDistancia(distanciaM(yo, pm)) + " hacia el " + puntoCardinal(rumboGrados(yo, pm)) + " desde tu ubicación" }));
   } else {
     t.appendChild(el("div", { class: "mp-suave", texto: "Activa el GPS para ver la distancia y navegar hasta aquí." }));
   }
-  t.appendChild(el("div", { class: "mp-suave", texto: "Es una marca temporal hasta que la guardes como registro." }));
-  t.appendChild(el("div", { class: "mp-fila" }, [
+  t.appendChild(el("div", { class: "mp-suave", texto: n > 1 ? "Marcas temporales. Mantén pulsado en otro lugar para sumar un punto; toca un punto para elegirlo." : "Es una marca temporal. Mantén pulsado en otro lugar para sumar puntos y medir una ruta." }));
+  var botones = [
     el("button", { class: "primario", texto: "💾 Guardar aquí", onclick: function () { guardarPuntoManual(pm); } }),
     el("button", { texto: "🧭 Navegar hasta aquí", onclick: function () { iniciarNavegacion({ lng: pm.lng, lat: pm.lat, nombre: "el punto marcado" }); } }),
     el("button", { texto: "📋 Copiar", onclick: function () {
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { LC.toast("Coordenadas copiadas: " + txt, 3200); }, function () { LC.toast("Coordenadas: " + txt, 5000); });
       else LC.toast("Coordenadas: " + txt, 5000);
     } }),
-    el("button", { texto: "Quitar", onclick: quitarPuntoManual })
-  ]));
+    el("button", { texto: "Quitar", onclick: function () { quitarPuntoManual(); } })
+  ];
+  if (n > 1) botones.push(el("button", { texto: "Quitar todos", onclick: quitarTodosManuales }));
+  t.appendChild(el("div", { class: "mp-fila" }, botones));
   t.style.display = "block";
 }
 function instalarPulsacionLarga() {
@@ -2501,6 +2549,6 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto, verRecorrido: verRecorrido,
   /* para pruebas */
-  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab }; }
+  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; } }; }
 };
 })();
