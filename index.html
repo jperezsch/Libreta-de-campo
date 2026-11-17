@@ -249,6 +249,24 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 #modal-narr-foto.grande .narr-foto-imgwrap img{position:absolute; max-height:none; width:auto; height:auto; max-width:none; transform-origin:center center;}
 #modal-narr-foto.grande .narr-foto-imgwrap.real{overflow:auto; touch-action:pan-x pan-y pinch-zoom; -webkit-overflow-scrolling:touch;}
 #modal-narr-foto.grande .narr-foto-imgwrap.real img{touch-action:pan-x pan-y pinch-zoom;}
+.ficha-proy{background:var(--card); border:1.5px solid #c9b88a; border-left:6px solid #5a4616; border-radius:12px; padding:10px 12px; margin:0 0 12px; font-size:.88rem; line-height:1.4;}
+.ficha-proy .fp-nom{font-weight:800; font-size:1.05rem; color:#5a4616; margin-bottom:6px; overflow-wrap:anywhere;}
+.ficha-proy .fp-f{margin:3px 0; overflow-wrap:anywhere;}
+.ficha-proy .fp-f b{color:var(--verde-osc);}
+.ficha-proy .fp-t{white-space:pre-wrap;}
+.ficha-proy .fp-comp{margin-top:6px; font-size:.8rem; color:var(--texto-sec);}
+.bit-reg{background:var(--card); border:1px solid var(--borde); border-left:4px solid #999; border-radius:10px; padding:0; margin:6px 0; font-size:.85rem;}
+.bit-reg summary{cursor:pointer; padding:8px 10px; list-style:none; display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+.bit-reg summary::-webkit-details-marker{display:none;}
+.bit-reg summary::before{content:"▸"; color:var(--texto-sec);}
+.bit-reg[open] summary::before{content:"▾";}
+.bit-reg .br-hora{color:var(--texto-sec); font-size:.78rem;}
+.bit-reg .br-tit{font-weight:700; flex:1; min-width:120px; overflow-wrap:anywhere;}
+.bit-reg .br-det{padding:0 10px 10px 24px; line-height:1.45;}
+.bit-reg .br-det .br-l{margin:2px 0; overflow-wrap:anywhere;}
+.bit-reg .br-det button{margin-top:6px;}
+.sesion-exportar-header{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none;}
+.exp-regs{margin:4px 0 6px 34px;}
 .narr-foto-herr{display:flex; gap:6px; padding:8px 10px 0; justify-content:center; flex-wrap:wrap;}
 .narr-foto-herr button{flex:1 1 0; min-width:0; padding:9px 4px; border-radius:10px; border:1.5px solid rgba(255,255,255,.55); background:rgba(255,255,255,.12); color:#fff; font-size:.78rem; font-weight:700; cursor:pointer; white-space:nowrap;}
 .narr-foto-herr button.on{background:#fff; color:#111;}
@@ -624,7 +642,7 @@ input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); 
 .mini-btn{font-size:.74rem; padding:4px 10px; border-radius:12px; border:1.5px solid var(--borde); background:var(--card); color:var(--texto); cursor:pointer; white-space:nowrap;}
 .mini-btn.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 .mini-btn.peligro{color:var(--rojo, #b5473a); border-color:var(--rojo, #b5473a);}
-.viaje-header{display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:#efe6d2; border:1.5px solid #c9b88a; border-radius:10px; padding:8px 10px; margin:16px 0 6px; font-weight:800; color:#5a4616;}
+.viaje-header{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none; display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:#efe6d2; border:1.5px solid #c9b88a; border-radius:10px; padding:8px 10px; margin:16px 0 6px; font-weight:800; color:#5a4616;}
 .viaje-header .vj-titulo{flex:1; min-width:130px; font-size:.92rem;}
 .viaje-header .vj-cnt{font-weight:400; font-size:.78rem;}
 .viaje-header .mini-btn{background:#fffaf0; border-color:#c9b88a; color:#5a4616;}
@@ -1253,12 +1271,10 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
         <button type="button" class="mini-btn" id="btn-exp-todo">Todo</button>
         <button type="button" class="mini-btn" id="btn-exp-ninguno">Ninguno</button>
         <button type="button" class="mini-btn" id="btn-exp-activa">Solo la activa</button>
-        <button type="button" class="mini-btn" id="btn-exp-elegir">🎯 Elegir registros…</button>
       </div>
       <div id="exp-selector-sesion"></div>
       <div class="exp-sueltos-resumen" id="exp-sueltos-resumen" style="display:none;"></div>
-      <div id="exp-elegir-panel" style="display:none;"></div>
-      <span class="campo-ayuda">Marca proyectos o sesiones completas. Con «Elegir registros…» puedes sumar registros sueltos sin marcar su sesión.</span>
+      <span class="campo-ayuda">Marca proyectos o sesiones completas. Para sumar registros sueltos, mantén presionada una sesión: se despliegan sus registros con una casilla cada uno (otra pulsación sostenida los vuelve a ocultar).</span>
     </div>
     <div class="bloque">
       <div class="section-title"><span class="n">📤</span>Ejecutar exportación</div>
@@ -1304,7 +1320,9 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <button type="button" class="mini-btn" id="btn-bit-nota">＋ Nota</button>
       <button type="button" class="mini-btn" id="btn-bit-exportar">⬇️ Exportar (.html)</button>
     </div>
-    <label class="consulta-opcion" style="margin-bottom:10px;"><input type="checkbox" id="bit-solo-narrativas"><span>Ocultar notas operativas</span></label>
+    <div id="bit-ficha"></div>
+    <label class="consulta-opcion" style="margin-bottom:6px;"><input type="checkbox" id="bit-solo-narrativas"><span>Ocultar notas operativas</span></label>
+    <label class="consulta-opcion" style="margin-bottom:10px;"><input type="checkbox" id="bit-ver-registros" checked><span>Intercalar registros (resumidos)</span></label>
     <div id="bit-lista"></div>
     <div style="height:90px;"></div>
   </div>
@@ -1465,6 +1483,17 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
     <div class="narr-foto-cap" id="narr-foto-cap"></div>
     <button type="button" class="narr-foto-ver" id="narr-foto-orig" style="display:none;">🖼️ Ver original (carpeta)</button>
     <button type="button" class="narr-foto-ver" id="narr-foto-ver-reg" style="display:none;">📄 Ver datos de este registro</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-ficha-proyecto">
+  <div class="modal">
+    <button type="button" class="modal-x" id="fp-x" aria-label="Cerrar">✕</button>
+    <div id="fp-cuerpo"></div>
+    <div class="gp-acciones">
+      <button type="button" class="mini-btn" id="fp-bitacora">📖 Abrir bitácora</button>
+      <button type="button" class="mini-btn solo-edicion" id="fp-editar">✎ Editar datos</button>
+    </div>
   </div>
 </div>
 
@@ -4030,7 +4059,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-16 · v2.75";
+var APP_BUILD = "2026-11-16 · v2.77";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -4614,12 +4643,31 @@ function ligarSugerencia(inputId, datalistId, campo){
   el.addEventListener("blur", function(){ pendienteAprender(campo, el.value.trim()); poblarSugerencias(datalistId, campo); });
 }
 function poblarTodasLasSugerenciasSesion(){
-  [["ss-objetivo","dl-ss-objetivo"],["ss-participantes","dl-ss-participantes"],
-   ["ss-institucion","dl-ss-institucion"],["ss-prefijo","dl-ss-prefijo"],
-   ["ss-clima","dl-ss-clima"]].forEach(function(p){
-    poblarSugerencias(p[1], p[0]);
+  /* v2.76: antes se pasaba el id del input como campo y las listas de la sesión (Participantes, Objetivo, Institución, Prefijo, Clima) quedaban vacías hasta salir del campo */
+  [["dl-ss-objetivo","objetivo"],["dl-ss-participantes","participantes"],
+   ["dl-ss-institucion","institucion"],["dl-ss-prefijo","prefijo"],
+   ["dl-ss-clima","clima"]].forEach(function(p){
+    poblarSugerencias(p[0], p[1]);
   });
+  poblarSugerenciasParticipantes();
 }
+/* v2.76: Participantes lleva varios nombres separados por coma; el navegador solo sugiere con el texto completo, así que
+   al escribir después de una coma se ofrecen las opciones con lo ya escrito por delante ("Ana, Luis") */
+function poblarSugerenciasParticipantes(){
+  var inp = document.getElementById("ss-participantes"), dl = document.getElementById("dl-ss-participantes"); if(!inp || !dl) return;
+  var todas = fusionarSugerencias("participantes", state.historial.participantes || []);
+  var nombres = []; var visto = {};
+  todas.forEach(function(t){ String(t).split(",").forEach(function(n){ n = n.trim(); var k = normalizarTextoComparar(n); if(k && !visto[k]){ visto[k] = 1; nombres.push(n); } }); });
+  var v = inp.value, i = v.lastIndexOf(",");
+  var base = i >= 0 ? v.slice(0, i+1).replace(/\s*$/, " ") : "";
+  var usados = {}; (i >= 0 ? v.slice(0, i) : "").split(",").forEach(function(n){ usados[normalizarTextoComparar(n)] = 1; });
+  var opciones = [];
+  if(!base) todas.forEach(function(t){ opciones.push(t); });
+  nombres.forEach(function(n){ if(!usados[normalizarTextoComparar(n)]) opciones.push(base + n); });
+  var vistos = {}; opciones = opciones.filter(function(o){ var k = normalizarTextoComparar(o); if(vistos[k]) return false; vistos[k] = 1; return true; });
+  dl.innerHTML = opciones.map(function(o){ return '<option value="'+escapeHtml(o)+'">'; }).join("");
+}
+(function(){ var el = document.getElementById("ss-participantes"); if(el) el.addEventListener("input", poblarSugerenciasParticipantes); })();
 
 function escPrefijoRegex(p){ return String(p).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
 function numeroDeCodigo(codigo, prefijo){
@@ -5240,7 +5288,7 @@ function renderChips(){
     html += '<div class="chip'+(state.filtroTipo===k?" on":"")+'" data-t="'+k+'">'+TIPOS[k].ic+' '+TIPOS[k].label+'</div>';
   });
   box.innerHTML = html;
-  box.querySelectorAll(".chip").forEach(function(c){ c.addEventListener("click", function(){ state.filtroTipo=c.dataset.t; renderLista(); }); });
+  box.querySelectorAll(".chip").forEach(function(c){ c.addEventListener("click", function(){ state.filtroTipo=c.dataset.t; renderLista(); cerrarDespReg("det-filtros"); }); });
 }
 var ICONOS_SESION = ["🟩","🟦","🟪","🟧","🟨","🟥","🟫","🔷","🔶","🔵","🟣","🟠"];
 var COLORES_SESION = ["#2d5f3f","#2f6690","#7b4fa0","#c9762c","#b59a1f","#b5473a","#7a5230","#1f6ba0","#c98a1f","#2f7fb5","#8f3fa0","#c96a1f"];
@@ -6061,12 +6109,12 @@ document.getElementById("btn-vista-narrativa").addEventListener("click", functio
 document.getElementById("btn-orden-registros-fecha").addEventListener("click", function(){
   state.ordenSesionesRegistros = "fecha";
   this.classList.add("on"); document.getElementById("btn-orden-registros-alfabetico").classList.remove("on");
-  renderLista();
+  renderLista(); cerrarDespReg("det-filtros");
 });
 document.getElementById("btn-orden-registros-alfabetico").addEventListener("click", function(){
   state.ordenSesionesRegistros = "alfabetico";
   this.classList.add("on"); document.getElementById("btn-orden-registros-fecha").classList.remove("on");
-  renderLista();
+  renderLista(); cerrarDespReg("det-filtros");
 });
 /* v2.67: ordena una lista plana igual que las vistas Lista y Libreta (sesiones según el criterio elegido; dentro de cada una, más reciente arriba o el orden manual) */
 function ordenarListaComoVista(lista){
@@ -6440,10 +6488,11 @@ function renderGestionProyectos(){
       '<button type="button" class="mini-btn'+(act ? ' on' : '')+'" id="gp-activar">'+(act ? '★ Es el proyecto activo' : '☆ Hacer activo')+'</button>'+
       '<button type="button" class="mini-btn" id="gp-bitacora">📖 Bitácora</button>'+
       '<button type="button" class="mini-btn" id="gp-nota">＋ Nota</button>'+
-      '<button type="button" class="mini-btn peligro" id="gp-borrar">🗑 Borrar proyecto</button></div>';
+      '<button type="button" class="mini-btn peligro" id="gp-borrar">🗑 Borrar proyecto</button></div>'+
+      '<button type="button" class="btnfull btn-primary" id="gp-aceptar" style="margin-top:12px;">✔ Aceptar los cambios</button>';
   }
   cu.innerHTML = h;
-  document.getElementById("gp-nuevo").addEventListener("click", function(){ pedirNuevoViaje(function(nv){ state.gpId = nv.id; refrescarVistasViaje(); }); });
+  document.getElementById("gp-nuevo").addEventListener("click", function(){ pedirNuevoViaje(function(nv){ state.gpId = nv.id; refrescarVistasViaje(); cerrarDespReg("det-proyectos"); }); });
   if(!v) return;
   document.getElementById("gp-sel").addEventListener("change", function(){ state.gpId = this.value; renderGestionProyectos(); });
   [["gp-nombre","nombre"],["gp-objetivo","objetivo"],["gp-zona","zona"],["gp-responsable","responsable"],["gp-fecha-ini","fechaIni"],["gp-fecha-fin","fechaFin"],["gp-financiamiento","financiamiento"],["gp-notas","notas"]].forEach(function(p){
@@ -6452,18 +6501,19 @@ function renderGestionProyectos(){
   cu.querySelectorAll("[data-gp-quitar]").forEach(function(b){
     b.addEventListener("click", function(){
       var s = sesionPorId(b.dataset.gpQuitar); if(!s || bloqueadoPorVisor()) return;
-      s.viajeId = null; guardarListaSesiones(); refrescarVistasViaje();
+      s.viajeId = null; guardarListaSesiones(); refrescarVistasViaje(); cerrarDespReg("det-proyectos");
     });
   });
   var ag = document.getElementById("gp-agregar");
   if(ag) ag.addEventListener("change", function(){
     var s = sesionPorId(this.value); if(!s || bloqueadoPorVisor()) return;
-    s.viajeId = v.id; guardarListaSesiones(); refrescarVistasViaje();
+    s.viajeId = v.id; guardarListaSesiones(); refrescarVistasViaje(); cerrarDespReg("det-proyectos");
   });
-  document.getElementById("gp-activar").addEventListener("click", function(){ alternarViajeActivo(v.id); });
-  document.getElementById("gp-bitacora").addEventListener("click", function(){ abrirBitacora(v.id); });
-  document.getElementById("gp-nota").addEventListener("click", function(){ abrirNotaViaje(v.id, null); });
-  document.getElementById("gp-borrar").addEventListener("click", function(){ borrarViaje(v.id); });
+  document.getElementById("gp-activar").addEventListener("click", function(){ alternarViajeActivo(v.id); cerrarDespReg("det-proyectos"); });
+  document.getElementById("gp-bitacora").addEventListener("click", function(){ cerrarDespReg("det-proyectos"); abrirBitacora(v.id); });
+  document.getElementById("gp-nota").addEventListener("click", function(){ cerrarDespReg("det-proyectos"); abrirNotaViaje(v.id, null); });
+  document.getElementById("gp-borrar").addEventListener("click", function(){ cerrarDespReg("det-proyectos"); borrarViaje(v.id); });
+  document.getElementById("gp-aceptar").addEventListener("click", gpAceptar);
 }
 function gpGuardarCampo(campo, valor){
   var v = viajePorId(state.gpId); if(!v || bloqueadoPorVisor()) return;
@@ -6476,6 +6526,79 @@ function gpGuardarCampo(campo, valor){
   if(campo==="nombre"){
     var op = document.querySelector('#gp-sel option[value="'+v.id+'"]'); if(op) op.textContent = etiquetaOpcionViaje(v);
   }
+}
+/* v2.76: ficha de consulta del proyecto (datos de «Gestión de proyectos») */
+function htmlFichaProyecto(v){
+  var f = function(rot, val, clase){ return val ? '<div class="fp-f"><b>'+rot+':</b> <span class="'+(clase||"")+'">'+escapeHtml(val)+'</span></div>' : ""; };
+  var fechas = [v.fechaIni ? fechaCortaDMA(v.fechaIni) : "", v.fechaFin ? fechaCortaDMA(v.fechaFin) : ""].filter(Boolean).join(" a ");
+  var ses = sesionesDeViaje(v.id), nReg = 0; ses.forEach(function(s){ nReg += state.registros.filter(function(r){ return r.sesionId===s.id; }).length; });
+  var nN = notasDeViaje(v.id).length, nR = recorridosDeRuta(v.id).length;
+  return '<div class="ficha-proy"><div class="fp-nom">🧭 '+escapeHtml(v.nombre)+'</div>'+
+    f("Objetivo", v.objetivo, "fp-t")+f("Zona o región", v.zona)+f("Responsable", v.responsable)+f("Fechas", fechas)+
+    f("Financiamiento y permisos", v.financiamiento, "fp-t")+f("Notas del proyecto", v.notas, "fp-t")+
+    '<div class="fp-comp">📁 '+ses.length+(ses.length===1?' sesión':' sesiones')+' · '+nReg+(nReg===1?' registro':' registros')+' · 📖 '+nN+(nN===1?' nota':' notas')+' · 〰 '+nR+(nR===1?' ruta':' rutas')+'</div></div>';
+}
+var fichaViajeId = null;
+function abrirFichaProyecto(id){
+  var v = viajePorId(id); if(!v) return;
+  fichaViajeId = id;
+  document.getElementById("fp-cuerpo").innerHTML = htmlFichaProyecto(v);
+  document.getElementById("modal-ficha-proyecto").classList.add("on");
+}
+document.getElementById("fp-x").addEventListener("click", function(){ document.getElementById("modal-ficha-proyecto").classList.remove("on"); });
+document.getElementById("modal-ficha-proyecto").addEventListener("click", function(e){ if(e.target===this) this.classList.remove("on"); });
+document.getElementById("fp-bitacora").addEventListener("click", function(){ document.getElementById("modal-ficha-proyecto").classList.remove("on"); abrirBitacora(fichaViajeId); });
+document.getElementById("fp-editar").addEventListener("click", function(){
+  document.getElementById("modal-ficha-proyecto").classList.remove("on");
+  if(bloqueadoPorVisor()) return;
+  state.gpId = fichaViajeId; irA("lista");
+  var det = document.getElementById("det-proyectos"); if(det) det.open = true;
+  renderGestionProyectos();
+  if(det && det.scrollIntoView) det.scrollIntoView({block:"start"});
+});
+/* pulsación sostenida sobre el encabezado de un proyecto (pestaña Registros) = ficha de consulta */
+(function(){
+  var timer = null, ini = null, largo = false;
+  function cancelar(){ clearTimeout(timer); timer = null; }
+  document.addEventListener("pointerdown", function(e){
+    var h = e.target.closest ? e.target.closest(".viaje-header[data-viaje]") : null;
+    if(!h || e.target.closest("button")) return;
+    largo = false; ini = {x:e.clientX, y:e.clientY}; cancelar();
+    timer = setTimeout(function(){ timer = null; largo = true; if(navigator.vibrate) try{ navigator.vibrate(30); }catch(err){} abrirFichaProyecto(h.getAttribute("data-viaje")); }, 600);
+  });
+  document.addEventListener("pointermove", function(e){ if(timer && ini && Math.hypot(e.clientX-ini.x, e.clientY-ini.y) > 10) cancelar(); });
+  ["pointerup","pointercancel"].forEach(function(ev){ document.addEventListener(ev, cancelar); });
+  document.addEventListener("contextmenu", function(e){ if(e.target.closest && e.target.closest(".viaje-header[data-viaje]")) e.preventDefault(); });
+})();
+/* v2.76: resumen de un registro para intercalarlo en la bitácora */
+function resumenRegistroBit(r){
+  var ti = TIPOS[r.tipo]||TIPOS.nota, nombre = "";
+  if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length){
+    nombre = r.especies.length+(r.especies.length===1?" especie":" especies");
+  } else if(r.tipo==="medicion"){ nombre = r.especieMedida || ""; }
+  else nombre = nombreRegistroLista(r);
+  var titulo = (r.codigo ? r.codigo+" · " : "")+ti.label+(nombre ? " · "+nombre : "");
+  var L = [];
+  if((r.tipo==="conteo" || r.tipo==="observacion") && r.especies && r.especies.length)
+    L.push("Especies: "+r.especies.map(function(e){ return e.nombre+" ("+e.cantidad+")"; }).join(", "));
+  var cant = cantidadEjemplares(r); if(cant!=null && r.tipo!=="observacion" && r.tipo!=="conteo") L.push("Ejemplares: "+cant);
+  if(r.localidadEspecifica) L.push("Localidad: "+r.localidadEspecifica);
+  if(r.estacion) L.push("Estación: "+r.estacion);
+  var la = r.lat, lo = r.lon; if(r.tipo==="observacion" && r.obsInicio){ la = r.obsInicio.lat; lo = r.obsInicio.lon; }
+  if(la!=null && lo!=null && String(la)!=="" && String(lo)!=="") L.push("Coordenadas: "+la+", "+lo);
+  var amb = [r.habitat, r.sustrato, r.referencia].filter(Boolean).join(" · "); if(amb) L.push("Ambiente: "+amb);
+  if(r.metodo) L.push("Método: "+r.metodo);
+  if(r.notas) L.push("Notas: "+(String(r.notas).length>220 ? String(r.notas).slice(0,220)+"…" : r.notas));
+  if(r.fotos && r.fotos.length) L.push("📷 "+r.fotos.length+(r.fotos.length===1?" foto":" fotos"));
+  return {titulo:titulo, lineas:L};
+}
+/* v2.77: cierra un desplegable de Registros una vez hecho lo que se buscaba en él */
+function cerrarDespReg(id){ var d = document.getElementById(id); if(d) d.open = false; }
+/* v2.76: botón Aceptar al final de Gestión de proyectos: confirma lo escrito y cierra el desplegable */
+function gpAceptar(){
+  var ae = document.activeElement; if(ae && ae.blur) ae.blur();
+  var det = document.getElementById("det-proyectos"); if(det) det.open = false;
+  toast("Cambios del proyecto aceptados", 2200);
 }
 /* ---------- Menú de acciones (hoja inferior) ---------- */
 function menuAcciones(titulo, items){
@@ -6748,7 +6871,7 @@ function abrirBitacora(viajeId){
   state.bitacoraVolverA = (state.currentView==="exportar") ? "exportar" : "lista";
   irA("bitacora");
 }
-function entradasBitacora(v){
+function entradasBitacora(v, conRegistros){
   var out = [];
   notasDeViaje(v.id).forEach(function(n){
     out.push({k:"nv", id:n.id, fecha:n.fecha||"", hora:n.hora||"", titulo:n.titulo||"", texto:n.texto||"", operativa:!!n.operativa, fotos:n.fotos||[], sesionId:null});
@@ -6757,6 +6880,10 @@ function entradasBitacora(v){
     state.registros.forEach(function(r){
       if(r.sesionId!==s.id || r.tipo!=="nota") return;
       out.push({k:"reg", id:r.id, fecha:r.fecha||"", hora:r.hora||"", titulo:(r.notaTitulo||r.codigo||""), texto:r.notas||"", operativa:r.notaSubtipo==="operativo", fotos:r.fotos||[], sesionId:s.id, codigo:r.codigo||""});
+    });
+    if(conRegistros) state.registros.forEach(function(r){
+      if(r.sesionId!==s.id || r.tipo==="nota") return;
+      out.push({k:"rc", id:r.id, fecha:r.fecha||"", hora:r.hora||"", operativa:false, fotos:[], sesionId:s.id, resumen:resumenRegistroBit(r)});
     });
   });
   out.sort(function(a,b){
@@ -6771,9 +6898,16 @@ function renderBitacora(){
   if(!v){ cont.innerHTML = '<div class="vacio">Este proyecto ya no existe.</div>'; return; }
   document.getElementById("bit-titulo").textContent = "Bitácora · "+v.nombre;
   var soloNar = document.getElementById("bit-solo-narrativas").checked;
-  var ent = entradasBitacora(v).filter(function(x){ return !(soloNar && x.operativa); });
+  document.getElementById("bit-ficha").innerHTML = htmlFichaProyecto(v);
+  var ent = entradasBitacora(v, document.getElementById("bit-ver-registros").checked).filter(function(x){ return !(soloNar && x.operativa); });
   if(!ent.length){ cont.innerHTML = '<div class="vacio">Aún no hay notas en esta bitácora.<br>Usa «＋ Nota» o crea una Nota general dentro de una sesión del proyecto.</div>'; return; }
   cont.innerHTML = ent.map(function(x){
+    if(x.k==="rc"){
+      var colr = colorSesion(x.sesionId);
+      return '<details class="bit-reg" data-k="rc" style="border-left-color:'+colr+';"><summary><span class="br-hora">'+escapeHtml(x.fecha)+' · '+escapeHtml(x.hora)+'</span><span class="br-tit">'+escapeHtml(x.resumen.titulo)+'</span><span class="bit-badge">'+escapeHtml(iconoSesion(x.sesionId)+" "+etiquetaSesionCorta(x.sesionId))+'</span></summary>'+
+        '<div class="br-det">'+x.resumen.lineas.map(function(l){ return '<div class="br-l">'+escapeHtml(l)+'</div>'; }).join("")+
+        '<button type="button" class="mini-btn" data-bit-ver="'+x.id+'">Ver registro completo →</button></div></details>';
+    }
     var ctx = x.k==="nv" ? {nv:x.id} : {reg:x.id};
     var color = x.sesionId ? colorSesion(x.sesionId) : "#5a4616";
     var origen = x.sesionId ? ('<span class="bit-badge">'+escapeHtml(iconoSesion(x.sesionId)+" "+etiquetaSesionCorta(x.sesionId))+'</span>') : '<span class="bit-badge" style="background:#efe6d2; color:#5a4616;">🧭 Proyecto</span>';
@@ -6793,6 +6927,7 @@ function renderBitacora(){
       });
     });
   });
+  cont.querySelectorAll("[data-bit-ver]").forEach(function(b){ b.addEventListener("click", function(){ verRegistroExistente(b.getAttribute("data-bit-ver")); }); });
   cont.querySelectorAll(".bit-entrada").forEach(function(el){
     el.addEventListener("click", function(){
       if(el.dataset.k==="nv"){ if(!visorActivo) abrirNotaViaje(state.bitacoraViajeId, el.dataset.id); }
@@ -6801,18 +6936,23 @@ function renderBitacora(){
   });
 }
 document.getElementById("bit-solo-narrativas").addEventListener("change", renderBitacora);
+document.getElementById("bit-ver-registros").addEventListener("change", renderBitacora);
 document.getElementById("btn-bit-volver").addEventListener("click", function(){ irA(state.bitacoraVolverA || "lista"); });
 document.getElementById("btn-bit-nota").addEventListener("click", function(){ if(state.bitacoraViajeId) abrirNotaViaje(state.bitacoraViajeId, null); });
 document.getElementById("btn-bit-exportar").addEventListener("click", function(){ exportarBitacoraHTML(viajePorId(state.bitacoraViajeId)); });
 function exportarBitacoraHTML(v){
   if(!v) return;
-  var ent = entradasBitacora(v);
+  var ent = entradasBitacora(v, document.getElementById("bit-ver-registros").checked);
   if(!ent.length){ toast("La bitácora está vacía"); return; }
   var urls = {}, proms = [];
   ent.forEach(function(x){ x.fotos.forEach(function(f){ proms.push(leerFotoDB(f.id).then(function(dt){ urls[f.id] = dt || ""; })); }); });
   toast("Preparando bitácora...");
   Promise.all(proms).then(function(){
     var cuerpo = ent.map(function(x){
+      if(x.k==="rc"){
+        return '<details class="bit-reg" style="border-left-color:'+colorSesion(x.sesionId)+'"><summary><span class="br-hora">'+escapeHtml(x.fecha)+' · '+escapeHtml(x.hora)+'</span><span class="br-tit">'+escapeHtml(x.resumen.titulo)+'</span><span class="bit-badge">'+escapeHtml(iconoSesion(x.sesionId)+" "+etiquetaSesionCorta(x.sesionId))+'</span></summary>'+
+          '<div class="br-det">'+x.resumen.lineas.map(function(l){ return '<div class="br-l">'+escapeHtml(l)+'</div>'; }).join("")+'</div></details>';
+      }
       var color = x.sesionId ? colorSesion(x.sesionId) : "#5a4616";
       var origen = x.sesionId ? escapeHtml(iconoSesion(x.sesionId)+" "+etiquetaSesionCorta(x.sesionId)) : "🧭 Proyecto";
       var fotos = x.fotos.length ? '<div class="narr-fotos">'+x.fotos.map(function(f,i){
@@ -6829,7 +6969,7 @@ function exportarBitacoraHTML(v){
       '<script>function verFoto(src,cap){document.getElementById("narr-foto-img").src=src;document.getElementById("narr-foto-cap").textContent=cap;document.getElementById("modal-narr-foto").classList.add("on");}<\/script>';
     var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Bitácora · '+escapeHtml(v.nombre)+'</title><style>'+estilos+
       'body{background:#f7f5f0; padding:20px; max-width:700px; margin:0 auto; display:block;} .narr-entrada{page-break-inside:avoid; cursor:default;} .narr-foto img{cursor:pointer;} #barra-visor{display:none;}</style></head><body>'+
-      '<h1 style="color:#1e4029;">🧭 '+escapeHtml(v.nombre)+' · Bitácora</h1><p style="color:#6b6b64;">Generado '+new Date().toLocaleString("es-CL")+'</p>'+cuerpo+visorHtml+'</body></html>';
+      '<h1 style="color:#1e4029;">🧭 '+escapeHtml(v.nombre)+' · Bitácora</h1><p style="color:#6b6b64;">Generado '+new Date().toLocaleString("es-CL")+'</p>'+htmlFichaProyecto(v)+cuerpo+visorHtml+'</body></html>';
     var blob = new Blob([html], {type:"text/html"});
     var nom = nombreDescarga(nombreCortoViaje(v), "bitacora", "html");
     descargarBlobArchivo(blob, nom);
@@ -7001,6 +7141,8 @@ function botonFinalizarInlineHtml(sesionId){
   return sesionId===state.sesionActivaId ? '<button type="button" class="btn-finalizar-sesion-inline" title="Finalizar la sesión activa">🏁 Finalizar sesión</button>' : '';
 }
 document.getElementById("buscador").addEventListener("input", renderLista);
+document.getElementById("buscador").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); this.blur(); cerrarDespReg("det-filtros"); } });
+document.getElementById("buscador").addEventListener("search", function(){ if(this.value) cerrarDespReg("det-filtros"); });
 document.getElementById("f-codigo").addEventListener("input", actualizarAvisoCodigo);
 function aplicarEstiloBotonReordenar(){
   var b = document.getElementById("btn-modo-reordenar");
@@ -7224,8 +7366,7 @@ function cargarDraftEnFormulario(){
   document.getElementById("btn-toggle-manual").classList.remove("abierto");
   actualizarGpsBox();
   actualizarResumenDg();
-  poblarSugerencias("dl-taxon","taxonLibre");
-  poblarSugerencias("dl-referencia","referencia");
+  repoblarListasSugerencias();   // v2.76: todas las listas del formulario (especie observada, a medir, estructura, métodos, etc.) llegan pobladas al abrirlo
   poblarSugerenciasLocalidadEstacion();
   actualizarPreviewLocalidad();
   actualizarBannerSesionRegistro();
@@ -10348,6 +10489,7 @@ function repoblarListasSugerencias(){
     [["dl-ss-objetivo","objetivo"],["dl-ss-participantes","participantes"],["dl-ss-institucion","institucion"],["dl-ss-prefijo","prefijo"],["dl-ss-clima","clima"],
      ["dl-habitat-otro","habitatOtro"],["dl-taxon","taxonLibre"],["dl-referencia","referencia"],["dl-especie-medida","especieMedida"],["dl-estructura-nombre","estructuraNombre"],
      ["dl-esp-nombre","especieObservada"],["dl-metodo-otro","metodoOtro"],["dl-metodo-med-otro","metodoMedOtro"],["dl-localidad-individuo","zona"]].forEach(function(p){ poblarSugerencias(p[0], p[1]); });
+    poblarSugerenciasParticipantes();
   }catch(e){}
 }
 var sugCampoElegido = "zona", sugFiltro = "todas";
@@ -10369,6 +10511,7 @@ function renderConfigSugerencias(){
   if(sugFiltro !== "propias") aprendidas.forEach(function(t, i){
     filas += '<div class="sug-fila"><span class="sug-txt">'+escapeHtml(t)+'</span><span class="sug-badge apr">aprendida</span>'+
       '<button type="button" class="sug-ico" data-acc="promueve" data-i="'+i+'" aria-label="Hacer propia" title="Hacer propia">★</button>'+
+      '<button type="button" class="sug-ico" data-acc="edita-a" data-i="'+i+'" aria-label="Corregir" title="Corregir el texto">✎</button>'+
       '<button type="button" class="sug-ico sug-x" data-acc="quita-a" data-i="'+i+'" aria-label="Quitar">✕</button></div>';
   });
   function tab(v, txt){ return '<button type="button" class="muestra-tab'+(sugFiltro === v ? ' on' : '')+'" data-f="'+v+'">'+txt+'</button>'; }
@@ -10420,6 +10563,17 @@ function renderConfigSugerencias(){
         quitarSugerenciaCampo(c, propias[i]); refrescar();
       }
       else if(acc === "promueve"){ agregarSugPropia(c.campo, aprendidas[i]); toast("Ahora es una sugerencia propia"); refrescar(); }
+      else if(acc === "edita-a"){
+        /* v2.76: se puede corregir cualquier texto de la lista, venga de donde venga: la versión corregida pasa a ser propia y la original se quita de las sugerencias (los registros y sesiones no se modifican) */
+        var orig = aprendidas[i], corr = prompt("Corregir el texto de la sugerencia (no modifica registros ni sesiones ya guardados):", orig);
+        if(corr === null) return;
+        var limpio = limpiarTextoSug(corr);
+        if(!limpio){ toast("El texto no puede quedar vacío", 2500); return; }
+        if(normalizarTextoComparar(limpio) !== normalizarTextoComparar(orig)) quitarSugerenciaCampo(c, orig);
+        var rr = agregarSugPropia(c.campo, limpio);
+        toast(rr === "existe" ? "Ya había una propia igual; se quitó la original" : "Corregida: ahora es una sugerencia propia", 3200);
+        refrescar();
+      }
       else if(acc === "quita-a"){ quitarSugerenciaCampo(c, aprendidas[i]); refrescar(); }
     });
   });
@@ -10971,11 +11125,14 @@ function renderExportar(){
     var etiqueta = iconoSesion(s.id)+" "+nombreSesionMostrar(s) + " · " + fechaSesion(s);
     var badgeActiva = esActiva ? '<span class="badge-activa">ACTIVA</span>' : "";
     var n = nPorSesion[s.id]||0;
+    var nSueltos = registrosDeSesionOrdenados(s.id).filter(function(r){ return state.sueltosSel[r.id]; }).length;
+    var badgeSueltos = nSueltos ? ' <span class="badge-activa" style="background:var(--verde);">'+nSueltos+(nSueltos===1?' suelto':' sueltos')+'</span>' : '';
     return '<div class="sesion-exportar-card" data-sesion="'+s.id+'">'+
       '<label class="sesion-exportar-header">'+
         '<input type="checkbox" class="sesion-check-export" data-id="'+s.id+'"'+(seleccion.indexOf(s.id)>=0?" checked":"")+'>'+
-        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+' <span class="cnt">('+n+')</span> '+badgeActiva+'</span>'+
+        '<span class="sesion-exportar-label">'+escapeHtml(etiqueta)+' <span class="cnt">('+n+')</span> '+badgeActiva+badgeSueltos+'</span>'+
       '</label>'+
+      (state.expAbiertas[s.id] ? regsSueltosHtml(s) : '')+
     '</div>';
   });
   box.querySelectorAll(".sesion-check-export").forEach(function(c){
@@ -10985,39 +11142,46 @@ function renderExportar(){
     });
   });
   ligarEventosViajesExportar(box);
-  renderElegirRegistros();
-  actualizarStatsExportar();
-}
-/* v2.68: atajos de selección y lista de registros sueltos (solo casillas; Exportar no edita datos) */
-state.expElegirAbierto = false;
-function renderElegirRegistros(){
-  var p = document.getElementById("exp-elegir-panel"), b = document.getElementById("btn-exp-elegir");
-  if(!p || !b) return;
-  b.classList.toggle("on", !!state.expElegirAbierto);
-  if(!state.expElegirAbierto){ p.style.display = "none"; p.innerHTML = ""; return; }
-  p.style.display = "block";
-  var html = "";
-  state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesRegistros)).forEach(function(s){
-    var regs = registrosDeSesionOrdenados(s.id);
-    if(!regs.length) return;
-    html += '<div class="gestion-sub">'+escapeHtml(iconoSesion(s.id)+" "+nombreSesionMostrar(s))+' ('+regs.length+')</div><div class="gestion-lista">'+regs.map(function(r){
-      var ti = TIPOS[r.tipo]||TIPOS.nota, nombre = nombreRegistroLista(r);
-      return '<label class="gestion-fila"><input type="checkbox" class="gestion-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id]?' checked':'')+'>'+
-        '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span></label>';
-    }).join("")+'</div>';
-  });
-  p.innerHTML = html || '<div class="gestion-vacio">Aún no hay registros.</div>';
-  p.querySelectorAll(".gestion-check").forEach(function(chk){
+  box.querySelectorAll(".exp-regs .gestion-check").forEach(function(chk){
     chk.addEventListener("change", function(){
       state.sueltosSel[chk.dataset.id] = chk.checked;
       actualizarStatsExportar();
     });
   });
+  ligarPulsacionSesionesExportar(box);
+  actualizarStatsExportar();
 }
-document.getElementById("btn-exp-elegir").addEventListener("click", function(){
-  state.expElegirAbierto = !state.expElegirAbierto;
-  renderElegirRegistros();
-});
+/* v2.68: atajos de selección y lista de registros sueltos (solo casillas; Exportar no edita datos) */
+/* v2.76: los registros sueltos se eligen con una pulsación sostenida sobre la sesión (sin botón ni bloque aparte) */
+state.expAbiertas = {};
+function regsSueltosHtml(s){
+  var regs = registrosDeSesionOrdenados(s.id);
+  if(!regs.length) return '<div class="exp-regs"><div class="gestion-vacio">Esta sesión no tiene registros.</div></div>';
+  return '<div class="exp-regs gestion-lista">'+regs.map(function(r){
+    var ti = TIPOS[r.tipo]||TIPOS.nota, nombre = nombreRegistroLista(r);
+    return '<label class="gestion-fila"><input type="checkbox" class="gestion-check" data-id="'+r.id+'"'+(state.sueltosSel[r.id]?' checked':'')+'>'+
+      '<span class="gestion-info">'+(r.codigo?('<b>'+escapeHtml(r.codigo)+'</b> · '):(r.notaTitulo?('<b>'+escapeHtml(r.notaTitulo)+'</b> · '):''))+ti.label+(nombre?(' · '+escapeHtml(nombre)):'')+'</span></label>';
+  }).join("")+'</div>';
+}
+function ligarPulsacionSesionesExportar(box){
+  Array.prototype.forEach.call(box.querySelectorAll(".sesion-exportar-card[data-sesion] > .sesion-exportar-header"), function(h){
+    var card = h.parentNode, id = card.getAttribute("data-sesion"), timer = null, largo = false, ini = null;
+    function cancelar(){ clearTimeout(timer); timer = null; }
+    h.addEventListener("pointerdown", function(e){
+      largo = false; ini = {x:e.clientX, y:e.clientY}; cancelar();
+      timer = setTimeout(function(){
+        timer = null; largo = true;
+        if(navigator.vibrate) try{ navigator.vibrate(30); }catch(err){}
+        state.expAbiertas[id] = !state.expAbiertas[id];
+        renderExportar();
+      }, 600);
+    });
+    h.addEventListener("pointermove", function(e){ if(timer && ini && Math.hypot(e.clientX-ini.x, e.clientY-ini.y) > 10) cancelar(); });
+    ["pointerup","pointercancel","pointerleave"].forEach(function(ev){ h.addEventListener(ev, cancelar); });
+    h.addEventListener("click", function(e){ if(largo){ e.preventDefault(); e.stopPropagation(); largo = false; } }, true);
+    h.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+  });
+}
 function marcarSesionesExportar(ids){
   var box = document.getElementById("exp-selector-sesion");
   box.querySelectorAll(".sesion-check-export").forEach(function(c){ c.checked = ids.indexOf(c.dataset.id)>=0; });
