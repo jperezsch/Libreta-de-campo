@@ -2609,7 +2609,7 @@ function construirPantalla() {
     '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
     '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-mapas", "🗺️", "Mapas") + '</div>' +
     '<div id="mp-ctrl">' +
-      btnTb("mp-buscar", "🔎", "Buscar") + btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🔍", "Mis mapas") +
+      btnTb("mp-buscar", "🔎", "Buscar") + btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🌐", "Mis mapas") +
       '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
       btnTb("mp-rumbo", "🧭", "Rumbo", ' style="display:none"') +
     '</div>' +
