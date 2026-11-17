@@ -161,3 +161,14 @@
 #mp-modal-pedir .field input{width:100%; box-sizing:border-box;}
 #mp-modal-pedir .mp-chk{display:flex; align-items:center; gap:8px; margin:6px 0;}
 .mp-medida{font-weight:700; color:#a32626; margin:4px 0 2px;}
+.mp-estilo{margin:4px 0 12px; padding:10px; border:1px solid var(--borde); border-radius:var(--radio); background:var(--card);}
+.mp-estilo-colores{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px;}
+.mp-estilo-col{width:36px; height:36px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--borde); padding:0;}
+.mp-estilo-col.on{box-shadow:0 0 0 3px var(--texto);}
+.mp-estilo-fila{display:flex; gap:10px; margin-bottom:8px;}
+.mp-estilo-fila label{flex:1; display:flex; flex-direction:column; gap:3px;}
+.mp-estilo-fila select{min-height:42px;}
+.mp-ayuda-btn{width:30px; height:30px; border-radius:50%; border:1px solid var(--borde); background:var(--card); color:var(--texto); font-weight:800; padding:0;}
+.mp-ayuda-btn.on{background:var(--verde-claro,#e3eedf);}
+.mp-ayuda{margin:0 0 12px; padding:10px; border:1px solid var(--borde); border-radius:var(--radio); background:var(--card); font-size:.88rem;}
+.mp-ayuda p{margin:6px 0;}

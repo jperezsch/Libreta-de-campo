@@ -246,6 +246,12 @@ function sesionesQueUsan(id) { return LC.state.sesiones.filter(function (s) { re
 /* ---------- capas: estaciones, tracks y límites ---------- */
 var capasCache = {}, capasLoc = leerJSON(LS_CAPAS_LOC, []), capasActuales = [], shpPromesa = null;
 var COL_CAT = "#6a1b9a", COL_LOC = "#e65100";
+/* v2.77: estilo editable de las capas importadas (color, forma, tamaño y etiquetas) */
+var ESTILO_COLORES = ["#e65100", "#c62828", "#6a1b9a", "#1565c0", "#00838f", "#2e7d32", "#f9a825", "#37474f"];
+var ESTILO_FORMAS = { rombo: "◆ Rombo", circulo: "● Círculo", cuadrado: "■ Cuadrado", triangulo: "▲ Triángulo" };
+var ESTILO_TAMS = { 0.4: "Pequeño", 0.55: "Mediano", 0.8: "Grande" };
+function estiloDe(c) { var e = (c && c.estilo) || {}; return { color: e.color || COL_LOC, forma: e.forma || "rombo", tam: e.tam || 0.55, etq: e.etq !== false }; }
+var estiloAbierto = null, ayudaCsvAbierta = false;
 function sinTildes(t) { return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function normClave(k) { return sinTildes(k).toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""); }
 function normProps(p) {
@@ -316,12 +322,52 @@ function cargarShp() {
   });
   return shpPromesa;
 }
-function tipoPorNombre(n) { n = String(n).toLowerCase(); if (/\.(geo)?json$/.test(n)) return "geojson"; if (/\.gpx$/.test(n)) return "gpx"; if (/\.zip$/.test(n)) return "shapefile_zip"; return null; }
+/* v2.77: planilla CSV (nombre, latitud, longitud y columnas opcionales) convertida en puntos */
+var csvOmitidas = 0;
+function csvFilas(txt) {
+  txt = String(txt).replace(/^\uFEFF/, "");
+  var linea1 = txt.split(/\r?\n/)[0] || "", sep = ",", mejor = -1;
+  [",", ";", "\t"].forEach(function (c) { var n = linea1.split(c).length; if (n > mejor) { mejor = n; sep = c; } });
+  var filas = [], fila = [], cel = "", q = false;
+  for (var i = 0; i < txt.length; i++) {
+    var ch = txt[i];
+    if (q) { if (ch === '"') { if (txt[i + 1] === '"') { cel += '"'; i++; } else q = false; } else cel += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === sep) { fila.push(cel); cel = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && txt[i + 1] === "\n") i++; fila.push(cel); cel = ""; filas.push(fila); fila = []; }
+    else cel += ch;
+  }
+  if (cel !== "" || fila.length) { fila.push(cel); filas.push(fila); }
+  return { filas: filas.filter(function (f) { return f.some(function (c) { return String(c).trim() !== ""; }); }), sep: sep };
+}
+function csvNumero(v) { v = String(v).trim().replace(/\s/g, ""); if (v.indexOf(",") >= 0 && v.indexOf(".") < 0) v = v.replace(",", "."); return v === "" ? NaN : Number(v); }
+function csvAGeoJSON(txt) {
+  var r = csvFilas(txt); if (r.filas.length < 2) throw new Error("El CSV necesita una fila de encabezados y al menos un punto");
+  var enc = r.filas[0].map(normClave);
+  function col(alias) { for (var i = 0; i < alias.length; i++) { var k = enc.indexOf(alias[i]); if (k >= 0) return k; } return -1; }
+  var iLat = col(["latitud", "lat", "latitude", "y"]), iLon = col(["longitud", "lon", "long", "lng", "longitude", "x"]);
+  if (iLat < 0 || iLon < 0) throw new Error("Faltan las columnas de coordenadas. Usa los encabezados latitud y longitud (en grados decimales).");
+  var iNom = col(["nombre", "name", "estacion", "station", "codigo", "code", "sitio", "punto", "id"]);
+  var feats = []; csvOmitidas = 0;
+  r.filas.slice(1).forEach(function (f) {
+    var la = csvNumero(f[iLat]), lo = csvNumero(f[iLon]);
+    if (!isFinite(la) || !isFinite(lo)) { csvOmitidas++; return; }
+    var pr = {};
+    enc.forEach(function (k, j) { if (j !== iLat && j !== iLon && k && String(f[j] === undefined ? "" : f[j]).trim() !== "") pr[k] = String(f[j]).trim(); });
+    pr = normProps(pr);
+    if (iNom >= 0 && pr.nombre === undefined && f[iNom] !== undefined && String(f[iNom]).trim() !== "") pr.nombre = String(f[iNom]).trim();
+    feats.push({ type: "Feature", properties: pr, geometry: { type: "Point", coordinates: [lo, la] } });
+  });
+  if (!feats.length) throw new Error("Ninguna fila tiene coordenadas válidas (revisa latitud y longitud)");
+  return { type: "FeatureCollection", features: feats };
+}
+function tipoPorNombre(n) { n = String(n).toLowerCase(); if (/\.(geo)?json$/.test(n)) return "geojson"; if (/\.gpx$/.test(n)) return "gpx"; if (/\.(csv|tsv|txt)$/.test(n)) return "csv"; if (/\.zip$/.test(n)) return "shapefile_zip"; return null; }
 function tipoCapa(t) { return t === "shapefile" ? "shapefile_zip" : (t || "geojson"); }
 async function parsearCapa(file, tipo) {
   var j;
   if (tipo === "geojson") j = JSON.parse(await file.text());
   else if (tipo === "gpx") j = gpxAGeoJSON(await file.text());
+  else if (tipo === "csv") j = csvAGeoJSON(await file.text());
   else if (tipo === "shapefile_zip") {
     await cargarShp();
     var buf = await file.arrayBuffer(), sinPrj = false;
@@ -370,8 +416,13 @@ function clavesVisibles() { return capasActuales.filter(function (c) { return vi
 function geoCapas() {
   var fs = [];
   capasActuales.forEach(function (c) {
+    var ex = { _capa: c.clave, _origen: c.origen };
+    if (c.origen === "local") {
+      var en = capasLoc.filter(function (x) { return x.id === c.id; })[0], e = estiloDe(en);
+      ex._color = e.color; ex._icono = "est-" + e.forma + "-" + e.color.slice(1); ex._tam = e.tam; ex._etq = e.etq ? 1 : 0;
+    }
     c.datos.fc.features.forEach(function (f) {
-      fs.push({ type: "Feature", properties: Object.assign({}, f.properties, { _capa: c.clave, _origen: c.origen }), geometry: f.geometry });
+      fs.push({ type: "Feature", properties: Object.assign({}, f.properties, ex), geometry: f.geometry });
     });
   });
   return { type: "FeatureCollection", features: fs };
@@ -390,6 +441,18 @@ function refrescarCapasMapa() {
   if (map && mapaListo && map.getSource("capas")) { map.getSource("capas").setData(geoCapas()); aplicarFiltrosCapas(); }
 }
 async function recargarCapas() { await cargarCapasMapa(); refrescarCapasMapa(); renderGestor(); }
+function crearForma(forma, col) {
+  var c = document.createElement("canvas"); c.width = c.height = 32;
+  var g = c.getContext("2d");
+  g.beginPath();
+  if (forma === "circulo") g.arc(16, 16, 13, 0, Math.PI * 2);
+  else if (forma === "cuadrado") g.rect(4, 4, 24, 24);
+  else if (forma === "triangulo") { g.moveTo(16, 3); g.lineTo(30, 28); g.lineTo(2, 28); g.closePath(); }
+  else { g.moveTo(16, 2); g.lineTo(30, 16); g.lineTo(16, 30); g.lineTo(2, 16); g.closePath(); }
+  g.fillStyle = col; g.fill(); g.lineWidth = 3; g.strokeStyle = "#ffffff"; g.lineJoin = "round"; g.stroke();
+  var d = g.getImageData(0, 0, 32, 32);
+  return { width: 32, height: 32, data: d.data };
+}
 function crearRombo(col) {
   var c = document.createElement("canvas"); c.width = c.height = 32;
   var g = c.getContext("2d");
@@ -444,7 +507,7 @@ function mostrarTarjetaCapa(f, lngLat) {
 async function importarCapaLocal(file, mapaId) {
   if (!mapaId || !inst[mapaId]) { LC.toast("Elige primero un mapa instalado"); return; }
   var tipo = tipoPorNombre(file.name);
-  if (!tipo) { LC.toast("Formato no admitido. Usa GeoJSON, GPX o shapefile en .zip", 5000); return; }
+  if (!tipo) { LC.toast("Formato no admitido. Usa CSV, GeoJSON, GPX o shapefile en .zip", 5000); return; }
   if (file.size > 25 * 1048576) { LC.toast("El archivo pesa más de 25 MB", 5000); return; }
   var m = inst[mapaId], r;
   try { r = await parsearCapa(file, tipo); }
@@ -461,8 +524,30 @@ async function importarCapaLocal(file, mapaId) {
   catch (e) { LC.toast("No se pudo guardar la capa: " + (e.message || e), 6000); anotarError("guardar capa", e); return; }
   capasLoc.push({ id: id, mapaId: mapaId, nombre: file.name.replace(/\.[^.]+$/, ""), archivo: archivo, tipo: tipo, bytes: blob.size, fecha: fechaHM(), elementos: r.cuenta });
   guardarJSON(LS_CAPAS_LOC, capasLoc);
+  if (tipo === "csv") estiloAbierto = id;
   await recargarCapas();
-  LC.toast("Capa importada: " + resumenCuenta(r.cuenta));
+  LC.toast("Capa «" + capasLoc[capasLoc.length - 1].nombre + "» importada: " + resumenCuenta(r.cuenta) + (tipo === "csv" && csvOmitidas ? " (" + csvOmitidas + (csvOmitidas === 1 ? " fila omitida" : " filas omitidas") + " sin coordenadas válidas)" : "") + (tipo === "csv" ? ". Ajusta su estilo abajo." : ""), tipo === "csv" ? 5000 : undefined);
+}
+function panelEstiloCapa(c) {
+  var en = capasLoc.filter(function (x) { return x.id === c.id; })[0]; if (!en) return el("div");
+  var e = estiloDe(en);
+  function cambiar(campo, v) { en.estilo = Object.assign({}, en.estilo || {}); en.estilo[campo] = v; guardarJSON(LS_CAPAS_LOC, capasLoc); refrescarCapasMapa(); renderGestor(); }
+  var cajaCol = el("div", { class: "mp-estilo-colores" });
+  ESTILO_COLORES.forEach(function (k) {
+    cajaCol.appendChild(el("button", { type: "button", class: "mp-estilo-col" + (k === e.color ? " on" : ""), style: "background:" + k, "aria-label": "Color " + k, onclick: function () { cambiar("color", k); } }));
+  });
+  var selF = el("select", {}), selT = el("select", {});
+  Object.keys(ESTILO_FORMAS).forEach(function (k) { selF.appendChild(el("option", { value: k, texto: ESTILO_FORMAS[k] })); });
+  Object.keys(ESTILO_TAMS).forEach(function (k) { selT.appendChild(el("option", { value: k, texto: ESTILO_TAMS[k] })); });
+  selF.value = e.forma; selT.value = String(e.tam);
+  selF.onchange = function () { cambiar("forma", selF.value); };
+  selT.onchange = function () { cambiar("tam", Number(selT.value)); };
+  var chkE = el("input", { type: "checkbox" }); chkE.checked = e.etq; chkE.onchange = function () { cambiar("etq", chkE.checked); };
+  return el("div", { class: "mp-estilo" }, [
+    el("div", { class: "mp-suave", texto: "Color" }), cajaCol,
+    el("div", { class: "mp-estilo-fila" }, [el("label", {}, [el("span", { class: "mp-suave", texto: "Forma del punto" }), selF]), el("label", {}, [el("span", { class: "mp-suave", texto: "Tamaño" }), selT])]),
+    el("label", { class: "mp-chk" }, [chkE, el("span", { texto: "Mostrar el nombre junto al punto" })])
+  ]);
 }
 async function eliminarCapaLocal(id) {
   var c = capasLoc.filter(function (x) { return x.id === id; })[0]; if (!c) return;
@@ -1250,7 +1335,7 @@ function construirEstilo(sinMapas) {
   }
   if (!sinMapas && ms.length) { estilo.sources.areas = { type: "geojson", data: geoAreas() }; capas = capas.concat(capasAreas()); }
   estilo.sources.capas = { type: "geojson", data: geoCapas() };
-  var COL = ["match", ["get", "_origen"], "local", COL_LOC, COL_CAT];
+  var COL = ["coalesce", ["get", "_color"], ["match", ["get", "_origen"], "local", COL_LOC, COL_CAT]];
   capas.push({ id: "capas-pol-relleno", type: "fill", source: "capas", filter: filtroCapas("capas-pol-relleno"), paint: { "fill-color": COL, "fill-opacity": 0.07 } });
   capas.push({ id: "capas-pol-borde", type: "line", source: "capas", filter: filtroCapas("capas-pol-borde"), paint: { "line-color": COL, "line-width": 2, "line-dasharray": [3, 2] } });
   capas.push({ id: "capas-lineas", type: "line", source: "capas", filter: filtroCapas("capas-lineas"), layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": COL, "line-width": 2.5 } });
@@ -1258,8 +1343,8 @@ function construirEstilo(sinMapas) {
     layout: { "symbol-placement": "line", "text-field": ["get", "nombre"], "text-font": ["NotoSans-Italic"], "text-size": 11 },
     paint: { "text-color": COL, "text-halo-color": "#ffffff", "text-halo-width": 1.5 } });
   capas.push({ id: "capas-estaciones", type: "symbol", source: "capas", filter: filtroCapas("capas-estaciones"),
-    layout: { "icon-image": ["match", ["get", "_origen"], "local", "rombo-local", "rombo-cat"], "icon-size": 0.55, "icon-allow-overlap": true,
-      "text-field": ["coalesce", ["get", "nombre"], ["get", "estacion"], ""], "text-font": ["NotoSans-Medium"], "text-size": 11, "text-offset": [0, 1.3], "text-anchor": "top", "text-optional": true },
+    layout: { "icon-image": ["coalesce", ["get", "_icono"], ["match", ["get", "_origen"], "local", "rombo-local", "rombo-cat"]], "icon-size": ["coalesce", ["get", "_tam"], 0.55], "icon-allow-overlap": true,
+      "text-field": ["case", ["==", ["get", "_etq"], 0], "", ["coalesce", ["get", "nombre"], ["get", "estacion"], ""]], "text-font": ["NotoSans-Medium"], "text-size": 11, "text-offset": [0, 1.3], "text-anchor": "top", "text-optional": true },
     paint: { "text-color": "#222222", "text-halo-color": "#ffffff", "text-halo-width": 1.8 } });
   estilo.sources.puntos = { type: "geojson", data: geoPuntos() };
   estilo.sources.gps = { type: "geojson", data: geoGps() };
@@ -1343,6 +1428,8 @@ function crearMapa() {
     anotarError("mapa", ev.error || ev);
   });
   map.on("styleimagemissing", function (e) {
+    var mf = /^est-(rombo|circulo|cuadrado|triangulo)-([0-9a-f]{6})$/.exec(e.id);
+    if (mf) { map.addImage(e.id, crearForma(mf[1], "#" + mf[2])); return; }
     if (e.id === "rombo-cat" || e.id === "rombo-local") map.addImage(e.id, crearRombo(e.id === "rombo-local" ? COL_LOC : COL_CAT));
     else if (/^nota-/.test(e.id)) map.addImage(e.id, iconoLetra(e.id.slice(5), "N", true));
     else if (/^rec-/.test(e.id)) map.addImage(e.id, iconoLetra(e.id.slice(4), "R", false));
@@ -1858,7 +1945,7 @@ function renderPanelPuntos() {
         } else { if (!capasVis.capas) capasVis.capas = {}; capasVis.capas[c.clave] = inp.checked; aplicarFiltrosCapas(); }
         guardarJSON(LS_CAPAS, capasVis);
       };
-      var punto = c.tipo === "sesion" ? el("span", { class: "mp-punto", style: "background:" + c.color }) : el("span", { class: "mp-punto mp-punto-capa", style: "background:" + (c.origen === "local" ? COL_LOC : COL_CAT) });
+      var punto = c.tipo === "sesion" ? el("span", { class: "mp-punto", style: "background:" + c.color }) : el("span", { class: "mp-punto mp-punto-capa", style: "background:" + (c.origen === "local" ? estiloDe(capasLoc.filter(function (x) { return x.id === c.id; })[0]).color : COL_CAT) });
       var subEl = el("span", { class: "mp-suave", texto: c.tipo === "sesion" ? textoSubSesion(c) : c.resumen + (c.origen === "local" ? " · importada" : " · catálogo") });
       if (c.tipo === "sesion") subEl.setAttribute("data-sub-sesion", c.clave);
       var ver = el("button", { type: "button", class: "mp-panel-ver", onclick: function () { encuadrarConjunto(c); cerrarPanelPuntos(); } }, [el("b", { texto: c.nombre }), subEl]);
@@ -2306,22 +2393,39 @@ function renderGestor() {
         var fila = [el("label", { class: "mp-chk", style: "flex:1;" }, [inp, texto])];
         var caja = el("div", { style: "display:flex;align-items:center;gap:8px;" }, fila);
         if (c.origen === "local") caja.appendChild(el("button", { texto: "Eliminar", style: "min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--borde);background:var(--card);color:var(--texto);font-weight:700;", onclick: function () { if (confirm("¿Eliminar la capa importada «" + c.nombre + "»?")) eliminarCapaLocal(c.id); } }));
+        if (c.origen === "local") {
+          var abierto = estiloAbierto === c.id;
+          caja.insertBefore(el("button", { texto: "🎨 Estilo", style: "min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--borde);background:" + (abierto ? "var(--verde-claro, #e3eedf)" : "var(--card)") + ";color:var(--texto);font-weight:700;", onclick: function () { estiloAbierto = abierto ? null : c.id; renderGestor(); } }), caja.lastChild);
+        }
         cu.appendChild(caja);
+        if (c.origen === "local" && estiloAbierto === c.id) cu.appendChild(panelEstiloCapa(c));
       });
-      var inpArch = el("input", { type: "file", accept: ".geojson,.json,.gpx,.zip,application/geo+json,application/json,application/gpx+xml,application/zip", style: "display:none;" });
+      var inpArch = el("input", { type: "file", accept: ".csv,.tsv,.txt,text/csv,.geojson,.json,.gpx,.zip,application/geo+json,application/json,application/gpx+xml,application/zip", style: "display:none;" });
       var idsInst = Object.keys(inst).sort();
       if (!mapaImportId || !inst[mapaImportId]) { var sA = LC.sesionActiva(); mapaImportId = sA && sA.mapaId && inst[sA.mapaId] ? sA.mapaId : idsInst[0]; }
       var selImp = el("select", { id: "mp-import-sel" });
       idsInst.forEach(function (id) { selImp.appendChild(el("option", { value: id, texto: nombreCorto(inst[id].nombre) })); });
       selImp.value = mapaImportId;
       selImp.onchange = function () { mapaImportId = selImp.value; };
-      cu.appendChild(el("h3", { texto: "Importar una capa", style: "margin:16px 0 6px;font-size:1rem;" }));
+      cu.appendChild(el("div", { style: "display:flex;align-items:center;gap:8px;margin:16px 0 6px;" }, [
+        el("h3", { texto: "Importar una capa", style: "margin:0;font-size:1rem;" }),
+        el("button", { type: "button", class: "mp-ayuda-btn" + (ayudaCsvAbierta ? " on" : ""), texto: "?", "aria-label": "Cómo preparar el CSV", onclick: function () { ayudaCsvAbierta = !ayudaCsvAbierta; renderGestor(); } })
+      ]));
+      if (ayudaCsvAbierta) cu.appendChild(el("div", { class: "mp-ayuda" }, [
+        el("b", { texto: "Cómo preparar una planilla CSV" }),
+        el("p", { texto: "Una fila de encabezados y una fila por punto. Se puede guardar desde Excel o Calc con «Guardar como… CSV»." }),
+        el("p", { texto: "Columnas necesarias: latitud y longitud, en grados decimales (por ejemplo -41.4693 y -72.9424). Se reconocen los encabezados latitud, lat, longitud, lon, long y lng." }),
+        el("p", { texto: "Columna recomendada: nombre (también sirve estacion, codigo, sitio o id). Es el texto que se ve junto al punto." }),
+        el("p", { texto: "Columnas opcionales: descripcion, localidad, localidad_especifica o cualquier otra. Quedan como datos del punto y se ven al tocarlo." }),
+        el("pre", { class: "mp-pre", texto: "nombre,latitud,longitud,descripcion\nE-01,-41.4693,-72.9424,Orilla del estero\nE-02,-41.4710,-72.9388,Bosque nativo" }),
+        el("p", { texto: "Se acepta coma, punto y coma o tabulador como separador, y coma decimal (-41,4693). El nombre de la capa es el nombre del archivo. Las filas sin coordenadas válidas se omiten y la app avisa cuántas. Las coordenadas deben ser WGS 84; no se admiten grados, minutos y segundos ni UTM. Tras importar, el botón «🎨 Estilo» cambia color, forma y tamaño." })
+      ]));
       cu.appendChild(el("p", { class: "mp-suave", texto: "Asociar la capa al mapa:" }));
       cu.appendChild(el("div", { class: "field" }, [selImp]));
       inpArch.onchange = function () { var f = inpArch.files && inpArch.files[0]; inpArch.value = ""; if (f) importarCapaLocal(f, mapaImportId); };
       cu.appendChild(inpArch);
       cu.appendChild(el("div", { class: "mp-fila" }, [el("button", { class: "primario", texto: "⬆️ Importar capa desde un archivo", onclick: function () { inpArch.click(); } })]));
-      cu.appendChild(el("p", { class: "mp-suave", texto: "GeoJSON, GPX o shapefile en .zip. La capa queda asociada al mapa elegido (se borra si eliminas ese mapa) y solo se guarda en este teléfono: no se publica ni se incluye en la exportación. Útil para sitios sensibles." }));
+      cu.appendChild(el("p", { class: "mp-suave", texto: "CSV (toca el «?» para ver el formato), GeoJSON, GPX o shapefile en .zip. El nombre de la capa es el del archivo. La capa queda asociada al mapa elegido (se borra si eliminas ese mapa) y solo se guarda en este teléfono: no se publica ni se incluye en la exportación. Útil para sitios sensibles." }));
     }
   } else {
     cu.appendChild(el("pre", { class: "mp-pre", texto: infoDiag() }));
@@ -2549,6 +2653,6 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto, verRecorrido: verRecorrido,
   /* para pruebas */
-  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; } }; }
+  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; }, csvAGeoJSON: csvAGeoJSON, normalizarFC: normalizarFC, geoCapas: geoCapas, panelEstiloCapa: panelEstiloCapa, tipoPorNombre: tipoPorNombre, omitidas: function () { return csvOmitidas; } }; }
 };
 })();
