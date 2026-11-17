@@ -235,7 +235,7 @@ var bateria = "";
 function nombreDeUrl(u) { return decodeURIComponent(new URL(u, location.href).pathname.split("/").pop()); }
 function archivosDe(e) { return (e.archivos || []).filter(function (a) { return a.tipo === "base" || a.tipo === "relieve"; }); }
 function capasDe(e) { return ((e && e.capas) || []).filter(function (c) { return c && c.id && c.url && /^(geojson|gpx|shapefile_zip|shapefile)$/.test(c.tipo || "geojson"); }); }
-function capaInstalada(m, c) { return !!(m && (m.capas || []).some(function (x) { return x.id === c.id && x.url === c.url; })); }
+function capaInstalada(m, c) { return !!(m && (m.capas || []).some(function (x) { return x.id === c.id && repararDir(x.url) === c.url; })); }
 function capasPendientes(e) { var m = inst[e.id]; return m ? capasDe(e).filter(function (c) { return !capaInstalada(m, c); }) : capasDe(e); }
 function totalBytes(e) { return archivosDe(e).concat(capasDe(e)).reduce(function (s, a) { return s + (a.bytes || 0); }, 0); }
 function archivoTipo(m, tipo) { var a = (m.archivos || []).filter(function (x) { return x.tipo === tipo; })[0]; return a ? a.nombre : null; }
@@ -559,7 +559,16 @@ async function eliminarCapaLocal(id) {
 }
 
 /* ---------- catálogo ---------- */
-function catalogoUrl() { return PARAMS.get("catalogo") || (LC && LC.mapaCfg().catalogoUrl) || ""; }
+/* v2.79: el repositorio de mapas pasó de «libreta-mapas-prueba» a «libreta-mapas» (2026-10-06) y GitHub Pages no redirige la dirección antigua (error 404).
+   Se corrige la dirección guardada en el teléfono y las direcciones de paquetes, capas e imágenes que traiga el catálogo. */
+function repararDir(u) { return typeof u === "string" ? u.replace(/(github\.io)\/libreta-mapas-prueba\//, "$1/libreta-mapas/") : u; }
+function repararCatalogo(x) {
+  if (typeof x === "string") return repararDir(x);
+  if (Array.isArray(x)) { for (var i = 0; i < x.length; i++) x[i] = repararCatalogo(x[i]); return x; }
+  if (x && typeof x === "object") { for (var k in x) x[k] = repararCatalogo(x[k]); }
+  return x;
+}
+function catalogoUrl() { return repararDir(PARAMS.get("catalogo") || (LC && LC.mapaCfg().catalogoUrl) || ""); }
 async function cargarCatalogo() {
   var url = catalogoUrl(), sep = url.indexOf("?") >= 0 ? "&" : "?";
   try {
@@ -568,13 +577,14 @@ async function cargarCatalogo() {
     if (!r.ok) throw new Error("HTTP " + r.status);
     var j = await r.json();
     if (j.esquema !== 1 || !Array.isArray(j.mapas)) throw new Error("Catálogo con formato no reconocido");
+    repararCatalogo(j);
     cat = j; catInfo = "Catálogo del " + (j.actualizado || "?") + ", consultado " + fechaHM();
     guardarJSON(LS_CAT, { fecha: fechaHM(), data: j });
     return true;
   } catch (e) {
     anotarError("catálogo", e);
     var g = leerJSON(LS_CAT, null);
-    if (g && g.data) { cat = g.data; catInfo = "Sin poder consultar. Catálogo guardado el " + g.fecha; }
+    if (g && g.data) { cat = repararCatalogo(g.data); catInfo = "Sin poder consultar. Catálogo guardado el " + g.fecha; }
     else { cat = null; catInfo = "Sin catálogo. Conéctate una vez para descargarlo."; }
     return false;
   }
@@ -2018,6 +2028,7 @@ function mensajeGh(r, cuerpo) {
   if (r.status === 422) return "GitHub rechazó los datos" + (cuerpo && cuerpo.message ? ": " + cuerpo.message : ".");
   return "GitHub respondió " + r.status + (cuerpo && cuerpo.message ? ": " + cuerpo.message : ".");
 }
+var RADIO_MAX_KM = 60;   /* v2.79: antes 30. Con radios grandes el flujo baja solo el zoom del mapa base para no pasar el tope de MB */
 function numDecimal(t) { var n = parseFloat(String(t == null ? "" : t).trim().replace(",", ".")); return isFinite(n) ? n : null; }
 function validarPedido(d) {
   if (!d.nombre) return "Falta el nombre de la localidad.";
@@ -2025,7 +2036,7 @@ function validarPedido(d) {
   var la = numDecimal(d.lat), lo = numDecimal(d.lon), ra = numDecimal(d.radio);
   if (la == null || la < -90 || la > 90) return "La latitud debe estar entre -90 y 90.";
   if (lo == null || lo < -180 || lo > 180) return "La longitud debe estar entre -180 y 180.";
-  if (ra == null || ra < 0.5 || ra > 30) return "El radio debe estar entre 0,5 y 30 km.";
+  if (ra == null || ra < 0.5 || ra > RADIO_MAX_KM) return "El radio debe estar entre 0,5 y " + RADIO_MAX_KM + " km.";
   if (d.id && !/^[a-z0-9_]+$/.test(d.id)) return "El identificador solo admite minúsculas, números y guion bajo.";
   return null;
 }
@@ -2115,7 +2126,7 @@ function abrirPedir() {
   var fReg = campo("Región", "ped-region", "Ej.: Región de Coquimbo", { autocapitalize: "words" });
   var fLat = campo("Latitud del centro", "ped-lat", null, { inputmode: "decimal" });
   var fLon = campo("Longitud del centro", "ped-lon", null, { inputmode: "decimal" });
-  var fRad = campo("Radio (km)", "ped-radio", "Entre 0,5 y 30. Se agregan 0,5 km de margen.", { inputmode: "decimal", value: "8" });
+  var fRad = campo("Radio (km)", "ped-radio", "Entre 0,5 y " + RADIO_MAX_KM + ". Se agregan 0,5 km de margen. Con radios grandes baja el zoom del mapa base o sube el tope de MB.", { inputmode: "decimal", value: "8" });
   var fId = campo("Identificador (opcional)", "ped-id", "Vacío: se arma con el nombre.");
   var fZ = campo("Zoom máximo del mapa base", "ped-zoom", "13 a 15. Baja solo si se supera el tope.", { inputmode: "numeric", value: "15" });
   var fMb = campo("Tope de tamaño (MB)", "ped-maxmb", "Base más relieve.", { inputmode: "numeric", value: "30" });
@@ -2496,6 +2507,98 @@ function refrescarUI() {
   if (v === "sesion") renderAsociado(LC.sesionEnPantalla());
 }
 
+/* ---------- v2.79: buscador de topónimos y coordenadas decimales ----------
+   Las coordenadas se entienden en el teléfono (sin conexión). Los nombres de lugar se consultan en OpenStreetMap (Nominatim), solo con conexión. */
+var bsqMarca = null;
+function leerCoordenadas(texto) {
+  var t = String(texto == null ? "" : texto).replace(/\u2212/g, "-").replace(/[°º]/g, " ").trim();
+  if (!t) return null;
+  var re = /([-+]?\d+(?:[.,]\d+)?)\s*([NSEWOnsewo](?![A-Za-z]))?/g, partes = [], m;
+  while ((m = re.exec(t)) !== null) partes.push({ n: parseFloat(m[1].replace(",", ".")), h: m[2] ? m[2].toUpperCase() : "" });
+  if (partes.length !== 2) return null;
+  if (t.replace(re, "").replace(/[\s,;\/]/g, "") !== "") return null;
+  var a = partes[0], b = partes[1], lat, lon;
+  if (a.h || b.h) {
+    var pl = a.h === "N" || a.h === "S" ? a : (b.h === "N" || b.h === "S" ? b : null);
+    var po = a.h === "E" || a.h === "W" || a.h === "O" ? a : (b.h === "E" || b.h === "W" || b.h === "O" ? b : null);
+    if (!pl || !po || pl === po) return null;
+    lat = pl.h === "S" ? -Math.abs(pl.n) : Math.abs(pl.n);
+    lon = po.h === "E" ? Math.abs(po.n) : -Math.abs(po.n);
+  } else {
+    lat = a.n; lon = b.n;
+    if (Math.abs(lat) > 90 && Math.abs(lon) <= 90) { var x = lat; lat = lon; lon = x; }   /* se escribió «longitud, latitud» */
+  }
+  if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat: lat, lon: lon };
+}
+function panelBusqueda(abrir) {
+  var p = $("mp-bsq"); if (!p) return;
+  var ver = abrir === undefined ? p.style.display !== "block" : abrir;
+  p.style.display = ver ? "block" : "none";
+  var b = $("mp-buscar"); if (b) b.classList.toggle("on", ver || !!bsqMarca);
+  if (ver) {
+    var q = $("mp-bsq-q"); sugerirCoordenadas();
+    setTimeout(function () { try { q.focus(); q.select(); } catch (e) {} }, 60);
+  } else { try { $("mp-bsq-q").blur(); } catch (e) {} }
+}
+function bsqMensaje(txt) { var r = $("mp-bsq-res"); r.textContent = ""; if (txt) r.appendChild(el("div", { class: "mp-suave mp-bsq-msg", texto: txt })); return r; }
+function bsqFila(titulo, detalle, fn) {
+  return el("button", { type: "button", class: "mp-bsq-fila-res", onclick: fn }, [el("b", { texto: titulo }), detalle ? el("span", { class: "mp-suave", texto: detalle }) : null]);
+}
+function sugerirCoordenadas() {
+  var c = leerCoordenadas($("mp-bsq-q").value), r = $("mp-bsq-res");
+  r.textContent = "";
+  if (c) r.appendChild(bsqFila("📍 Ir a " + c.lat.toFixed(6) + ", " + c.lon.toFixed(6), "Coordenadas decimales (latitud, longitud)", function () { irAlLugar(c.lat, c.lon, null, "Coordenadas"); }));
+  else if (bsqMarca) r.appendChild(el("button", { type: "button", class: "mp-bsq-quitar", texto: "Quitar el marcador del mapa", onclick: quitarMarcaBusqueda }));
+  if (!c && !String($("mp-bsq-q").value).trim()) r.appendChild(el("div", { class: "mp-suave mp-bsq-msg", texto: "Escribe un lugar (con conexión) o coordenadas decimales, por ejemplo -38,6575 -72,5929 o 38.6575 S 72.5929 O." }));
+}
+function quitarMarcaBusqueda() {
+  if (bsqMarca) { bsqMarca.remove(); bsqMarca = null; }
+  var b = $("mp-buscar"); if (b) b.classList.remove("on");
+  sugerirCoordenadas();
+}
+function irAlLugar(lat, lon, bbox, nombre) {
+  if (!map || !mapaListo) { LC.toast("El mapa todavía no está listo", 2800); return; }
+  if (bsqMarca) bsqMarca.remove();
+  var punto = el("div", { class: "mp-bsq-marca", title: nombre || "" }, [el("i")]);
+  bsqMarca = new maplibregl.Marker({ element: punto, anchor: "center" }).setLngLat([lon, lat]).addTo(map);
+  if (bbox) map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 60, maxZoom: 15, duration: 600 });
+  else map.easeTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 600 });
+  panelBusqueda(false);
+  LC.toast("📍 " + (nombre ? nombre.split(",")[0] + " · " : "") + lat.toFixed(5) + ", " + lon.toFixed(5), 3200);
+}
+var bsqTok = 0;
+async function buscarAhora() {
+  var q = String($("mp-bsq-q").value || "").trim();
+  if (!q) { sugerirCoordenadas(); return; }
+  var c = leerCoordenadas(q);
+  if (c) { irAlLugar(c.lat, c.lon, null, "Coordenadas"); return; }
+  if (!online) { bsqMensaje("Sin conexión. La búsqueda por nombre necesita internet; las coordenadas decimales funcionan sin conexión."); return; }
+  var tok = ++bsqTok;
+  bsqMensaje("Buscando…");
+  try {
+    var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=0&accept-language=es&q=" + encodeURIComponent(q);
+    if (map && mapaListo) { var b = map.getBounds(); url += "&viewbox=" + [b.getWest(), b.getNorth(), b.getEast(), b.getSouth()].join(","); }
+    var r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    var lista = await r.json();
+    if (tok !== bsqTok) return;
+    if (!Array.isArray(lista) || !lista.length) { bsqMensaje("No se encontró «" + q + "». Prueba con otro nombre o con coordenadas."); return; }
+    var res = bsqMensaje("");
+    lista.forEach(function (it) {
+      var lat = parseFloat(it.lat), lon = parseFloat(it.lon); if (!isFinite(lat) || !isFinite(lon)) return;
+      var bb = it.boundingbox && it.boundingbox.length === 4 ? [parseFloat(it.boundingbox[2]), parseFloat(it.boundingbox[0]), parseFloat(it.boundingbox[3]), parseFloat(it.boundingbox[1])] : null;
+      if (bb && !bb.every(isFinite)) bb = null;
+      var partes = String(it.display_name || it.name || "").split(",");
+      res.appendChild(bsqFila(partes[0].trim() || q, partes.slice(1, 4).join(",").trim() + (it.type ? " · " + it.type : ""), function () { irAlLugar(lat, lon, bb, it.display_name || it.name); }));
+    });
+    res.appendChild(el("div", { class: "mp-suave mp-bsq-msg", texto: "Resultados de OpenStreetMap (© colaboradores de OpenStreetMap)." }));
+  } catch (e) {
+    anotarError("búsqueda", e);
+    if (tok === bsqTok) bsqMensaje("No se pudo buscar ahora. Revisa la conexión e inténtalo de nuevo.");
+  }
+}
+
 /* ---------- arranque ---------- */
 function construirPantalla() {
   var pant = $("s-mapa"); if (!pant) return;
@@ -2506,7 +2609,7 @@ function construirPantalla() {
     '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
     '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-mapas", "🗺️", "Mapas") + '</div>' +
     '<div id="mp-ctrl">' +
-      btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🔍", "Mis mapas") +
+      btnTb("mp-buscar", "🔎", "Buscar") + btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🔍", "Mis mapas") +
       '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
       btnTb("mp-rumbo", "🧭", "Rumbo", ' style="display:none"') +
     '</div>' +
@@ -2520,6 +2623,7 @@ function construirPantalla() {
     '<button type="button" class="mp-btn mp-gps-btn sin-gps" id="mp-centrar" aria-label="Centrar en mi ubicación. Mantén presionado para guardar un punto aquí">◎</button>' +
     '<div id="mp-leyenda" role="group" aria-label="Tipos de punto: toca para mostrar u ocultar"></div>' +
     '<div id="mp-aviso"></div>' +
+    '<div id="mp-bsq"><div class="mp-bsq-fila"><input type="search" id="mp-bsq-q" placeholder="Lugar o coordenadas (-38,6575 -72,5929)" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="mp-btn chico" id="mp-bsq-ir">Ir</button><button type="button" class="mp-panel-x" id="mp-bsq-x" aria-label="Cerrar la búsqueda">✕</button></div><div id="mp-bsq-res"></div></div>' +
     '<div id="mp-panel-puntos"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
       '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div></div>' +
@@ -2528,6 +2632,11 @@ function construirPantalla() {
   $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagarManual(); };
   instalarCentrar();
   $("mp-puntos").onclick = alternarPanelPuntos;
+  $("mp-buscar").onclick = function () { panelBusqueda(); };
+  $("mp-bsq-x").onclick = function () { panelBusqueda(false); };
+  $("mp-bsq-ir").onclick = function () { buscarAhora(); };
+  $("mp-bsq-q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); buscarAhora(); } });
+  $("mp-bsq-q").addEventListener("input", function () { sugerirCoordenadas(); });
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
   $("mp-todos").onclick = verTodosLosMapas;
