@@ -160,6 +160,8 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .card.nuevo-highlight{animation:flash 1.6s ease-out;}
 .card.card-draft{background:#fdf6e8; border:1.5px dashed var(--ambar); margin-top:14px;}
 .card.card-draft:active{background:#fbeecb;}
+.card.card-draft .reg-title{color:#2b2b24;}
+.card.card-draft .reg-meta{color:#6b6a5c;}
 @keyframes flash{0%{background:#d3ecd8;}100%{background:var(--card);}}
 .reg-actions{display:flex; flex-direction:column; gap:6px; flex-shrink:0;}
 .btn-icon{width:38px; height:38px; border-radius:9px; border:1.5px solid var(--borde); background:var(--fondo); font-size:1.1rem; display:flex; align-items:center; justify-content:center; cursor:pointer;}
@@ -727,7 +729,9 @@ html[data-tema="noche"] .viaje-header .mini-btn.on{background:var(--verde); colo
 .narr-sesion-header{align-items:center; flex-wrap:wrap; margin-top:18px; padding:9px 10px 9px 12px; row-gap:6px;}
 .narr-sesion-titulo{font-size:1.06rem; padding-top:0; flex:1 1 100%;}
 .narr-sesion-titulo .cnt{font-weight:400; color:var(--texto-sec); font-size:.9rem;}
-.narr-sesion-acciones{flex-direction:row; flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:6px; max-width:100%;}
+.narr-sesion-acciones{flex-direction:row; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px; flex:1 1 auto; max-width:100%;}
+.narr-sesion-acciones .sa-izq, .narr-sesion-acciones .sa-der{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+.narr-sesion-acciones .sa-der{margin-left:auto; justify-content:flex-end;}
 .btn-colapsar-sesion, .btn-finalizar-sesion-inline, .btn-restaurar-orden{font-size:.8rem; padding:6px 11px; border-radius:14px; min-height:34px;}
 .reg-title{font-size:.98rem;}
 .reg-meta{font-size:.84rem;}
@@ -735,6 +739,14 @@ html[data-tema="noche"] .viaje-header .mini-btn.on{background:var(--verde); colo
 .reg-toolbar .mini-btn{flex:1; min-height:38px; font-weight:700;}
 .reg-toolbar .mini-btn.on{background:var(--verde); color:#fff; border-color:var(--verde);}
 .filtros-det summary{font-size:.92rem;}
+/* v2.80: «Gestión de proyectos» se lee como administración (banda oscura, serif en mayúsculas) y «Filtrar registros» queda pegado a la lista */
+.gestion-det{background:var(--vj-bg); border-color:var(--vj-bg); color:var(--vj-tx); margin:6px 0 20px; box-shadow:var(--sombra);}
+.gestion-det > summary{font-family:Georgia,"Times New Roman",serif; font-size:.9rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--vj-tx);}
+.gestion-det > .filtros-cuerpo{background:var(--card); color:var(--texto); border-radius:8px; padding:10px 10px 10px; margin:0 -6px 10px;}
+.filtro-lista{margin:0 0 0; border-radius:10px 10px 0 0; border-bottom-width:0;}
+.filtro-lista:not([open]){border-bottom-width:1.5px; border-radius:10px; margin-bottom:8px;}
+.filtro-lista[open]{margin-bottom:8px; border-bottom-width:1.5px; border-radius:10px;}
+#lista-registros{padding-top:2px;}
 .filtros-fila{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:2px 0 10px;}
 .filtros-rotulo{font-size:.82rem; color:var(--texto-sec); width:100%;}
 .card .reg-sel{width:24px; height:24px; flex:none; align-self:center;}
@@ -811,7 +823,7 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
 .reg-actions-sel{display:none;}
 .card.sel .reg-actions-sel{display:flex;}
 #det-proyectos{width:100%; box-sizing:border-box;}
-#det-proyectos summary{font-weight:800; color:var(--verde-osc);}
+#det-proyectos summary{font-weight:800;}
 .gp-fila{display:flex; gap:8px; margin:2px 0 10px;}
 .gp-sub{font-size:.84rem; font-weight:800; color:var(--verde-osc); margin:12px 0 4px; text-transform:uppercase; letter-spacing:.3px;}
 .gp-comp{font-size:.84rem; color:var(--texto-sec); margin:0 0 8px; line-height:1.4;}
@@ -848,11 +860,6 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
     </div>
   </div>
   <div class="pad">
-    <div class="bloque" id="bloque-proyecto-activo">
-      <div class="section-title"><span class="n">⭐</span>Proyecto activo</div>
-      <div class="field"><select id="ss-activo"></select><span class="campo-ayuda">Las sesiones nuevas se asignan a este proyecto y puedes grabar rutas desde el Mapa aunque no haya una sesión activa. Los proyectos se crean y administran en Registros, en «Gestión de proyectos».</span></div>
-    </div>
-
     <div class="bloque" id="bloque-sesion-principal">
       <div class="section-title"><span class="n">🧭</span>Sesión actual</div>
       <button type="button" class="btn-nueva-salida" id="btn-nueva-salida" style="width:100%; margin-bottom:14px; border-radius:12px;">🆕 Nueva Sesión</button>
@@ -861,7 +868,7 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
         <button type="button" class="btnfull btn-secondary" id="btn-reactivar-sesion" style="display:none;">▶️ Reactivar sesión</button>
         <button type="button" class="btnfull btn-secondary" id="btn-editar-sesion" style="display:none;">✏️ Editar sesión</button>
       </div>
-      <div class="field" id="campo-ss-viaje"><label>Asignar a proyecto</label><select id="ss-viaje"></select><span class="campo-ayuda" id="ss-viaje-ayuda">Opcional: agrupa varias sesiones de una misma salida o campaña.</span></div>
+      <div class="field" id="campo-ss-viaje"><label>Asignar a proyecto</label><select id="ss-viaje"></select><span class="campo-ayuda" id="ss-viaje-ayuda">Opcional: agrupa varias sesiones de una misma salida o campaña. ★ marca el proyecto activo, que se elige en Registros, «Gestión de proyectos».</span></div>
       <div class="field"><label>Localidad general</label><input type="text" id="ss-zona" spellcheck="true" list="dl-ss-zona" autocomplete="off" placeholder="Ej: Rucamanque, Temuco, Región de la Araucanía"><datalist id="dl-ss-zona"></datalist><span class="campo-ayuda">Incluir comuna, provincia y región</span></div>
       <div class="row2 row-sesion-nombre">
         <div class="field"><label>N° de sesión</label><input type="number" id="ss-correlativo" min="1" inputmode="numeric"><span class="campo-ayuda" id="ss-correlativo-hint">Diferencia sesiones con nombre idéntico</span></div>
@@ -952,15 +959,15 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <button type="button" class="vista-btn on" id="btn-vista-libreta">📋 Libreta</button>
       <button type="button" class="vista-btn" id="btn-vista-bitacora" title="Abre la bitácora del proyecto activo">📖 Bitácora</button>
     </div>
-    <details class="filtros-det" id="det-proyectos">
+    <details class="filtros-det gestion-det" id="det-proyectos">
       <summary id="sum-proyectos">🧭 Gestión de proyectos</summary>
       <div class="filtros-cuerpo" id="gp-cuerpo"></div>
     </details>
     <div class="reg-toolbar" id="reg-toolbar" style="display:none;">
       <button type="button" class="mini-btn on" id="btn-reordenar-listo">✔️ Listo</button>
     </div>
-    <details class="filtros-det" id="det-filtros">
-      <summary id="sum-filtros">🔎 Orden y filtros</summary>
+    <details class="filtros-det filtro-lista" id="det-filtros">
+      <summary id="sum-filtros">🔎 Filtrar registros</summary>
       <div class="filtros-cuerpo">
         <div class="filtros-fila">
           <span class="filtros-rotulo">Ordenar sesiones:</span>
@@ -1317,7 +1324,7 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <button type="button" class="mini-btn" id="btn-bit-volver">← Volver</button>
       <button type="button" class="mini-btn" id="btn-bit-nota">＋ Nota</button>
       <button type="button" class="mini-btn" id="bit-solo-narrativas" aria-pressed="false" title="Ocultar notas operativas">📌 Ocultar operativas</button>
-      <button type="button" class="mini-btn on" id="bit-ver-registros" aria-pressed="true" title="Intercalar registros (resumidos)">📋 Intercalar registros</button>
+      <button type="button" class="mini-btn on" id="bit-ver-registros" aria-pressed="true" title="Incluir registros (resumidos) entre las notas">📋 Incluir registros</button>
       <button type="button" class="mini-btn" id="btn-bit-exportar">⬇️ Exportar (.html)</button>
     </div>
     <div id="bit-ficha"></div>
@@ -4057,7 +4064,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-17 · v2.79";
+var APP_BUILD = "2026-11-17 · v2.80";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -4978,7 +4985,6 @@ var SS_MAP = {"ss-proyecto":"proyecto","ss-objetivo":"objetivo",
   "ss-participantes":"participantes","ss-zona":"zona","ss-institucion":"institucion",
   "ss-clima":"clima","ss-notas":"notas","ss-prefijo":"prefijo"};
 function renderSesion(){
-  renderProyectoActivo();
   var s = sesionEnPantalla();
   if(!s) return;
   state.sesionEnPantallaId = s.id;
@@ -5155,11 +5161,27 @@ document.getElementById("btn-guardar-sesion").addEventListener("click", function
       if(!confirm('Ya existe otra sesión llamada "'+nombreActual+'" (del '+fechaDup+'). ¿Guardar igual con este mismo nombre?')) return;
     }
   }
-  aprenderPendientes("sesion");
-  if(s.borrador) activarSesionNueva(s); else guardarSesion();
-  state.sesionEditando = false;
-  renderSesion();
-  document.getElementById("modal-confirm-sesion").classList.add("on");
+  function terminarGuardado(){
+    aprenderPendientes("sesion");
+    if(s.borrador) activarSesionNueva(s); else guardarSesion();
+    state.sesionEditando = false;
+    renderSesion();
+    document.getElementById("modal-confirm-sesion").classList.add("on");
+  }
+  /* v2.80: al crear una sesión asignada a un proyecto que no es el activo, se avisa (el proyecto activo recibe los recorridos y notas sin sesión) */
+  var vAsig = s.viajeId ? viajePorId(s.viajeId) : null;
+  if(s.borrador && vAsig && vAsig.id!==state.viajeActivoId){
+    var vAct = viajeActivo();
+    modalGen({titulo:"⚠️ Proyecto no activo",
+      mensaje:'Esta sesión se asigna a «'+vAsig.nombre+'», que no es el proyecto activo'+(vAct ? ' (el activo es «'+vAct.nombre+'»)' : ' (no hay proyecto activo)')+'. Los recorridos y notas que grabes sin sesión van al proyecto activo.',
+      opciones:[{v:"activar", l:'Crear la sesión y activar «'+vAsig.nombre+'»'}, {v:"seguir", l:"Crear la sesión sin cambiar el proyecto activo"}],
+      ok:"Continuar"}, function(t, sel){
+        if(sel==="activar") fijarViajeActivo(vAsig.id);
+        terminarGuardado();
+      });
+    return;
+  }
+  terminarGuardado();
 });
 document.getElementById("btn-editar-sesion").addEventListener("click", function(){
   state.sesionEditando = true;
@@ -5480,7 +5502,7 @@ function renderLista(justSavedId){
   renderChips();
   renderPanelHuerfanos(); renderRecorridosHuerfanos(); renderPanelFechas();
   var smf = document.getElementById("sum-filtros");
-  if(smf){ var filtroAct = !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); smf.textContent = "🔎 Orden y filtros" + (filtroAct ? " · filtro activo" : ""); }
+  if(smf){ var filtroAct = !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); smf.textContent = "🔎 Filtrar registros" + (filtroAct ? " · filtro activo" : ""); }
   var lista = obtenerListaFiltrada();
   renderListaTarjetas(lista, justSavedId);
   actualizarBarraSeleccion();
@@ -5536,8 +5558,8 @@ function renderListaTarjetas(lista, justSavedId){
       var restaurarHtml = (modoReordenarRegistros && sesG && sesG.ordenRegistros) ? '<button type="button" class="btn-restaurar-orden" data-restaurar-orden="'+escapeHtml(g.sesionId)+'">↺ Orden por fecha</button>' : '';
       var btnColapsar = '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button>';
       var accHtml = modoSeleccion
-        ? ((g.registros.length ? '<button type="button" class="btn-colapsar-sesion" data-sel-todos="'+escapeHtml(g.sesionId)+'">☑ Todos</button>' : '')+btnColapsar)
-        : (botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+btnColapsar+(sesG ? '<button type="button" class="btn-menu btn-menu-sesion" data-ses-menu="'+escapeHtml(g.sesionId)+'" aria-label="Más acciones de la sesión">⋯</button>' : ''));
+        ? ('<span class="sa-izq">'+(g.registros.length ? '<button type="button" class="btn-colapsar-sesion" data-sel-todos="'+escapeHtml(g.sesionId)+'">☑ Todos</button>' : '')+'</span><span class="sa-der">'+btnColapsar+'</span>')
+        : ('<span class="sa-izq">'+botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+'</span><span class="sa-der">'+btnColapsar+(sesG ? '<button type="button" class="btn-menu btn-menu-sesion" data-ses-menu="'+escapeHtml(g.sesionId)+'" aria-label="Más acciones de la sesión">⋯</button>' : '')+'</span>');
       var headerHtml = '<div class="narr-sesion-header">' +
         '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span class="cnt">('+g.registros.length+')</span></span>' +
         '<span class="narr-sesion-acciones">'+accHtml+'</span>' +
@@ -6262,6 +6284,7 @@ function renderGestionProyectos(){
       var o = viajePorId(s.viajeId);
       return '<option value="'+s.id+'">'+escapeHtml(etiquetaSesionCorta(s.id)+(o ? "  (hoy en: "+o.nombre+")" : ""))+'</option>';
     }).join("")+'</select></div>';
+    h += '<div class="campo-ayuda gp-ayuda-activo">'+(act ? '★ Este es el proyecto activo.' : 'Proyecto activo: ninguno o distinto de este.')+' El proyecto activo es el que se propone al crear una sesión nueva y el que recibe las notas y los recorridos que grabas sin una sesión activa.</div>';
     h += '<div class="gp-acciones">'+
       '<button type="button" class="mini-btn'+(act ? ' on' : '')+'" id="gp-activar">'+(act ? '★ Es el proyecto activo' : '☆ Hacer activo')+'</button>'+
       '<button type="button" class="mini-btn" id="gp-bitacora">📖 Bitácora</button>'+
@@ -6451,6 +6474,7 @@ document.addEventListener("click", function(e){
 }, true);
 
 /* ---------- Selector de proyecto en la pestaña Sesión ---------- */
+var TXT_AYUDA_VIAJE_SESION = "Opcional: agrupa varias sesiones de una misma salida o campaña. ★ marca el proyecto activo, que se elige en Registros, «Gestión de proyectos».";
 function etiquetaOpcionViaje(v, corta){
   var act = v.id===state.viajeActivoId;
   return (act ? "★ " : "🧭 ")+v.nombre+((act && !corta) ? " (activo)" : "");
@@ -6461,26 +6485,8 @@ function renderSelectorViajeSesion(s){
     return '<option value="'+v.id+'"'+(v.id===state.viajeActivoId ? ' class="op-activo"' : '')+'>'+escapeHtml(etiquetaOpcionViaje(v))+'</option>';
   }).join("") + '<option value="__nuevo__">＋ Nuevo proyecto…</option>';
   sel.value = (s.viajeId && viajePorId(s.viajeId)) ? s.viajeId : "";
-  document.getElementById("ss-viaje-ayuda").textContent = "Opcional: agrupa varias sesiones de una misma salida o campaña.";
+  document.getElementById("ss-viaje-ayuda").textContent = TXT_AYUDA_VIAJE_SESION;
 }
-/* v2.69: bloque «Proyecto activo» al inicio de la pestaña Sesión */
-function renderProyectoActivo(){
-  var sel = document.getElementById("ss-activo"); if(!sel) return;
-  sel.innerHTML = '<option value="">Ninguno</option>' + viajesOrdenados().map(function(v){
-    return '<option value="'+v.id+'">'+escapeHtml(etiquetaOpcionViaje(v, true))+'</option>';
-  }).join("") + '<option value="__nuevo__">＋ Nuevo proyecto…</option>';
-  sel.value = viajeActivo() ? state.viajeActivoId : "";
-  sel.disabled = !!visorActivo;
-}
-document.getElementById("ss-activo").addEventListener("change", function(){
-  var sel = this;
-  if(sel.value==="__nuevo__"){
-    sel.value = viajeActivo() ? state.viajeActivoId : "";
-    pedirNuevoViaje(function(v){ fijarViajeActivo(v.id); });
-    return;
-  }
-  fijarViajeActivo(sel.value || null);
-});
 document.getElementById("ss-viaje").addEventListener("change", function(){
   var s = sesionEnPantalla(); if(!s) return;
   var sel = this;
