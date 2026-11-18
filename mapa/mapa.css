@@ -58,6 +58,7 @@
 .mp-fila button{min-height:44px; padding:0 14px; border-radius:10px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-weight:700; font-size:.88rem; cursor:pointer;}
 .mp-fila button.primario{background:var(--verde); color:#fff;}
 .mp-fila button:disabled{opacity:.45;}
+.mp-fila button.peligro{border-color:#b3261e; color:#b3261e;}
 .mp-caja progress{width:100%; height:18px; accent-color:var(--verde);}
 .mp-chk{display:flex; align-items:center; gap:12px; min-height:44px; font-size:.95rem;}
 .mp-chk input{width:22px; height:22px; flex:0 0 auto; accent-color:var(--verde);}

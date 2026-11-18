@@ -2047,6 +2047,12 @@ function textoPedido() {
   if (e === "enviando") return "Enviando el pedido a GitHub…";
   if (e === "buscando") return "Pedido enviado. Esperando que GitHub lo inicie…";
   if (e === "en_curso") return "Preparando «" + pedido.nombre + "» en GitHub. Suele tardar entre 2 y 8 minutos. Puedes cerrar esta ventana.";
+  if (pedido.modo === "borrar") {
+    if (e === "enviando") return "Enviando el borrado a GitHub…";
+    if (e === "buscando") return "Borrado enviado. Esperando que GitHub lo inicie…";
+    if (e === "en_curso") return "Borrando «" + pedido.nombre + "» del catálogo en GitHub. Suele tardar 1 o 2 minutos. Puedes cerrar esta ventana.";
+    if (e === "ok") return "✅ «" + pedido.nombre + "» borrado del catálogo. Si la lista aún lo muestra, espera un minuto y vuelve a abrir el gestor.";
+  }
   if (e === "ok") return pedido.modo === "solo_medir" ? "Medición lista. Revisa el resumen en GitHub (no se publicó nada)." : "✅ «" + pedido.nombre + "» publicado. Ya está en el catálogo.";
   if (e === "fallo") return "El pedido terminó con error" + (pedido.detalle ? " (" + pedido.detalle + ")" : "") + ". Revisa el detalle en GitHub.";
   return "";
@@ -2059,7 +2065,7 @@ async function sondearPedido() {
       var rl = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + a.workflow + "/runs?event=workflow_dispatch&per_page=10");
       var jl = await rl.json();
       if (!rl.ok) throw new Error(mensajeGh(rl, jl));
-      var titulo = "Mapa: " + pedido.nombre + " (" + pedido.modo + ")";
+      var titulo = pedido.titulo || ("Mapa: " + pedido.nombre + " (" + pedido.modo + ")");
       var hit = (jl.workflow_runs || []).filter(function (w) { return Date.parse(w.created_at) >= pedido.t0 - 90000 && (w.display_title === titulo || w.name === titulo); })[0];
       if (hit) { pedido.runId = hit.id; pedido.url = hit.html_url; pedido.estado = "en_curso"; guardarPedido(); }
       else if (Date.now() - pedido.t0 > 180000) { pedido.estado = "fallo"; pedido.detalle = "GitHub no inició el flujo"; pedido.fin = true; guardarPedido(); renderGestor(); return; }
@@ -2072,7 +2078,7 @@ async function sondearPedido() {
         pedido.fin = true; pedido.estado = jr.conclusion === "success" ? "ok" : "fallo"; pedido.detalle = jr.conclusion === "success" ? "" : (jr.conclusion || "");
         guardarPedido();
         if (pedido.estado === "ok") {
-          LC.toast(pedido.modo === "solo_medir" ? "📏 Medición lista" : "🗺️ Mapa nuevo publicado", 5000);
+          LC.toast(pedido.modo === "solo_medir" ? "📏 Medición lista" : pedido.modo === "borrar" ? "🗑 Mapa borrado del catálogo" : "🗺️ Mapa nuevo publicado", 5000);
           if (pedido.modo !== "solo_medir") { await cargarCatalogo(); await leerAlmacenamiento(); refrescarUI(); }
         } else LC.toast("El pedido de mapa terminó con error", 6000);
         renderGestor(); return;
@@ -2092,7 +2098,7 @@ async function enviarPedido(d) {
     nombre: d.nombre, region: d.region, latitud: String(numDecimal(d.lat)), longitud: String(numDecimal(d.lon)), radio_km: String(numDecimal(d.radio)),
     id: d.id || "", zoom_base: String(d.zoom || "15"), max_mb: String(d.maxmb || "30"), modo: d.soloMedir ? "solo_medir" : "publicar"
   };
-  pedido = { runId: null, nombre: d.nombre, modo: inputs.modo, url: "", estado: "enviando", fin: false, t0: Date.now() };
+  pedido = { runId: null, nombre: d.nombre, modo: inputs.modo, titulo: "Mapa: " + d.nombre + " (" + inputs.modo + ")", url: "", estado: "enviando", fin: false, t0: Date.now() };
   renderGestor();
   try {
     var r = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + a.workflow + "/dispatches", { method: "POST", body: { ref: a.ref, inputs: inputs } });
@@ -2106,6 +2112,34 @@ async function enviarPedido(d) {
     return null;
   } catch (e) {
     anotarError("pedido de mapa", e); pedido = null; guardarPedido(); renderGestor();
+    return "No se pudo contactar a GitHub. Revisa la conexión.";
+  }
+}
+/* v2.83: borrar un mapa del catálogo (solo administrador). Lanza el flujo borrar-localidad.yml del repositorio de mapas, que quita la
+   entrada de catalogo.json y los archivos que ningún otro mapa usa. El flujo debe existir en el repositorio (ver Guía de mapas). */
+var WORKFLOW_BORRAR = "borrar-localidad.yml";
+async function enviarBorrado(entrada) {
+  var a = adminMapas(); if (!a) return "No hay token de administrador en este teléfono.";
+  if (pedido && !pedido.fin) return "Ya hay un pedido en curso. Espera a que termine.";
+  if (!online) return "Sin conexión. Necesitas internet para borrar un mapa del catálogo.";
+  pedido = { runId: null, nombre: entrada.nombre, modo: "borrar", titulo: "Borrar mapa: " + entrada.id, url: "", estado: "enviando", fin: false, t0: Date.now() };
+  renderGestor();
+  try {
+    var r = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + WORKFLOW_BORRAR + "/dispatches", { method: "POST", body: { ref: a.ref, inputs: { id: entrada.id } } });
+    var cuerpo = null; try { cuerpo = await r.json(); } catch (e) {}
+    if (!r.ok) {
+      pedido = null; guardarPedido(); renderGestor();
+      if (r.status === 404) return "GitHub no encontró el flujo «" + WORKFLOW_BORRAR + "» en el repositorio. Agrégalo una vez (carpeta .github/workflows) con el archivo que acompaña esta versión.";
+      return mensajeGh(r, cuerpo);
+    }
+    pedido.estado = "buscando";
+    var id = cuerpo && (cuerpo.workflow_run_id || cuerpo.id);
+    if (id) { pedido.runId = id; pedido.url = cuerpo.html_url || cuerpo.run_url || ""; pedido.estado = "en_curso"; }
+    guardarPedido(); renderGestor();
+    pedidoTimer = setTimeout(sondearPedido, 4000);
+    return null;
+  } catch (e) {
+    anotarError("borrado de mapa", e); pedido = null; guardarPedido(); renderGestor();
     return "No se pudo contactar a GitHub. Revisa la conexión.";
   }
 }
@@ -2238,6 +2272,16 @@ function tarjetaMapa(entrada, enCatalogo) {
       fila.push(b);
     }
     cuerpo.push(el("div", { class: "mp-fila" }, fila));
+    if (enCatalogo && adminMapas()) {
+      cuerpo.push(el("div", { class: "mp-fila" }, [el("button", { class: "peligro", texto: "🗑 Borrar del catálogo (administrador)", disabled: online && !(pedido && !pedido.fin) ? null : "disabled", onclick: async function () {
+        if (!confirm("¿Borrar «" + entrada.nombre + "» del CATÁLOGO PÚBLICO?\n\nSe quita de la lista y se eliminan sus archivos del repositorio de mapas. Nadie más podrá descargarlo. Los teléfonos que ya lo tienen instalado lo conservan.\n\nPara reemplazarlo, bórralo y luego pídelo de nuevo con «Pedir mapa nuevo».")) return;
+        var t = prompt("Para confirmar, escribe el identificador del mapa:\n" + id);
+        if (t == null) return;
+        if (t.trim() !== id) { LC.toast("El identificador no coincide. No se borró nada.", 4500); return; }
+        var r = await enviarBorrado(entrada);
+        if (r) alert(r);
+      } })]));
+    }
   }
   return el("div", { class: "mp-caja" }, cuerpo);
 }
