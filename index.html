@@ -748,6 +748,14 @@ html[data-tema="noche"] .viaje-header .mini-btn.on{background:var(--verde); colo
 .filtro-lista[open]{margin-bottom:8px; border-bottom-width:1.5px; border-radius:10px;}
 #lista-registros{padding-top:2px;}
 .filtros-fila{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:2px 0 10px;}
+.btn-ayuda{width:24px; height:24px; min-height:0; border-radius:50%; border:1px solid var(--borde); background:var(--card); color:var(--texto-sec); font-weight:800; font-size:.8rem; padding:0; line-height:1; cursor:pointer;}
+.ayuda-txt{font-size:.82rem; color:var(--texto-sec); background:var(--card); border:1px solid var(--borde); border-radius:10px; padding:8px 10px; margin:0 0 10px;}
+.ayuda-txt p{margin:4px 0;}
+.det-bloque>summary{cursor:pointer; list-style:none;}
+.det-bloque>summary::-webkit-details-marker{display:none;}
+.det-bloque>summary::after{content:"▾"; margin-left:auto; font-size:1rem;}
+.det-bloque:not([open])>summary::after{content:"▸";}
+.det-bloque>summary .btn-ayuda{margin-left:6px;}
 .filtros-rotulo{font-size:.82rem; color:var(--texto-sec); width:100%;}
 .card .reg-sel{width:24px; height:24px; flex:none; align-self:center;}
 .card.sel{background:var(--verde-cl); box-shadow:0 0 0 2px var(--verde);}
@@ -919,7 +927,7 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
     <div class="bloque-subtitulo" style="margin-top:14px;">Contexto adicional</div>
     <div class="field"><label>Institución / N° permiso de colecta</label><input type="text" id="ss-institucion" spellcheck="true" list="dl-ss-institucion"><datalist id="dl-ss-institucion"></datalist></div>
     <div class="field"><label>Condiciones climáticas generales</label><input type="text" id="ss-clima" spellcheck="true" list="dl-ss-clima"><datalist id="dl-ss-clima"></datalist></div>
-    <div class="field"><label>Notas generales</label><textarea id="ss-notas" spellcheck="true"></textarea></div>
+    <div class="field"><label>Notas</label><textarea id="ss-notas" spellcheck="true"></textarea></div>
     </div>
 
     <div class="bloque" id="sesion-mas-opciones" style="display:none;"><div id="sesion-mapa-asoc"></div></div>
@@ -963,17 +971,19 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <summary id="sum-proyectos">🧭 Gestión de proyectos</summary>
       <div class="filtros-cuerpo" id="gp-cuerpo"></div>
     </details>
-    <div class="reg-toolbar" id="reg-toolbar" style="display:none;">
-      <button type="button" class="mini-btn on" id="btn-reordenar-listo">✔️ Listo</button>
-    </div>
     <details class="filtros-det filtro-lista" id="det-filtros">
       <summary id="sum-filtros">🔎 Filtrar registros</summary>
       <div class="filtros-cuerpo">
         <div class="filtros-fila">
-          <span class="filtros-rotulo">Ordenar sesiones:</span>
+          <span class="filtros-rotulo">Ordenar:</span>
+          <button type="button" class="mini-btn btn-nivel-orden" id="btn-nivel-proyectos" data-nivel="proyectos">🧭 Proyectos</button>
+          <button type="button" class="mini-btn btn-nivel-orden on" id="btn-nivel-sesiones" data-nivel="sesiones">📁 Sesiones</button>
+          <button type="button" class="mini-btn btn-nivel-orden" id="btn-nivel-registros" data-nivel="registros">🧪 Registros</button>
+        </div>
+        <div class="filtros-fila">
+          <span class="filtros-rotulo">Criterio:</span>
           <button type="button" class="mini-btn on btn-orden-especies" id="btn-orden-registros-fecha">📅 Por fecha</button>
           <button type="button" class="mini-btn btn-orden-especies" id="btn-orden-registros-alfabetico">🔤 Alfabético</button>
-          <button type="button" class="mini-btn" id="btn-modo-reordenar">↕️ Reordenar</button>
         </div>
         <div class="filtros-fila">
           <span class="filtros-rotulo">Mover o borrar varios registros:</span>
@@ -1274,37 +1284,32 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <div class="stat"><div class="n" id="stat-total">0</div><div class="l">Registros</div></div>
     </div>
     <div class="bloque">
-      <div class="section-title"><span class="n">📋</span>Qué exportar</div>
+      <details id="det-exp-que" class="det-bloque" open>
+      <summary class="section-title"><span class="n">📋</span>Qué exportar<button type="button" class="btn-ayuda" data-ayuda="ay-exp-que" aria-label="Ayuda: qué exportar">?</button></summary>
+      <div class="ayuda-txt" id="ay-exp-que" style="display:none;">Marca proyectos o sesiones completas. Para sumar registros sueltos, mantén presionada una sesión: se despliegan sus registros con una casilla cada uno (otra pulsación sostenida los vuelve a ocultar). Todo se ordena con lo más nuevo arriba.</div>
       <div class="exp-atajos">
         <button type="button" class="mini-btn" id="btn-exp-todo">☑ Todo</button>
       </div>
       <div id="exp-selector-sesion"></div>
       <div class="exp-sueltos-resumen" id="exp-sueltos-resumen" style="display:none;"></div>
-      <span class="campo-ayuda">Marca proyectos o sesiones completas. Para sumar registros sueltos, mantén presionada una sesión: se despliegan sus registros con una casilla cada uno (otra pulsación sostenida los vuelve a ocultar).</span>
+      </details>
     </div>
     <div class="bloque">
-      <div class="section-title"><span class="n">📤</span>Ejecutar exportación</div>
-      <div class="bloque-subtitulo">Paquete y Darwin Core</div>
-    <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Registros (.zip)</button>
+      <div class="section-title"><span class="n">📤</span>Ejecutar exportación<button type="button" class="btn-ayuda" data-ayuda="ay-exp-ejec" aria-label="Ayuda: ejecutar exportación">?</button></div>
+      <div class="ayuda-txt" id="ay-exp-ejec" style="display:none;"><p><b>Respaldos (.zip):</b> un paquete con los datos, las fotos y los recorridos de lo que marcaste.</p><p><b>Darwin Core:</b> incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos; se completan más adelante en el Generador de Proyectos. Excel a veces muestra mal las tildes de un .csv (aparecen como «Ã³», «Ã­»…); para abrirlo en Excel usa el .xlsx.</p><p><b>Bitácora (.html):</b> se genera para cada proyecto marcado arriba.</p></div>
+    <button type="button" class="btnfull btn-primary" id="btn-descargar-zip">📦 Respaldos (.zip)</button>
     <div class="dwc-par">
       <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc-xlsx">🧬 Darwin Core (.xlsx)</button>
       <button type="button" class="btnfull btn-primary" id="btn-descargar-dwc">🧬 Darwin Core (.csv)</button>
     </div>
-    <p class="campo-ayuda" style="margin:-4px 0 12px;">Incluye solo Recolección y Observación (Medición y Notas no son ocurrencias en Darwin Core). Los campos de clasificación taxonómica (phylum, clase, orden, familia, género) quedan vacíos — se completan más adelante en el Generador de Proyectos. Excel a veces muestra mal las tildes de un .csv (aparecen como «Ã³», «Ã­»…); para abrirlo en Excel usa el .xlsx.</p>
-    <div class="bloque-subtitulo">Para leer o compartir</div>
     <button type="button" class="btnfull btn-secondary" id="btn-exportar-bitacora">🧭 Bitácora de proyecto (.html)</button>
-    <p class="campo-ayuda" style="margin:-4px 0 12px;">La bitácora se genera para cada proyecto marcado arriba.</p>
     <div class="bloque-subtitulo">Mediciones</div>
     <button type="button" class="btnfull btn-primary" id="btn-export-xlsx-medicion">📐 Descargar datos (.xlsx)</button>
     </div>
     <div class="bloque">
-      <div class="section-title"><span class="n">📥</span>Importar</div>
-      <div class="bloque-subtitulo">Carpeta del teléfono</div>
-    <button type="button" class="btnfull btn-secondary" id="btn-explorar-carpeta">📂 Explorar carpeta del teléfono</button>
-    <p class="campo-ayuda" style="margin:-4px 0 12px;">Muestra el contenido de la carpeta elegida en Config («Gestión de imágenes»): fotos, videos y respaldos. Desde ahí puedes abrir archivos o importar un respaldo (.zip o .json). El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</p>
-    <div class="bloque-subtitulo">Consultar e importar</div>
-    <label class="btnfull btn-secondary" style="border-style:dashed; display:block;" for="input-import-json">📂 Consultar respaldo</label>
-    <p class="campo-ayuda" style="margin:-4px 0 12px;">Abre uno o varios respaldos (.zip o .json) solo para mirarlos, sin cambiar tus datos. Desde ahí puedes pasar a importarlos.</p>
+      <div class="section-title"><span class="n">📥</span>Importar<button type="button" class="btn-ayuda" data-ayuda="ay-exp-imp" aria-label="Ayuda: importar">?</button></div>
+      <div class="ayuda-txt" id="ay-exp-imp" style="display:none;"><p>Todas las cargas pasan primero por una <b>consulta preliminar</b>: el respaldo (.zip o .json) se abre solo para mirarlo, sin cambiar tus datos. Desde la consulta eliges «Importar a esta app».</p><p>Puedes elegir el archivo desde el teléfono o buscarlo dentro de la carpeta de respaldos de la app.</p></div>
+    <button type="button" class="btnfull btn-primary" id="btn-cargar-respaldo">📥 Cargar un respaldo…</button>
     <input type="file" id="input-import-json" accept="application/json,.json,.zip,application/zip" multiple style="display:none;">
     <div id="importados-lista"></div>
     <div id="importados-acciones" style="display:none;">
@@ -1312,20 +1317,25 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <button type="button" class="btnfull btn-secondary" id="btn-descargar-unificado">💾 Descargar respaldo unificado (.json)</button>
     </div>
     </div>
+    <div class="bloque">
+      <div class="section-title"><span class="n">📂</span>Carpeta del teléfono<button type="button" class="btn-ayuda" data-ayuda="ay-exp-carp" aria-label="Ayuda: carpeta del teléfono">?</button></div>
+      <div class="ayuda-txt" id="ay-exp-carp" style="display:none;">Muestra el contenido de la carpeta elegida en Config («Gestión de imágenes»): fotos, videos y respaldos, para conocer cómo quedó ordenada. Es solo consulta. Para cargar un respaldo guardado ahí, usa «Cargar un respaldo» en Importar. El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</div>
+      <button type="button" class="btnfull btn-secondary" id="btn-explorar-carpeta">📂 Explorar carpeta del teléfono</button>
+    </div>
     <div style="height:90px;"></div>
   </div>
 </div>
 
 <!-- ===================== BITÁCORA DE PROYECTO ===================== -->
 <div class="screen" id="s-bitacora">
-  <div class="topbar"><div class="brand"><span class="ic">📖</span><div><h2 id="bit-titulo">Bitácora</h2><p class="sub" id="bit-sub">Notas del proyecto y notas generales de sus sesiones</p></div></div></div>
+  <div class="topbar"><div class="brand"><span class="ic">📖</span><div><h2 id="bit-titulo">Bitácora</h2><p class="sub" id="bit-sub">Notas generales del proyecto y notas de sus sesiones</p></div></div></div>
   <div class="pad">
     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
       <button type="button" class="mini-btn" id="btn-bit-volver">← Volver</button>
       <button type="button" class="mini-btn" id="btn-bit-nota">＋ Nota</button>
-      <button type="button" class="mini-btn" id="bit-solo-narrativas" aria-pressed="false" title="Ocultar notas operativas">📌 Ocultar operativas</button>
-      <button type="button" class="mini-btn on" id="bit-ver-registros" aria-pressed="true" title="Incluir registros (resumidos) entre las notas">📋 Incluir registros</button>
       <button type="button" class="mini-btn" id="btn-bit-exportar">⬇️ Exportar (.html)</button>
+      <button type="button" class="mini-btn on" id="bit-ver-registros" aria-pressed="true" title="Incluir registros (resumidos) entre las notas">📋 Incluir registros</button>
+      <button type="button" class="mini-btn" id="bit-solo-narrativas" aria-pressed="false" title="Ocultar notas operativas">📌 Ocultar operativas</button>
     </div>
     <div id="bit-ficha"></div>
     <div id="bit-lista"></div>
@@ -4064,7 +4074,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-17 · v2.80";
+var APP_BUILD = "2026-11-17 · v2.82";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -4150,6 +4160,9 @@ var state = {
   filtroSesionLista:"", // filtro de sesión en la pestaña Registros ("" = todas)
   ordenSesionesExportar:"fecha",   // "fecha" | "alfabetico" — orden de la lista en Exportar
   ordenSesionesRegistros:"fecha",  // "fecha" | "alfabetico" — orden de los grupos en Registros (Lista y Libreta)
+  ordenProyectosRegistros:"fecha", // v2.81: orden de los proyectos en Registros
+  ordenRegistrosRegistros:"fecha", // v2.81: orden de los registros dentro de cada sesión
+  ordenNiveles:{proyectos:false, sesiones:true, registros:false}, // v2.81: niveles a los que se aplica la fila Por fecha / Alfabético
   lightboxIdx: null,
   captionPending: null, // {file, dataURL}
   sesionGestionId: null // sesión expandida en el panel de gestión (Exportar)
@@ -4249,7 +4262,25 @@ function carpetaDeSesion(ses){ return sanitizarNombreArchivo(ses ? nombreSesionM
    <carpeta>/<AAAA-MM-DD_Sesión>/ { _sesion.json, Fotos/, Videos/, Respaldos/, DarwinCore/, Mediciones/, Libreta/ }
    <carpeta>/_Varias_sesiones/<tipo>/ para lo que cruza varias sesiones.
    El nombre de la carpeta de cada sesión se fija la primera vez que se usa (ses.carpetaLocal) y no cambia aunque se renombre la sesión. */
-var CARPETA_VARIAS = "_Varias_sesiones", CARPETA_SIN_SESION = "_Sin_sesion";
+var CARPETA_VARIAS = "_Varias_sesiones", CARPETA_SIN_SESION = "_Sin_sesion";   // estructura v2.57 (se conservan para reconocer y mover lo antiguo)
+/* v2.82: la carpeta local se ordena por PROYECTO.
+   <carpeta>/<Proyecto>/ { Respaldos/, DarwinCore/, Mediciones/, Bitacora/, _proyecto.json, <AAAA-MM-DD_Sesión>/ { _sesion.json, Fotos/, Videos/ } }
+   <carpeta>/Sin_proyecto/ (sesiones sin proyecto), <carpeta>/Varios_proyectos/ (exportaciones que mezclan proyectos).
+   El nombre de la carpeta de cada proyecto se fija la primera vez que se usa (viaje.carpetaLocal). */
+var CARPETA_SIN_PROYECTO = "Sin_proyecto", CARPETA_VARIOS_PROYECTOS = "Varios_proyectos";
+function carpetaDeViaje(v){
+  if(!v) return CARPETA_SIN_PROYECTO;
+  if(v.carpetaLocal) return v.carpetaLocal;
+  var nombre = limpiarParaNombre(v.nombre, 50) || "Proyecto_sin_nombre";
+  var cand = nombre, n = 2, usados = {};
+  usados[CARPETA_SIN_PROYECTO.toLowerCase()] = 1; usados[CARPETA_VARIOS_PROYECTOS.toLowerCase()] = 1;
+  state.viajes.forEach(function(x){ if(x.id !== v.id && x.carpetaLocal) usados[x.carpetaLocal.toLowerCase()] = 1; });
+  while(usados[cand.toLowerCase()]){ cand = nombre + "-" + n; n++; }
+  if(v.nombre){ v.carpetaLocal = cand; if(state.viajes.indexOf(v) >= 0) guardarViajes(); }
+  return cand;
+}
+function carpetaProyectoDeSesion(ses){ return ses && ses.viajeId && viajePorId(ses.viajeId) ? carpetaDeViaje(viajePorId(ses.viajeId)) : CARPETA_SIN_PROYECTO; }
+function rutaDeSesion(ses){ return ses ? carpetaProyectoDeSesion(ses) + "/" + carpetaLocalDeSesion(ses) : CARPETA_SIN_PROYECTO + "/" + CARPETA_SIN_SESION; }
 function carpetaLocalDeSesion(ses){
   if(!ses) return CARPETA_SIN_SESION;
   if(ses.carpetaLocal) return ses.carpetaLocal;
@@ -4266,8 +4297,14 @@ function carpetaLocalDeSesion(ses){
 function destinoRespaldos(idsSesion){
   var ids = [];
   (idsSesion||[]).forEach(function(i){ if(i && ids.indexOf(i) < 0) ids.push(i); });
-  if(ids.length === 1){ var ses = sesionPorId(ids[0]); if(ses) return carpetaLocalDeSesion(ses); }
-  return CARPETA_VARIAS;
+  var carpetas = [];
+  ids.forEach(function(i){ var c = carpetaProyectoDeSesion(sesionPorId(i)); if(carpetas.indexOf(c) < 0) carpetas.push(c); });
+  if(carpetas.length === 1) return carpetas[0];
+  return carpetas.length ? CARPETA_VARIOS_PROYECTOS : CARPETA_SIN_PROYECTO;
+}
+function viajeDeCarpetaLocal(nombre){
+  for(var i=0;i<state.viajes.length;i++) if(state.viajes[i].carpetaLocal === nombre) return state.viajes[i];
+  return null;
 }
 function sesionDeCarpetaLocal(nombre){
   for(var i=0;i<state.sesiones.length;i++) if(state.sesiones[i].carpetaLocal === nombre) return state.sesiones[i];
@@ -4276,8 +4313,13 @@ function sesionDeCarpetaLocal(nombre){
 // Marcador dentro de la carpeta de la sesión: permite reconocerla aunque se mueva o se renombre
 function escribirMarcadorSesion(dir, ses){
   if(!dir || !ses || !ses.carpetaLocal) return Promise.resolve();
-  var info = {app:"Libreta de Campo", sesionId:ses.id, nombre:ses.proyecto||"", prefijo:ses.prefijo||"", creada:ses.creada||"", carpeta:ses.carpetaLocal, actualizado:new Date().toISOString()};
-  return escribirEnCarpeta(dir, ses.carpetaLocal, "_sesion.json", new Blob([JSON.stringify(info, null, 2)], {type:"application/json"})).catch(function(){});
+  var info = {app:"Libreta de Campo", sesionId:ses.id, nombre:ses.proyecto||"", prefijo:ses.prefijo||"", creada:ses.creada||"", carpeta:ses.carpetaLocal, proyectoId:ses.viajeId||"", actualizado:new Date().toISOString()};
+  return escribirEnCarpeta(dir, rutaDeSesion(ses), "_sesion.json", new Blob([JSON.stringify(info, null, 2)], {type:"application/json"})).catch(function(){});
+}
+function escribirMarcadorProyecto(dir, v){
+  if(!dir || !v || !v.carpetaLocal) return Promise.resolve();
+  var info = {app:"Libreta de Campo", proyectoId:v.id, nombre:v.nombre||"", carpeta:v.carpetaLocal, creado:v.creado||"", actualizado:new Date().toISOString()};
+  return escribirEnCarpeta(dir, v.carpetaLocal, "_proyecto.json", new Blob([JSON.stringify(info, null, 2)], {type:"application/json"})).catch(function(){});
 }
 function nombreDescarga(sufijoSesion, tipo, ext){
   return sufijoSesion+"_"+tipo+"_"+marcaFechaHora()+"."+ext;
@@ -5397,7 +5439,7 @@ function timestampCreacionRegistro(r){
 // Orden dentro de una sesión: lo movido a mano manda; lo demás va por creación, más reciente arriba
 function ordenarRegistrosDeSesion(sesionId, regs){
   var ses = sesionPorId(sesionId);
-  var manual = (ses && ses.ordenRegistros) || [];
+  var manual = [];   // v2.81: el orden manual (Reordenar) ya no se usa; los registros van por fecha de creación
   var pos = {};
   manual.forEach(function(id,i){ pos[id] = i; });
   return regs.slice().sort(function(a,b){
@@ -5565,7 +5607,7 @@ function renderListaTarjetas(lista, justSavedId){
         '<span class="narr-sesion-acciones">'+accHtml+'</span>' +
       '</div>';
       if(colapsada) return headerHtml;
-      var registrosOrdenados = ordenarRegistrosDeSesion(g.sesionId, g.registros);
+      var registrosOrdenados = ordenarRegistrosVista(g.sesionId, g.registros);
       var tarjetasHtml = registrosOrdenados.map(function(r){
         var ti = TIPOS[r.tipo]||TIPOS.nota;
         var cls = (r.id===justSavedId) ? " nuevo-highlight" : "";
@@ -5970,16 +6012,43 @@ function abrirBitacoraDesdeRegistros(){
 }
 document.getElementById("btn-vista-libreta").addEventListener("click", function(){ irSubirInicio(); });
 document.getElementById("btn-vista-bitacora").addEventListener("click", abrirBitacoraDesdeRegistros);
-document.getElementById("btn-orden-registros-fecha").addEventListener("click", function(){
-  state.ordenSesionesRegistros = "fecha";
-  this.classList.add("on"); document.getElementById("btn-orden-registros-alfabetico").classList.remove("on");
-  renderLista(); cerrarDespReg("det-filtros");
+/* v2.81: tres niveles de orden (Proyectos, Sesiones, Registros) con botones seleccionables; la fila Por fecha / Alfabético se aplica a los niveles marcados */
+var NIVELES_ORDEN = ["proyectos","sesiones","registros"];
+function criterioDeNivel(n){ return n==="proyectos" ? state.ordenProyectosRegistros : n==="sesiones" ? state.ordenSesionesRegistros : state.ordenRegistrosRegistros; }
+function fijarCriterioDeNivel(n,c){ if(n==="proyectos") state.ordenProyectosRegistros = c; else if(n==="sesiones") state.ordenSesionesRegistros = c; else state.ordenRegistrosRegistros = c; }
+function refrescarBotonesOrden(){
+  var sel = NIVELES_ORDEN.filter(function(n){ return state.ordenNiveles[n]; });
+  NIVELES_ORDEN.forEach(function(n){ document.getElementById("btn-nivel-"+n).classList.toggle("on", !!state.ordenNiveles[n]); });
+  document.getElementById("btn-orden-registros-fecha").classList.toggle("on", sel.length>0 && sel.every(function(n){ return criterioDeNivel(n)==="fecha"; }));
+  document.getElementById("btn-orden-registros-alfabetico").classList.toggle("on", sel.length>0 && sel.every(function(n){ return criterioDeNivel(n)==="alfabetico"; }));
+}
+NIVELES_ORDEN.forEach(function(n){
+  document.getElementById("btn-nivel-"+n).addEventListener("click", function(){ state.ordenNiveles[n] = !state.ordenNiveles[n]; refrescarBotonesOrden(); });
 });
-document.getElementById("btn-orden-registros-alfabetico").addEventListener("click", function(){
-  state.ordenSesionesRegistros = "alfabetico";
-  this.classList.add("on"); document.getElementById("btn-orden-registros-fecha").classList.remove("on");
+function aplicarCriterioOrden(c){
+  var sel = NIVELES_ORDEN.filter(function(n){ return state.ordenNiveles[n]; });
+  if(!sel.length){ toast("Marca primero qué ordenar: Proyectos, Sesiones o Registros", 3200); return; }
+  sel.forEach(function(n){ fijarCriterioDeNivel(n, c); });
+  refrescarBotonesOrden();
   renderLista(); cerrarDespReg("det-filtros");
-});
+}
+document.getElementById("btn-orden-registros-fecha").addEventListener("click", function(){ aplicarCriterioOrden("fecha"); });
+document.getElementById("btn-orden-registros-alfabetico").addEventListener("click", function(){ aplicarCriterioOrden("alfabetico"); });
+refrescarBotonesOrden();
+// orden de los registros dentro de una sesión según el criterio elegido
+function ordenarRegistrosVista(sesionId, regs){
+  if(state.ordenRegistrosRegistros==="alfabetico"){
+    return regs.slice().sort(function(a,b){
+      var c = (nombreRegistroLista(a)||"").localeCompare(nombreRegistroLista(b)||"", undefined, {sensitivity:"base", numeric:true});
+      return c || (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true});
+    });
+  }
+  return ordenarRegistrosDeSesion(sesionId, regs);
+}
+function viajesOrdenadosVista(){
+  if(state.ordenProyectosRegistros==="alfabetico") return state.viajes.slice().sort(function(a,b){ return (a.nombre||"").localeCompare(b.nombre||"", undefined, {sensitivity:"base", numeric:true}); });
+  return viajesOrdenados();
+}
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 
 function generarPaqueteZip(idsSesiones, idsRegistros, idsViajes){
@@ -6071,10 +6140,10 @@ document.getElementById("btn-descargar-zip").addEventListener("click", function(
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     copiarARespaldos("Respaldos", nomZip, blob, destinoRespaldos(sel.idsCarpeta));
-    btn.disabled = false; btn.textContent = "📦 Registros (.zip)";
+    btn.disabled = false; btn.textContent = "📦 Respaldos (.zip)";
     toast("✅ Paquete .zip listo — puedes compartirlo por WhatsApp como documento");
   }).catch(function(err){
-    btn.disabled = false; btn.textContent = "📦 Registros (.zip)";
+    btn.disabled = false; btn.textContent = "📦 Respaldos (.zip)";
     toast("No se pudo generar el paquete");
   });
 });
@@ -6272,7 +6341,7 @@ function renderGestionProyectos(){
     h += '<div class="row2"><div class="field"><label for="gp-fecha-ini">Inicio</label><input type="date" id="gp-fecha-ini" value="'+escapeHtml(v.fechaIni||"")+'"></div>'+
          '<div class="field"><label for="gp-fecha-fin">Término</label><input type="date" id="gp-fecha-fin" value="'+escapeHtml(v.fechaFin||"")+'"></div></div>';
     h += gpCampoHtml("gp-financiamiento","Financiamiento y permisos",v.financiamiento,"Ej: proyecto, resolución de colecta",false);
-    h += gpCampoHtml("gp-notas","Notas del proyecto",v.notas,"",true);
+    h += gpCampoHtml("gp-notas","Notas generales",v.notas,"",true);
     h += '<div class="gp-sub">Composición</div>'+
       '<div class="gp-comp">📁 '+ses.length+(ses.length===1?' sesión':' sesiones')+' · '+nReg+(nReg===1?' registro':' registros')+' · 📖 '+nNotas+(nNotas===1?' nota de bitácora':' notas de bitácora')+' · 🥾 '+nRutas+(nRutas===1?' recorrido de ruta':' recorridos de ruta')+'</div>';
     h += ses.map(function(s){
@@ -6336,7 +6405,7 @@ function htmlFichaProyecto(v){
   var nN = notasDeViaje(v.id).length, nR = recorridosDeRuta(v.id).length;
   return '<div class="ficha-proy"><div class="fp-nom">🧭 '+escapeHtml(v.nombre)+'</div>'+
     f("Objetivo", v.objetivo, "fp-t")+f("Zona o región", v.zona)+f("Responsable", v.responsable)+f("Fechas", fechas)+
-    f("Financiamiento y permisos", v.financiamiento, "fp-t")+f("Notas del proyecto", v.notas, "fp-t")+
+    f("Financiamiento y permisos", v.financiamiento, "fp-t")+f("Notas generales", v.notas, "fp-t")+
     '<div class="fp-comp">📁 '+ses.length+(ses.length===1?' sesión':' sesiones')+' · '+nReg+(nReg===1?' registro':' registros')+' · 📖 '+nN+(nN===1?' nota':' notas')+' · 〰 '+nR+(nR===1?' ruta':' rutas')+'</div></div>';
 }
 var fichaViajeId = null;
@@ -6394,6 +6463,13 @@ function resumenRegistroBit(r){
   return {titulo:titulo, lineas:L};
 }
 /* v2.77: cierra un desplegable de Registros una vez hecho lo que se buscaba en él */
+document.addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest(".btn-ayuda[data-ayuda]") : null;
+  if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var t = document.getElementById(b.getAttribute("data-ayuda"));
+  if(t) t.style.display = (t.style.display==="none" ? "block" : "none");
+}, true);
 function cerrarDespReg(id){ var d = document.getElementById(id); if(d) d.open = false; }
 /* v2.76: botón Aceptar al final de Gestión de proyectos: confirma lo escrito y cierra el desplegable */
 function gpAceptar(){
@@ -6452,7 +6528,7 @@ function conViajes(grupos, fnGrupo, mostrarVacios, conRutas){
     if(v) (porViaje[v.id] = porViaje[v.id] || []).push(g); else sin.push(g);
   });
   var html = "";
-  viajesOrdenados().forEach(function(v){
+  viajesOrdenadosVista().forEach(function(v){
     var gs = porViaje[v.id] || [];
     if(!gs.length && !mostrarVacios) return;
     html += htmlCabeceraViaje(v, gs.length) + (viajesColapsados.has(v.id) ? "" : '<div class="viaje-sesiones">'+(conRutas ? htmlRutasViaje(v) : "")+gs.map(fnGrupo).join("")+'</div>');
@@ -6761,7 +6837,7 @@ function exportarBitacoraHTML(v){
     var blob = new Blob([html], {type:"text/html"});
     var nom = nombreDescarga(nombreCortoViaje(v), "bitacora", "html");
     descargarBlobArchivo(blob, nom);
-    copiarARespaldos("Libreta", nom, blob, destinoRespaldos(sesionesDeViaje(v.id).map(function(s){ return s.id; })));
+    copiarARespaldos("Bitacora", nom, blob, carpetaDeViaje(v));
     toast("✅ Bitácora exportada");
   });
 }
@@ -6889,7 +6965,7 @@ function conViajesExp(sesiones, fn){
     if(v) (porViaje[v.id] = porViaje[v.id] || []).push(s); else sin.push(s);
   });
   var html = "";
-  viajesOrdenados().forEach(function(v){
+  state.viajes.slice().sort(function(a,b){ return (b.creado||"").localeCompare(a.creado||""); }).forEach(function(v){   // v2.81: proyectos más nuevos arriba
     var ss = porViaje[v.id] || [];
     html += htmlTarjetaViajeExp(v, ss.length) + '<div class="viaje-sesiones">'+ss.map(fn).join("")+'</div>';
   });
@@ -6933,24 +7009,8 @@ document.getElementById("buscador").addEventListener("input", renderLista);
 document.getElementById("buscador").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); this.blur(); cerrarDespReg("det-filtros"); } });
 document.getElementById("buscador").addEventListener("search", function(){ if(this.value) cerrarDespReg("det-filtros"); });
 document.getElementById("f-codigo").addEventListener("input", actualizarAvisoCodigo);
-function aplicarEstiloBotonReordenar(){
-  var b = document.getElementById("btn-modo-reordenar");
-  b.textContent = modoReordenarRegistros ? "✔️ Listo" : "↕️ Reordenar";
-  b.classList.toggle("on", modoReordenarRegistros);
-  var l = document.getElementById("reg-toolbar"); if(l) l.style.display = modoReordenarRegistros ? "" : "none";
-}
-function salirModoReordenar(){ modoReordenarRegistros = false; aplicarEstiloBotonReordenar(); }
-document.getElementById("btn-modo-reordenar").addEventListener("click", function(){
-  if(modoSeleccion){ modoSeleccion = false; state.regSel = {}; }
-  modoReordenarRegistros = !modoReordenarRegistros;
-  aplicarEstiloBotonReordenar();
-  if(modoReordenarRegistros) document.getElementById("det-filtros").open = false;
-  renderLista();
-});
-document.getElementById("btn-reordenar-listo").addEventListener("click", function(){
-  salirModoReordenar(); renderLista();
-});
-
+/* v2.81: se quitó el botón Reordenar (orden manual de registros). El orden de los registros es Por fecha o Alfabético. */
+function salirModoReordenar(){ modoReordenarRegistros = false; }
 /* ---------- v2.68 · Modo selección en Registros (mover y borrar varios registros) ---------- */
 var modoSeleccion = false;
 state.regSel = {};
@@ -9173,6 +9233,34 @@ function carpetaConPermiso(){
     }).catch(function(){ return null; });
   });
 }
+function textoEstructuraCarpeta(){
+  return '<pre style="white-space:pre-wrap; font-size:12px; line-height:1.35; margin:0 0 8px; font-family:ui-monospace,Menlo,Consolas,monospace;">'+escapeHtml(
+'Carpeta elegida/\n'+
+'├─ Atacama_2026/            ← un proyecto\n'+
+'│  ├─ Respaldos/            .zip y respaldo .json\n'+
+'│  ├─ DarwinCore/           .xlsx y .csv\n'+
+'│  ├─ Mediciones/           planillas .xlsx\n'+
+'│  ├─ Bitacora/             bitácora .html\n'+
+'│  ├─ _proyecto.json        marcador\n'+
+'│  ├─ 2026-03-02_Quebrada/  ← una sesión\n'+
+'│  │  ├─ _sesion.json\n'+
+'│  │  ├─ Fotos/\n'+
+'│  │  └─ Videos/\n'+
+'│  └─ 2026-03-04_Salar/\n'+
+'├─ Sin_proyecto/            sesiones sin proyecto\n'+
+'│  ├─ Respaldos/ DarwinCore/ ...\n'+
+'│  └─ 2026-05-10_Salida/\n'+
+'└─ Varios_proyectos/        exportaciones que\n'+
+'   └─ Respaldos/ ...        mezclan proyectos')+'</pre>'+
+  '<b>Reglas</b><br>'+
+  '1. Un proyecto, una carpeta. Todo lo que se exporta de sus sesiones (respaldos, Darwin Core, mediciones, bitácora) queda junto en esa carpeta, aunque la exportación sea de una sola sesión.<br>'+
+  '2. Las fotos y los videos originales van dentro de la carpeta de su sesión, que cuelga del proyecto.<br>'+
+  '3. Una exportación que mezcla sesiones de varios proyectos va a Varios_proyectos; las sesiones que no pertenecen a ningún proyecto, a Sin_proyecto.<br>'+
+  '4. Los nombres de las carpetas se fijan la primera vez que se usan. Si después renombras un proyecto o una sesión, la carpeta no cambia y los archivos no se pierden.<br>'+
+  '5. Si mueves una sesión a otro proyecto, lo nuevo se guarda en la carpeta del proyecto nuevo; lo ya guardado se traslada con «Reorganizar la carpeta».<br>'+
+  '6. Los marcadores _proyecto.json y _sesion.json permiten reconocer cada carpeta aunque la muevas.<br>'+
+  '7. Los archivos se nombran con el código del registro (por ejemplo JPS-047_foto1.jpg) y las exportaciones con la sesión o el proyecto, la fecha y la hora.';
+}
 function elegirCarpetaCopia(){
   if(!soportaCarpeta()){ toast("Este navegador no permite elegir una carpeta: se usará Descargas", 4200); return Promise.resolve(false); }
   return window.showDirectoryPicker({mode:"readwrite", id:"libretacampo"}).then(function(h){
@@ -9193,15 +9281,15 @@ function escribirEnCarpeta(dir, subcarpeta, nombre, blob){
 /* v2.52: respaldos de los datos descargados dentro de la carpeta elegida.
    Estructura: Fotos/<sesión>/, Videos/<sesión>/, Respaldos/ (paquetes .zip y respaldo unificado .json), DarwinCore/ (.xlsx y .csv),
    Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html). La descarga normal sigue ocurriendo; esto es una copia adicional. */
-var SUBCARPETAS_RESPALDO = ["Fotos","Videos","Respaldos","DarwinCore","Mediciones","Libreta"];
+var SUBCARPETAS_RESPALDO = ["Fotos","Videos","Respaldos","DarwinCore","Mediciones","Bitacora"];
 function copiarARespaldos(tipo, nombre, blob, destino){
-  // v2.57: <carpeta de la sesión>/<tipo>/ o _Varias_sesiones/<tipo>/
-  var subcarpeta = (destino || CARPETA_VARIAS) + "/" + tipo;
+  // v2.82: <carpeta del proyecto>/<tipo>/ (o Sin_proyecto / Varios_proyectos)
+  var subcarpeta = (destino || CARPETA_VARIOS_PROYECTOS) + "/" + tipo;
   if(copiaCfg().modo !== "carpeta" || !soportaCarpeta()) return Promise.resolve(false);
   return carpetaConPermiso().then(function(dir){
     if(!dir){ setTimeout(function(){ toast("⚠️ No se pudo copiar el respaldo a la carpeta: elígela de nuevo en Config", 5000); }, 1500); return false; }
     return escribirEnCarpeta(dir, subcarpeta, nombre, blob).then(function(){
-      return escribirMarcadorSesion(dir, sesionDeCarpetaLocal(destino));
+      return escribirMarcadorProyecto(dir, viajeDeCarpetaLocal(destino));
     }).then(function(){
       setTimeout(function(){ toast("📁 Copia guardada en "+subcarpeta+"/"+nombre, 4200); }, 1500);
       return true;
@@ -9235,7 +9323,7 @@ function volcarOriginalesPendientes(){
       regs.forEach(function(r){
         var ses = sesionPorId(r.sesionId);
         var carpetaSes = carpetaDeSesion(ses);
-        var raizSes = ses ? carpetaLocalDeSesion(ses) : CARPETA_SIN_SESION;   // v2.57: <sesión>/Fotos y <sesión>/Videos
+        var raizSes = rutaDeSesion(ses);   // v2.82: <proyecto>/<sesión>/Fotos y /Videos
         var carpetaFoto = raizSes + "/Fotos", carpetaVideo = raizSes + "/Videos";
         var base = baseNombreRegistro(r), kVideo = 0;
         elementosArchivables(r).forEach(function(e){
@@ -9329,9 +9417,10 @@ function renderConfigCopia(){
     '<div class="field" id="cc-ruta-wrap" style="display:none; margin-top:10px;"><label>Ruta de la carpeta (para ubicarla)</label><input type="text" id="cc-ruta" placeholder="Ej.: Almacenamiento interno/Documents/LibretaCampo" autocomplete="off" autocapitalize="off">'+
       '<span class="campo-ayuda">El navegador solo informa el nombre de la carpeta, no su ruta completa. Escríbela aquí como referencia para encontrarla desde el administrador de archivos.</span></div>'+
     '<div class="campo-ayuda" id="cc-estructura" style="display:none;"></div>'+
+    '<details class="det-bloque" id="cc-det-estructura" style="display:none;"><summary>🗂 Cómo se ordena la carpeta (detalle)</summary><div class="campo-ayuda" id="cc-det-estructura-txt" style="margin-top:6px;"></div></details>'+
     '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
-    '<button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="display:none;">🗂 Reorganizar la carpeta por sesión…</button>'+
-    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en la carpeta de su sesión. Los videos no se incluyen en el .zip.</div>';
+    '<button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="display:none;">🗂 Reorganizar la carpeta por proyecto…</button>'+
+    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en la carpeta de su sesión, dentro de su proyecto. Los videos no se incluyen en el .zip.</div>';
   document.getElementById("cc-modo").value = cfg.modo;
   document.getElementById("cc-tam").value = cfg.tam;
   function estado(){
@@ -9340,8 +9429,10 @@ function renderConfigCopia(){
     document.getElementById("cc-ruta-wrap").style.display = c.modo === "carpeta" ? "block" : "none";
     var est = document.getElementById("cc-estructura");
     est.style.display = c.modo === "carpeta" ? "block" : "none";
-    est.textContent = "Cada sesión tiene su propia carpeta, AAAA-MM-DD_Sesión, con Fotos/, Videos/, Respaldos/ (paquetes .zip), DarwinCore/ (.xlsx y .csv), Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html), más un marcador _sesion.json. Lo que reúne varias sesiones va en _Varias_sesiones/. Cada descarga se guarda además en la carpeta.";
+    est.innerHTML = "Las copias se ordenan por proyecto: cada proyecto tiene su carpeta con todos sus respaldos juntos y una subcarpeta por sesión con sus fotos y videos. Cada descarga se guarda además en Descargas.";
     document.getElementById("cc-reorganizar").style.display = c.modo === "carpeta" ? "block" : "none";
+    document.getElementById("cc-det-estructura").style.display = c.modo === "carpeta" ? "block" : "none";
+    document.getElementById("cc-det-estructura-txt").innerHTML = textoEstructuraCarpeta();
     Promise.all([carpetaHandleGuardado(), idsOriginalesPendientes()]).then(function(v){
       var h = v[0], ids = v[1], set = {}; ids.forEach(function(i){ set[i] = 1; });
       var nPend = 0;
@@ -10551,7 +10642,7 @@ function quitarCarpetaSiVacia(padre, nombre, esRaiz){
     function leer(){
       return it.next().then(function(r){
         if(r.done) return;
-        if(!(esRaiz && r.value.kind === "file" && r.value.name === "_sesion.json")) otros++;
+        if(!(r.value.kind === "file" && (r.value.name === "_sesion.json" || r.value.name === "_proyecto.json"))) otros++;
         return leer();
       });
     }
@@ -10616,21 +10707,32 @@ function moverArchivoEnCarpeta(dir, origen, destCarpeta){
     });
   });
 }
+function tipoCarpetaNuevo(tipo){ return tipo === "Libreta" ? "Bitacora" : tipo; }
 function planReorganizacion(dir){
   var items = [], usadas = {};
-  // (a) fotos y videos con registro
+  function agregar(origen, dest, ses, ref){
+    if(usadas[origen]) return;
+    var carpOrigen = origen.split("/").slice(0, -1).join("/");
+    if(carpOrigen === dest) return;   // ya está donde corresponde
+    usadas[origen] = 1;
+    items.push({origen:origen, destCarpeta:dest, ses:ses, ref:ref||null});
+  }
+  // (a) fotos y videos con registro: <proyecto>/<sesión>/Fotos|Videos
   state.registros.forEach(function(r){
     (r.fotos || []).concat(r.videos || []).forEach(function(f){
-      var m = f && f.copiaLocal && /^(Fotos|Videos)\/([^\/]+)\/(.+)$/.exec(f.copiaLocal);
-      if(!m) return;
+      var partes = f && f.copiaLocal ? f.copiaLocal.split("/") : null;
+      if(!partes || partes.length < 2) return;
+      var k = -1;
+      for(var q = 0; q < partes.length - 1; q++){ if(partes[q] === "Fotos" || partes[q] === "Videos"){ k = q; break; } }
+      if(k < 0) return;
       var ses = sesionPorId(r.sesionId);
       if(!ses) return;
-      usadas[f.copiaLocal] = 1;
-      items.push({origen:f.copiaLocal, destCarpeta:carpetaLocalDeSesion(ses) + "/" + m[1], ses:ses, ref:f});
+      agregar(f.copiaLocal, rutaDeSesion(ses) + "/" + partes[k], ses, f);
     });
   });
-  // (b) respaldos antiguos
   var p = Promise.resolve();
+  function destinoTipo(ses, tipo){ return (ses ? carpetaProyectoDeSesion(ses) : CARPETA_VARIOS_PROYECTOS) + "/" + tipoCarpetaNuevo(tipo); }
+  // (b) estructura v2.52: Respaldos/, DarwinCore/, Mediciones/, Libreta/ en la raíz, con archivos sueltos o en subcarpetas por sesión
   TIPOS_RESPALDO_ANTIGUOS.forEach(function(tipo){
     p = p.then(function(){
       return dir.getDirectoryHandle(tipo).then(function(th){
@@ -10639,14 +10741,14 @@ function planReorganizacion(dir){
           ents.forEach(function(e){
             if(e.kind === "file"){
               var ses = sesionPorNombreAntiguo(e.name, true);
-              items.push({origen:tipo + "/" + e.name, destCarpeta:(ses ? carpetaLocalDeSesion(ses) : CARPETA_VARIAS) + "/" + tipo, ses:ses, ref:null});
+              agregar(tipo + "/" + e.name, destinoTipo(ses, tipo), ses, null);
             } else {
               var sesD = sesionPorNombreAntiguo(e.name, false);
               q = q.then(function(){
                 return listarEntradas(e).then(function(sub){
                   sub.forEach(function(g){
                     if(g.kind !== "file") return;
-                    items.push({origen:tipo + "/" + e.name + "/" + g.name, destCarpeta:(sesD ? carpetaLocalDeSesion(sesD) : CARPETA_VARIAS) + "/" + tipo, ses:sesD, ref:null});
+                    agregar(tipo + "/" + e.name + "/" + g.name, destinoTipo(sesD, tipo), sesD, null);
                   });
                 });
               });
@@ -10657,6 +10759,45 @@ function planReorganizacion(dir){
       }).catch(function(){});
     });
   });
+  // (c) estructura v2.57: <AAAA-MM-DD_Sesión>/, _Varias_sesiones/ y _Sin_sesion/ en la raíz
+  var SUBS = ["Fotos","Videos"].concat(TIPOS_RESPALDO_ANTIGUOS);
+  function archivosDeSubcarpetas(dirH, rutaBase, fn){
+    var q = Promise.resolve();
+    SUBS.forEach(function(sub){
+      q = q.then(function(){
+        return dirH.getDirectoryHandle(sub).then(function(sh){
+          return listarEntradas(sh).then(function(ents){
+            ents.forEach(function(e){ if(e.kind === "file") fn(rutaBase + "/" + sub + "/" + e.name, sub); });
+          });
+        }).catch(function(){});
+      });
+    });
+    return q;
+  }
+  p = p.then(function(){
+    return listarEntradas(dir).then(function(raiz){
+      var q = Promise.resolve();
+      raiz.forEach(function(e){
+        if(e.kind !== "directory") return;
+        if(e.name === CARPETA_VARIAS){
+          q = q.then(function(){ return archivosDeSubcarpetas(e, e.name, function(origen, sub){ agregar(origen, CARPETA_VARIOS_PROYECTOS + "/" + tipoCarpetaNuevo(sub), null, null); }); });
+        } else if(e.name === CARPETA_SIN_SESION){
+          q = q.then(function(){ return archivosDeSubcarpetas(e, e.name, function(origen, sub){
+            agregar(origen, sub === "Fotos" || sub === "Videos" ? CARPETA_SIN_PROYECTO + "/" + CARPETA_SIN_SESION + "/" + sub : CARPETA_SIN_PROYECTO + "/" + tipoCarpetaNuevo(sub), null, null);
+          }); });
+        } else {
+          var ses = sesionDeCarpetaLocal(e.name);
+          if(!ses) return;
+          q = q.then(function(){
+            return archivosDeSubcarpetas(e, e.name, function(origen, sub){
+              agregar(origen, sub === "Fotos" || sub === "Videos" ? rutaDeSesion(ses) + "/" + sub : carpetaProyectoDeSesion(ses) + "/" + tipoCarpetaNuevo(sub), ses, null);
+            });
+          });
+        }
+      });
+      return q;
+    });
+  }).catch(function(){});
   return p.then(function(){ return items; });
 }
 var reorganizando = false;
@@ -10670,9 +10811,9 @@ function reorganizarCarpeta(){
       if(!items.length){ toast("La carpeta ya está ordenada: no hay nada que mover", 4500); return; }
       var nMed = items.filter(function(i){ return i.ref; }).length, nRes = items.length - nMed;
       var nVarias = items.filter(function(i){ return !i.ses && !i.ref; }).length;
-      var msg = "Se moverán " + items.length + " archivos a una carpeta por sesión (AAAA-MM-DD_Sesión):\n\n" +
+      var msg = "Se moverán " + items.length + " archivos a la estructura por proyecto (Proyecto/Respaldos, Proyecto/AAAA-MM-DD_Sesión/Fotos, etc.):\n\n" +
         "• " + nMed + " fotos y videos originales\n" +
-        "• " + nRes + " respaldos y planillas" + (nVarias ? " (" + nVarias + " sin sesión identificable irán a " + CARPETA_VARIAS + ")" : "") + "\n\n" +
+        "• " + nRes + " respaldos y planillas" + (nVarias ? " (" + nVarias + " sin sesión identificable irán a " + CARPETA_VARIOS_PROYECTOS + ")" : "") + "\n\n" +
         "Cada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Las rutas de los registros se actualizan. Los archivos que la app no reconoce no se tocan.\n\n" +
         "Conviene no cerrar la app mientras dura. ¿Continuar?";
       if(!confirm(msg)) return;
@@ -10693,7 +10834,31 @@ function reorganizarCarpeta(){
       return seq.then(function(){
         guardarRegistros();
         var m = Promise.resolve();
-        Object.keys(tocadas).forEach(function(id){ m = m.then(function(){ return escribirMarcadorSesion(dir, tocadas[id]); }); });
+        var vistosV = {};
+        Object.keys(tocadas).forEach(function(id){
+          m = m.then(function(){ return escribirMarcadorSesion(dir, tocadas[id]); }).then(function(){
+            var v = viajePorId(tocadas[id].viajeId);
+            if(v && !vistosV[v.id]){ vistosV[v.id] = 1; return escribirMarcadorProyecto(dir, v); }
+          });
+        });
+        // carpetas de sesión de la estructura v2.57 y carpetas especiales antiguas: se quitan si quedaron vacías
+        m = m.then(function(){
+          return listarEntradas(dir).then(function(raiz){
+            var q = Promise.resolve();
+            raiz.forEach(function(e){
+              if(e.kind !== "directory") return;
+              if(e.name !== CARPETA_VARIAS && e.name !== CARPETA_SIN_SESION && !sesionDeCarpetaLocal(e.name)) return;
+              q = q.then(function(){
+                return listarEntradas(e).then(function(subs){
+                  var r2 = Promise.resolve();
+                  subs.forEach(function(x){ if(x.kind === "directory") r2 = r2.then(function(){ return quitarCarpetaSiVacia(e, x.name, false); }); });
+                  return r2;
+                }).then(function(){ return quitarCarpetaSiVacia(dir, e.name, true); });
+              });
+            });
+            return q;
+          });
+        }).catch(function(){});
         // quitar carpetas antiguas que quedaron vacías
         TIPOS_RESPALDO_ANTIGUOS.concat(["Fotos","Videos"]).forEach(function(tipo){
           m = m.then(function(){
@@ -10902,7 +11067,7 @@ document.getElementById("btn-revisadas-fechas").addEventListener("click", functi
 function renderExportar(){
   var box = document.getElementById("exp-selector-sesion");
   var seleccionPrevia = Array.prototype.map.call(box.querySelectorAll(".sesion-check-export:checked"), function(c){return c.dataset.id;});
-  var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio(state.ordenSesionesRegistros));
+  var ordenadas = state.sesiones.slice().sort(comparadorSesionesPorCriterio("fecha"));   // v2.81: en Exportar lo más nuevo siempre arriba
   // v2.43: si la persona dejó todas las sesiones sin marcar (para exportar solo registros sueltos), se respeta.
   var seleccion = seleccionPrevia.length ? seleccionPrevia : (state.expVacioManual ? [] : [state.sesionActivaId || (ultimaSesion() ? ultimaSesion().id : "")]);
   var nPorSesion = {};
@@ -10954,7 +11119,7 @@ function renderExportar(){
 /* v2.76: los registros sueltos se eligen con una pulsación sostenida sobre la sesión (sin botón ni bloque aparte) */
 state.expAbiertas = {};
 function regsSueltosHtml(s, sesionMarcada){
-  var regs = registrosDeSesionOrdenados(s.id);
+  var regs = registrosDeSesionOrdenados(s.id).reverse();   // v2.81: más nuevos arriba
   if(!regs.length) return '<div class="exp-regs"><div class="gestion-vacio">Esta sesión no tiene registros.</div></div>';
   return '<div class="exp-regs gestion-lista">'+regs.map(function(r){
     var ti = TIPOS[r.tipo]||TIPOS.nota, nombre = nombreRegistroLista(r);
@@ -11719,6 +11884,12 @@ document.getElementById("bv-importar").addEventListener("click", function(){
   var lista = document.getElementById("importados-lista");
   if(lista && lista.scrollIntoView) setTimeout(function(){ lista.scrollIntoView({block:"center"}); }, 150);
 });
+document.getElementById("btn-cargar-respaldo").addEventListener("click", function(){
+  var items = [{l:"📄 Elegir un archivo del teléfono (.zip o .json)", fn:function(){ document.getElementById("input-import-json").click(); }}];
+  if(soportaCarpeta()) items.push({l:"📂 Buscar en la carpeta de respaldos de la app", fn:function(){ document.getElementById("btn-explorar-carpeta").click(); }});
+  if(items.length===1){ items[0].fn(); return; }
+  menuAcciones("📥 Cargar un respaldo", items);
+});
 document.getElementById("input-import-json").addEventListener("change", function(e){
   abrirVisorRespaldo(Array.prototype.slice.call(e.target.files||[]));
   e.target.value = "";
@@ -11804,7 +11975,7 @@ document.getElementById("btn-descargar-unificado").addEventListener("click", fun
   var nomUni = nombreDescarga("todas_las_sesiones", "respaldo_unificado", "json");
   a.href=url; a.download=nomUni;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  copiarARespaldos("Respaldos", nomUni, blob, CARPETA_VARIAS);
+  copiarARespaldos("Respaldos", nomUni, blob, CARPETA_VARIOS_PROYECTOS);
   toast("Respaldo unificado descargado");
 });
 
