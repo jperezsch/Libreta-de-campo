@@ -2062,7 +2062,7 @@ async function sondearPedido() {
   var a = adminMapas(); if (!a || !pedido || pedido.fin) return;
   try {
     if (!pedido.runId) {
-      var rl = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + a.workflow + "/runs?event=workflow_dispatch&per_page=10");
+      var rl = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + (pedido.workflow || a.workflow) + "/runs?event=workflow_dispatch&per_page=10");
       var jl = await rl.json();
       if (!rl.ok) throw new Error(mensajeGh(rl, jl));
       var titulo = pedido.titulo || ("Mapa: " + pedido.nombre + " (" + pedido.modo + ")");
@@ -2122,7 +2122,7 @@ async function enviarBorrado(entrada) {
   var a = adminMapas(); if (!a) return "No hay token de administrador en este teléfono.";
   if (pedido && !pedido.fin) return "Ya hay un pedido en curso. Espera a que termine.";
   if (!online) return "Sin conexión. Necesitas internet para borrar un mapa del catálogo.";
-  pedido = { runId: null, nombre: entrada.nombre, modo: "borrar", titulo: "Borrar mapa: " + entrada.id, url: "", estado: "enviando", fin: false, t0: Date.now() };
+  pedido = { runId: null, nombre: entrada.nombre, modo: "borrar", workflow: WORKFLOW_BORRAR, titulo: "Borrar mapa: " + entrada.id, url: "", estado: "enviando", fin: false, t0: Date.now() };
   renderGestor();
   try {
     var r = await ghLlamar(a, "/repos/" + a.repo + "/actions/workflows/" + WORKFLOW_BORRAR + "/dispatches", { method: "POST", body: { ref: a.ref, inputs: { id: entrada.id } } });
