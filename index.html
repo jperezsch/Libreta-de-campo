@@ -972,7 +972,7 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <div class="filtros-cuerpo" id="gp-cuerpo"></div>
     </details>
     <details class="filtros-det filtro-lista" id="det-filtros">
-      <summary id="sum-filtros">🔎 Filtrar registros</summary>
+      <summary id="sum-filtros">🔎 Buscar y filtrar</summary>
       <div class="filtros-cuerpo">
         <div class="filtros-fila">
           <span class="filtros-rotulo">Ordenar:</span>
@@ -1319,7 +1319,7 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
     </div>
     <div class="bloque">
       <div class="section-title"><span class="n">📂</span>Carpeta del teléfono<button type="button" class="btn-ayuda" data-ayuda="ay-exp-carp" aria-label="Ayuda: carpeta del teléfono">?</button></div>
-      <div class="ayuda-txt" id="ay-exp-carp" style="display:none;">Muestra el contenido de la carpeta elegida en Config («Gestión de imágenes»): fotos, videos y respaldos, para conocer cómo quedó ordenada. Es solo consulta. Para cargar un respaldo guardado ahí, usa «Cargar un respaldo» en Importar. El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</div>
+      <div class="ayuda-txt" id="ay-exp-carp" style="display:none;">Muestra el contenido de la carpeta elegida en Config («Carpeta local»): fotos, videos y respaldos, para conocer cómo quedó ordenada. Es solo consulta. Para cargar un respaldo guardado ahí, usa «Cargar un respaldo» en Importar. El navegador no puede abrir el administrador de archivos del teléfono, por eso el explorador está dentro de la app.</div>
       <button type="button" class="btnfull btn-secondary" id="btn-explorar-carpeta">📂 Explorar carpeta del teléfono</button>
     </div>
     <div style="height:90px;"></div>
@@ -1352,6 +1352,7 @@ html[data-tema="noche"] .cons-codigo-top{background:rgba(0,0,0,.3); color:#fff;}
       <button type="button" class="btnfull btn-secondary" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
       <div class="version-info" id="version-info">Comprobando versión...</div>
     </div>
+    <details class="cfg-bloque" id="cfg-carpeta-local"><summary><span class="n">📁</span>Carpeta local</summary><div class="cfg-bloque-cuerpo" id="config-carpeta"></div></details>
     <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary><span class="n">🖼</span>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
     <details class="cfg-bloque" id="cfg-gestion-mapas"><summary><span class="n">🗺</span>Gestión de mapas</summary><div class="cfg-bloque-cuerpo"><div id="config-mapa"></div><div id="config-mapa-admin"></div></div></details>
     <details class="cfg-bloque" id="cfg-sugerencias"><summary><span class="n">💡</span>Sugerencias de los campos</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
@@ -4074,7 +4075,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-17 · v2.82";
+var APP_BUILD = "2026-11-18 · v2.83";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -5544,7 +5545,7 @@ function renderLista(justSavedId){
   renderChips();
   renderPanelHuerfanos(); renderRecorridosHuerfanos(); renderPanelFechas();
   var smf = document.getElementById("sum-filtros");
-  if(smf){ var filtroAct = !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); smf.textContent = "🔎 Filtrar registros" + (filtroAct ? " · filtro activo" : ""); }
+  if(smf){ var filtroAct = !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); smf.textContent = "🔎 Buscar y filtrar" + (filtroAct ? " · filtro activo" : ""); }
   var lista = obtenerListaFiltrada();
   renderListaTarjetas(lista, justSavedId);
   actualizarBarraSeleccion();
@@ -6047,7 +6048,7 @@ function ordenarRegistrosVista(sesionId, regs){
 }
 function viajesOrdenadosVista(){
   if(state.ordenProyectosRegistros==="alfabetico") return state.viajes.slice().sort(function(a,b){ return (a.nombre||"").localeCompare(b.nombre||"", undefined, {sensitivity:"base", numeric:true}); });
-  return viajesOrdenados();
+  return viajesPorFecha();
 }
 function sumaEspecies(r){ return (r.especies||[]).reduce(function(s,e){ return s+(parseInt(e.cantidad,10)||0); }, 0); }
 
@@ -6513,10 +6514,27 @@ function menuSesion(id){
   items.push({l:hay ? "🗑 Borrar la sesión y sus registros" : "🗑 Borrar la sesión", peligro:true, fn:function(){ if(hay) eliminarSesionConRegistros(id); else eliminarSesionVacia(id); }});
   menuAcciones(etiquetaSesionCorta(id), items);
 }
+/* v2.83: los proyectos se ordenan por la fecha que se declara en Gestión de proyectos (Inicio y, si falta, Término). Sin esas fechas se usa
+   la primera sesión del proyecto y, al final, la fecha de creación. Un proyecto creado después para agrupar sesiones antiguas queda donde corresponde. */
+function fechaOrdenViaje(v){
+  if(!v) return "";
+  if(v.fechaIni) return v.fechaIni;
+  if(v.fechaFin) return v.fechaFin;
+  var ms = sesionesDeViaje(v.id).map(function(x){ try{ return fechaSesion(x); }catch(e){ return ""; } }).filter(Boolean).sort();
+  if(ms.length) return ms[0];
+  return String(v.creado||"").slice(0,10);
+}
+function compararViajesPorFecha(a,b){
+  var c = fechaOrdenViaje(b).localeCompare(fechaOrdenViaje(a));            // más reciente arriba
+  if(c) return c;
+  c = String(b.fechaFin||"").localeCompare(String(a.fechaFin||""));
+  return c || String(b.creado||"").localeCompare(String(a.creado||""));
+}
+function viajesPorFecha(){ return state.viajes.slice().sort(compararViajesPorFecha); }
 function viajesOrdenados(){
   return state.viajes.slice().sort(function(a,b){
     if(a.id===state.viajeActivoId) return -1; if(b.id===state.viajeActivoId) return 1;
-    return (b.creado||"").localeCompare(a.creado||"");
+    return compararViajesPorFecha(a,b);
   });
 }
 /* grupos: [{sesionId, ...}] ya ordenados; fnGrupo(g) devuelve el HTML de un grupo. Sin proyectos creados, no cambia nada. */
@@ -6965,7 +6983,7 @@ function conViajesExp(sesiones, fn){
     if(v) (porViaje[v.id] = porViaje[v.id] || []).push(s); else sin.push(s);
   });
   var html = "";
-  state.viajes.slice().sort(function(a,b){ return (b.creado||"").localeCompare(a.creado||""); }).forEach(function(v){   // v2.81: proyectos más nuevos arriba
+  viajesPorFecha().forEach(function(v){   // v2.83: proyectos por su fecha declarada, más recientes arriba
     var ss = porViaje[v.id] || [];
     html += htmlTarjetaViajeExp(v, ss.length) + '<div class="viaje-sesiones">'+ss.map(fn).join("")+'</div>';
   });
@@ -9400,39 +9418,48 @@ document.getElementById("f-input-video").addEventListener("change", function(e){
     toast("🎥 Video añadido ("+textoMB(file.size)+"). Se copiará a la carpeta al guardar el registro");
   }).catch(function(){ toast("No se pudo guardar el video: espacio insuficiente en el dispositivo", 5000); });
 });
+/* v2.83: Config separa la «Carpeta local» (dónde y cómo se guardan los archivos) de la «Gestión de imágenes» (tamaño de las copias).
+   Todas las explicaciones van detrás de un (?). Los ids cc-* se conservan. */
 function renderConfigCopia(){
-  var box = document.getElementById("config-copia");
-  if(!box) return;
+  var box = document.getElementById("config-carpeta"), boxImg = document.getElementById("config-copia");
+  if(!box || !boxImg) return;
   var cfg = copiaCfg();
+  function ayuda(id, rotulo){ return '<button type="button" class="btn-ayuda" data-ayuda="'+id+'" aria-label="Ayuda: '+rotulo+'" style="margin-left:6px; vertical-align:middle;">?</button>'; }
+  function cajaAyuda(id, html){ return '<div class="ayuda-txt" id="'+id+'" style="display:none;">'+html+'</div>'; }
   box.innerHTML =
-    '<div class="field"><label>Guardar copia original en</label><select id="cc-modo">'+
+    '<div class="field"><label>Guardar los archivos en'+ayuda("ay-cc-modo","dónde guardar")+'</label>'+
+      cajaAyuda("ay-cc-modo",
+        '<p><b>Desactivada:</b> las fotos viajan solo dentro del .zip de exportación.</p>'+
+        '<p><b>Una carpeta del teléfono:</b> cada foto y video original se copia a la carpeta que elijas, ordenada por proyecto y sesión, junto con los respaldos que exportes. Solo está disponible en Chrome de Android.</p>'+
+        '<p><b>Descargas del teléfono:</b> las copias se descargan a la carpeta Descargas, sin orden por proyecto.</p>'+
+        '<p>Los archivos se nombran con el código del registro. Los videos no se incluyen en el .zip.</p>')+
+      '<select id="cc-modo">'+
       '<option value="off">Desactivada (solo foto en .zip)</option>'+
       '<option value="carpeta"'+(soportaCarpeta()?'':' disabled')+'>Una carpeta del teléfono'+(soportaCarpeta()?'':' (no disponible en este navegador)')+'</option>'+
       '<option value="descargas">Descargas del teléfono</option></select></div>'+
-    '<div class="field"><label>Tamaño de la copia de las fotos</label><select id="cc-tam">'+
+    '<div id="cc-bloque-carpeta" style="display:none;">'+
+      '<button type="button" class="btnfull btn-secondary" id="cc-elegir">📁 Elegir carpeta…</button>'+
+      '<div class="campo-ayuda" id="cc-estado"></div>'+
+      '<div class="field" style="margin-top:10px;"><label>Ruta de la carpeta (para ubicarla)'+ayuda("ay-cc-ruta","ruta de la carpeta")+'</label>'+
+        cajaAyuda("ay-cc-ruta",'El navegador solo informa el nombre de la carpeta, no su ruta completa. Escríbela aquí como referencia para encontrarla desde el administrador de archivos.')+
+        '<input type="text" id="cc-ruta" placeholder="Ej.: Almacenamiento interno/Documents/LibretaCampo" autocomplete="off" autocapitalize="off"></div>'+
+      '<div class="field" style="margin-top:6px;"><label>Cómo se ordena la carpeta'+ayuda("ay-cc-estr","cómo se ordena la carpeta")+'</label>'+
+        cajaAyuda("ay-cc-estr",'<p>Cada proyecto tiene su carpeta con todos sus respaldos juntos y una subcarpeta por sesión con sus fotos y videos. Cada descarga se guarda además en Descargas.</p>'+textoEstructuraCarpeta())+'</div>'+
+      '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
+      '<div style="display:flex; align-items:center; gap:6px;"><button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="flex:1;">🗂 Reorganizar la carpeta por proyecto…</button>'+ayuda("ay-cc-reorg","reorganizar la carpeta")+'</div>'+
+      cajaAyuda("ay-cc-reorg",'Ordena los archivos que ya están en la carpeta elegida según la estructura por proyecto. Antes de aplicar cambios muestra un resumen para confirmar. Conviene probarlo primero con una carpeta con pocos archivos.')+
+    '</div>';
+  boxImg.innerHTML =
+    '<div class="field"><label>Tamaño de la copia de las fotos'+ayuda("ay-cc-tam","tamaño de la copia")+'</label>'+
+      cajaAyuda("ay-cc-tam",'<p>Se aplica a las copias que se guardan en la carpeta del teléfono o en Descargas. <b>Original:</b> sin cambios. <b>Full HD:</b> se reduce a 1920 px de lado mayor y ocupa menos espacio.</p><p>No cambia las fotos que van dentro del registro ni del .zip.</p>')+
+      '<select id="cc-tam">'+
       '<option value="original">Original de la cámara, sin cambios</option>'+
-      '<option value="fullhd">Full HD (1920 px de lado mayor)</option></select></div>'+
-    '<button type="button" class="btnfull btn-secondary" id="cc-elegir" style="display:none;">📁 Elegir carpeta…</button>'+
-    '<div class="campo-ayuda" id="cc-estado"></div>'+
-    '<div class="field" id="cc-ruta-wrap" style="display:none; margin-top:10px;"><label>Ruta de la carpeta (para ubicarla)</label><input type="text" id="cc-ruta" placeholder="Ej.: Almacenamiento interno/Documents/LibretaCampo" autocomplete="off" autocapitalize="off">'+
-      '<span class="campo-ayuda">El navegador solo informa el nombre de la carpeta, no su ruta completa. Escríbela aquí como referencia para encontrarla desde el administrador de archivos.</span></div>'+
-    '<div class="campo-ayuda" id="cc-estructura" style="display:none;"></div>'+
-    '<details class="det-bloque" id="cc-det-estructura" style="display:none;"><summary>🗂 Cómo se ordena la carpeta (detalle)</summary><div class="campo-ayuda" id="cc-det-estructura-txt" style="margin-top:6px;"></div></details>'+
-    '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
-    '<button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="display:none;">🗂 Reorganizar la carpeta por proyecto…</button>'+
-    '<div class="campo-ayuda">Los archivos se nombran con el código del registro y quedan en la carpeta de su sesión, dentro de su proyecto. Los videos no se incluyen en el .zip.</div>';
+      '<option value="fullhd">Full HD (1920 px de lado mayor)</option></select></div>';
   document.getElementById("cc-modo").value = cfg.modo;
   document.getElementById("cc-tam").value = cfg.tam;
   function estado(){
     var c = copiaCfg();
-    document.getElementById("cc-elegir").style.display = c.modo === "carpeta" ? "block" : "none";
-    document.getElementById("cc-ruta-wrap").style.display = c.modo === "carpeta" ? "block" : "none";
-    var est = document.getElementById("cc-estructura");
-    est.style.display = c.modo === "carpeta" ? "block" : "none";
-    est.innerHTML = "Las copias se ordenan por proyecto: cada proyecto tiene su carpeta con todos sus respaldos juntos y una subcarpeta por sesión con sus fotos y videos. Cada descarga se guarda además en Descargas.";
-    document.getElementById("cc-reorganizar").style.display = c.modo === "carpeta" ? "block" : "none";
-    document.getElementById("cc-det-estructura").style.display = c.modo === "carpeta" ? "block" : "none";
-    document.getElementById("cc-det-estructura-txt").innerHTML = textoEstructuraCarpeta();
+    document.getElementById("cc-bloque-carpeta").style.display = c.modo === "carpeta" ? "block" : "none";
     Promise.all([carpetaHandleGuardado(), idsOriginalesPendientes()]).then(function(v){
       var h = v[0], ids = v[1], set = {}; ids.forEach(function(i){ set[i] = 1; });
       var nPend = 0;
@@ -11688,7 +11715,7 @@ document.getElementById("modal-carpeta").addEventListener("click", function(e){ 
 document.getElementById("btn-explorar-carpeta").addEventListener("click", function(){
   if(!soportaCarpeta()){ toast("Este navegador no permite explorar carpetas. Usa Chrome en Android", 5000); return; }
   carpetaHandleGuardado().then(function(h){
-    if(!h){ toast("Primero elige una carpeta: Config, «Gestión de imágenes»", 5000); return; }
+    if(!h){ toast("Primero elige una carpeta: Config, «Carpeta local»", 5000); return; }
     return carpetaConPermiso().then(function(dir){
       if(!dir){ toast("Sin permiso para leer la carpeta. Vuelve a elegirla en Config", 5000); return; }
       carpNav.pila = [dir]; carpNav.nombres = [dir.name];
