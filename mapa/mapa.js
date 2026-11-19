@@ -486,9 +486,10 @@ function resumenCuenta(c) {
   if (c && c.poligonos) t.push(c.poligonos + (c.poligonos === 1 ? " polígono" : " polígonos"));
   return t.join(", ");
 }
-function cerrarTarjeta() { var t = $("mp-tarjeta"); if (t) t.style.display = "none"; }
+function cerrarTarjeta() { var t = $("mp-tarjeta"); tarjDesp.x = 0; tarjDesp.y = 0; if (t) { t.style.display = "none"; t.style.transform = ""; } }
 function mostrarTarjetaCapa(f, lngLat) {
   var t = $("mp-tarjeta"); if (!t) return;
+  tarjDesp.x = 0; tarjDesp.y = 0; t.style.transform = "";
   var p = f.properties || {}, capa = capasActuales.filter(function (c) { return c.clave === p._capa; })[0];
   var esPunto = /Point/.test(f.geometry.type);
   var titulo = p.nombre || p.estacion || (esPunto ? "Punto de referencia" : "Línea");
@@ -1470,7 +1471,7 @@ function crearMapa() {
       var rs = map.queryRenderedFeatures(caja, { layers: lr });
       var rcSel = rs.length ? listaRecorridos().filter(function (x) { return x.id === rs[0].properties.id; })[0] : null;
       if (rcSel) {
-        var t = $("mp-tarjeta"), ses = LC.sesionPorId(rcSel.sesionId);
+        var t = $("mp-tarjeta"), ses = LC.sesionPorId(rcSel.sesionId); if (t) { tarjDesp.x = 0; tarjDesp.y = 0; t.style.transform = ""; }
         t.textContent = ""; t.appendChild(el("b", { texto: rcSel.nombre || "Recorrido" }));
         t.appendChild(el("div", { class: "mp-suave", texto: textoRecorrido(rcSel) + " · " + (rcSel.puntos || []).length + " puntos" }));
         if (ses) t.appendChild(el("div", { class: "mp-suave", texto: "Sesión: " + LC.nombreSesionMostrar(ses) }));
@@ -1650,6 +1651,7 @@ function actualizarNorte() {
 /* ---------- navegar hasta un punto (pulsación larga): brújula, distancia y tiempo estimado ---------- */
 var nav = null;                 /* { destino:{lng,lat,nombre}, hist:[{t,lng,lat}], vel:null, rumbo:null } */
 var puntosManuales = [];        /* v2.58 / v2.76: puntos { lng, lat } marcados con toque sostenido, uno tras otro; sirven para medir rutas */
+var tarjDesp = { x: 0, y: 0 };   /* v2.85: desplazamiento de la tarjeta de puntos manuales (se arrastra con el dedo) */
 var selManual = -1;             /* índice del punto manual seleccionado */
 var pulsacionReciente = false;  /* el clic que sigue a una pulsación larga no debe abrir el registro */
 function distanciaM(a, b) {
@@ -1702,6 +1704,11 @@ function actualizarNavegacion() {
   if (!nav) { cuadro.style.display = "none"; return; }
   cuadro.style.display = "block";
   $("mp-nav-nombre").textContent = "Hacia " + nav.destino.nombre;
+  var cr = $("mp-nav-ruta");
+  if (cr) {
+    cr.style.display = nav.ruta ? "flex" : "none";
+    if (nav.ruta) { $("mp-nav-ant").disabled = nav.ruta.pos <= 0; $("mp-nav-sig").disabled = nav.ruta.pos >= nav.ruta.pts.length - 1; }
+  }
   var rum = $("mp-nav-rumbo"), dis = $("mp-nav-dist"), eta = $("mp-nav-eta"), aguja = $("mp-rosa-aguja"), tu = $("mp-rosa-rumbo");
   cuadro.classList.remove("llego");
   if (!gps.fix) {
@@ -1723,24 +1730,61 @@ function actualizarNavegacion() {
   if (v != null) nav.vel = nav.vel == null ? v : nav.vel * 0.6 + v * 0.4;
   if (rumboPropio != null && v != null && v >= 0.4) { tu.style.display = ""; tu.setAttribute("transform", "rotate(" + rumboPropio.toFixed(1) + ")"); } else tu.style.display = "none";
   var umbral = Math.max(10, Math.min(25, gps.fix.acc * 0.8));
+  if (d <= umbral && nav.ruta && nav.ruta.pos < nav.ruta.pts.length - 1) {
+    /* v2.85: llegó a un punto intermedio de la ruta; pasa al siguiente de la serie */
+    var alcanzado = nav.ruta.pts[nav.ruta.pos].n;
+    if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+    fijarDestinoRuta(nav.ruta.pos + 1);
+    LC.toast("Alcanzaste el punto " + alcanzado + ". Sigue al punto " + nav.ruta.pts[nav.ruta.pos].n, 2800);
+    actualizarNavegacion(); return;
+  }
   if (d <= umbral) {
     cuadro.classList.add("llego");
-    dis.textContent = "¡Llegaste!"; eta.textContent = "A " + Math.round(d) + " m del punto";
+    dis.textContent = nav.ruta ? "¡Fin de la ruta!" : "¡Llegaste!"; eta.textContent = "A " + Math.round(d) + " m del punto";
     if (!nav.avisado) { nav.avisado = true; if (navigator.vibrate) navigator.vibrate([60, 40, 60]); }
   } else {
     nav.avisado = false;
     dis.textContent = textoDistancia(d);
     var kmh = nav.vel != null ? (nav.vel * 3.6).toFixed(1).replace(".", ",") + " km/h" : "";
-    eta.textContent = (nav.vel != null && nav.vel >= 0.4) ? textoTiempo(d / nav.vel) + " · " + kmh : "Ponte en marcha para estimar el tiempo";
+    var resto = d + (nav.ruta ? restoRuta() : 0);
+    eta.textContent = (nav.vel != null && nav.vel >= 0.4) ? textoTiempo(resto / nav.vel) + " · " + kmh : "Ponte en marcha para estimar el tiempo";
+    if (nav.ruta) eta.textContent += " · Ruta: quedan " + textoDistancia(resto);
   }
   refrescarNavMapa();
 }
-function iniciarNavegacion(dest) {
-  nav = { destino: dest, hist: gps.fix ? [{ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat }] : [], vel: null, avisado: false };
+/* v2.85: navegar la serie de puntos marcados, empezando por el extremo más cercano y siguiendo el orden hasta el otro extremo */
+function restoRuta() {
+  var r = nav && nav.ruta; if (!r) return 0;
+  var t = 0; for (var i = r.pos + 1; i < r.pts.length; i++) t += distanciaM(r.pts[i - 1], r.pts[i]);
+  return t;
+}
+function fijarDestinoRuta(pos) {
+  var r = nav.ruta, q = r.pts[pos]; r.pos = pos;
+  nav.destino = { lng: q.lng, lat: q.lat, nombre: "punto " + q.n + " (" + (pos + 1) + " de " + r.pts.length + ")" };
+  nav.avisado = false;
+}
+function avanzarRuta(delta) {
+  if (!nav || !nav.ruta) return;
+  var p = nav.ruta.pos + delta; if (p < 0 || p >= nav.ruta.pts.length) return;
+  fijarDestinoRuta(p); actualizarNavegacion();
+}
+function iniciarRutaManual() {
+  var pm = puntosManuales; if (pm.length < 2) return;
+  if (gps.watch == null) gpsEncender();
+  if (!gps.fix) { LC.toast("Espera la señal GPS para elegir el extremo más cercano y vuelve a tocar «Navegar la ruta»", 5200); return; }
+  var yo = { lng: gps.fix.lng, lat: gps.fix.lat };
+  var pts = pm.map(function (q, i) { return { lng: q.lng, lat: q.lat, n: i + 1 }; });
+  if (distanciaM(yo, pm[pm.length - 1]) < distanciaM(yo, pm[0])) pts.reverse();
+  iniciarNavegacion({ lng: pts[0].lng, lat: pts[0].lat, nombre: "" }, { pts: pts, pos: 0 });
+  fijarDestinoRuta(0); actualizarNavegacion();
+  LC.toast("Ruta de " + pts.length + " puntos: empiezas en el " + pts[0].n + " y sigues hasta el " + pts[pts.length - 1].n, 3600);
+}
+function iniciarNavegacion(dest, ruta) {
+  nav = { destino: dest, ruta: ruta || null, hist: gps.fix ? [{ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat }] : [], vel: null, avisado: false };
   if (gps.watch == null) gpsEncender();
   cerrarPanelPuntos(); cerrarTarjeta();
   actualizarNavegacion();
-  LC.toast("Navegando hacia " + dest.nombre + ". Toca ✕ para terminar", 3200);
+  if (!ruta) LC.toast("Navegando hacia " + dest.nombre + ". Toca ✕ para terminar", 3200);
 }
 function terminarNavegacion() { nav = null; actualizarNavegacion(); refrescarNavMapa(); }
 function destinoEn(pt) {
@@ -1752,6 +1796,7 @@ function destinoEn(pt) {
   var f = fs[0], pr = f.properties || {};
   return { lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], nombre: pr.codigo || pr.nombre || pr.estacion || "el punto" };
 }
+function aplicarDespTarjeta(t) { t.style.transform = (tarjDesp.x || tarjDesp.y) ? "translate(" + tarjDesp.x + "px," + tarjDesp.y + "px)" : ""; }
 function textoCoordenada(p) { return p.lat.toFixed(6) + ", " + p.lng.toFixed(6); }
 function distanciaTotalManual(hasta) {
   var t = 0; for (var i = 1; i <= hasta && i < puntosManuales.length; i++) t += distanciaM(puntosManuales[i - 1], puntosManuales[i]);
@@ -1786,12 +1831,144 @@ function quitarPuntoManual(i) {
   refrescarNavMapa(); mostrarTarjetaPuntoManual();
 }
 function quitarTodosManuales() { puntosManuales = []; selManual = -1; refrescarNavMapa(); cerrarTarjeta(); }
+/* v2.85: altitud aproximada desde el relieve instalado (terrarium, zoom 12, interpolación bilineal). Solo se informa dentro del área con relieve y si el valor es plausible (sobre el nivel del mar); no se calcula profundidad. */
+var tesDem = [];
+async function pixelesDem(z, x, y) {
+  var clave = z + "/" + x + "/" + y, h = tesDem.filter(function (k) { return k.clave === clave; })[0];
+  if (h) return h.datos;
+  var cand = relievesParaTesela(z, x, y), d = null;
+  for (var q = 0; q < cand.length && !d; q++) d = await bytesTesela(cand[q], z, x, y);
+  var datos = null;
+  if (d) {
+    var bmp = await createImageBitmap(new Blob([d], { type: "image/webp" }));
+    var cv = (typeof OffscreenCanvas !== "undefined") ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement("canvas"), { width: bmp.width, height: bmp.height });
+    var cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(bmp, 0, 0);
+    var im = cx.getImageData(0, 0, bmp.width, bmp.height);
+    datos = { w: bmp.width, h: bmp.height, px: im.data };
+    if (bmp.close) bmp.close();
+  }
+  tesDem.push({ clave: clave, datos: datos }); if (tesDem.length > 6) tesDem.shift();
+  return datos;
+}
+async function altitudAprox(lng, lat) {
+  if (!relieveNombres.length || !isFinite(lng) || !isFinite(lat) || Math.abs(lat) > 85) return null;
+  var z = 12, n = Math.pow(2, z), s = Math.sin(lat * Math.PI / 180);
+  var fx = (lng + 180) / 360 * n, fy = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n;
+  var x = Math.floor(fx), y = Math.floor(fy), t = await pixelesDem(z, x, y);
+  if (!t) return null;
+  function elev(i, j) {
+    i = Math.max(0, Math.min(t.w - 1, i)); j = Math.max(0, Math.min(t.h - 1, j));
+    var o = (j * t.w + i) * 4; return t.px[o] * 256 + t.px[o + 1] + t.px[o + 2] / 256 - 32768;
+  }
+  var u = (fx - x) * t.w - 0.5, v = (fy - y) * t.h - 0.5, i0 = Math.floor(u), j0 = Math.floor(v), a = u - i0, b = v - j0;
+  var e00 = elev(i0, j0), e10 = elev(i0 + 1, j0), e01 = elev(i0, j0 + 1), e11 = elev(i0 + 1, j0 + 1);
+  var val = e00 * (1 - a) * (1 - b) + e10 * a * (1 - b) + e01 * (1 - a) * b + e11 * a * b;
+  var mx = Math.max(e00, e10, e01, e11), mn = Math.min(e00, e10, e01, e11);
+  if (!(val > 0) || val > 9000) return null;
+  return { m: Math.round(val), dif: Math.round(mx - mn) };
+}
+async function altitudDe(pm) {
+  if (pm.alt === undefined) { try { pm.alt = await altitudAprox(pm.lng, pm.lat); } catch (e) { pm.alt = null; } }
+  return pm.alt;
+}
+function textoAltitud(a) {
+  return "Altitud ≈ " + a.m + " m (modelo de relieve" + (a.dif >= 30 ? "; terreno escarpado, puede variar unos ±" + Math.round(a.dif / 2) + " m" : "") + ")";
+}
+function crearAsaTarjeta(t) {
+  var asa = el("div", { class: "mp-asa", title: "Arrastra para mover esta ventana" }, [el("span", { texto: "⋯ arrastra para mover ⋯" })]), ini = null;
+  asa.addEventListener("pointerdown", function (e) {
+    ini = { x: e.clientX, y: e.clientY, dx: tarjDesp.x, dy: tarjDesp.y };
+    if (asa.setPointerCapture) { try { asa.setPointerCapture(e.pointerId); } catch (x) {} }
+    e.preventDefault(); e.stopPropagation();
+  });
+  asa.addEventListener("pointermove", function (e) {
+    if (!ini) return;
+    var L = $("mp-lienzo").getBoundingClientRect(), r = t.getBoundingClientRect();
+    var bl = r.left - tarjDesp.x, bt = r.top - tarjDesp.y;
+    var nx = ini.dx + e.clientX - ini.x, ny = ini.dy + e.clientY - ini.y;
+    var loX = L.left - bl, hiX = L.right - (bl + r.width), loY = L.top - bt, hiY = L.bottom - (bt + r.height);
+    if (hiX < loX) hiX = loX; if (hiY < loY) hiY = loY;
+    tarjDesp.x = Math.round(Math.max(loX, Math.min(hiX, nx))); tarjDesp.y = Math.round(Math.max(loY, Math.min(hiY, ny)));
+    t.style.transform = "translate(" + tarjDesp.x + "px," + tarjDesp.y + "px)";
+    e.preventDefault();
+  });
+  function fin() { ini = null; }
+  asa.addEventListener("pointerup", fin); asa.addEventListener("pointercancel", fin);
+  return asa;
+}
+/* v2.85: convierte los puntos marcados en una capa local (igual que una capa importada). Un cuadro permite elegir el nombre de la capa,
+   si se conserva la línea que une los puntos o se guardan como puntos independientes (estaciones), y el nombre de cada punto. */
+var modalCapa = null;
+function cerrarModalCapa() { if (modalCapa) modalCapa.classList.remove("on"); }
+async function crearCapaDePuntos(pm, o) {
+  var alts = []; for (var i = 0; i < pm.length; i++) alts.push(await altitudDe(pm[i]));
+  var fc = { type: "FeatureCollection", features: [] };
+  if (o.linea && pm.length > 1) fc.features.push({ type: "Feature", properties: { nombre: o.nombre, tipo: "ruta", puntos: pm.length, distancia_m: Math.round(distanciaTotalManual(pm.length - 1)) }, geometry: { type: "LineString", coordinates: pm.map(function (q) { return [q.lng, q.lat]; }) } });
+  pm.forEach(function (q, k) {
+    var nom = (o.nombres[k] || "").trim() || "Punto " + (k + 1);
+    var p = { nombre: nom, orden: k + 1, lat: +q.lat.toFixed(6), lon: +q.lng.toFixed(6) };
+    if (!o.linea) p.estacion = nom;
+    if (alts[k]) p.altitud_m = alts[k].m;
+    if (o.linea && k > 0) p.distancia_acum_m = Math.round(distanciaTotalManual(k));
+    fc.features.push({ type: "Feature", properties: p, geometry: { type: "Point", coordinates: [q.lng, q.lat] } });
+  });
+  var f = new File([JSON.stringify(fc)], o.nombre + ".geojson", { type: "application/geo+json" });
+  await importarCapaLocal(f, o.mapaId);
+}
+function guardarPuntosComoCapa() {
+  var pm = puntosManuales.slice(); if (!pm.length) return;
+  var ids = Object.keys(inst);
+  if (!ids.length) { LC.toast("Instala un mapa sin conexión para poder guardar la capa", 5000); return; }
+  function contiene(id, q) { var a = inst[id].area; return !a || (q.lng >= a[0] && q.lng <= a[2] && q.lat >= a[1] && q.lat <= a[3]); }
+  var mid = (mapaImportId && inst[mapaImportId] && contiene(mapaImportId, pm[0])) ? mapaImportId : (ids.filter(function (i) { return contiene(i, pm[0]); })[0] || ids[0]);
+  if (!modalCapa) {
+    modalCapa = el("div", { class: "modal-bg", id: "mp-modal-capa" });
+    modalCapa.addEventListener("click", function (e) { if (e.target === modalCapa) cerrarModalCapa(); });
+    document.body.appendChild(modalCapa);
+  }
+  modalCapa.textContent = "";
+  var inpNom = el("input", { type: "text", id: "cap-nombre", autocomplete: "off", spellcheck: "false", value: "Ruta marcada " + fechaHM() });
+  var rLinea = el("input", { type: "radio", name: "cap-modo", id: "cap-modo-linea", value: "linea" }), rPuntos = el("input", { type: "radio", name: "cap-modo", id: "cap-modo-puntos", value: "puntos" });
+  (pm.length > 1 ? rLinea : rPuntos).checked = true;
+  if (pm.length < 2) { rLinea.disabled = true; }
+  var cajaNombres = el("div", { class: "mp-cap-nombres", id: "cap-nombres" }), inps = [];
+  pm.forEach(function (q, k) {
+    var inp = el("input", { type: "text", autocomplete: "off", spellcheck: "true", placeholder: "Punto " + (k + 1), "aria-label": "Nombre del punto " + (k + 1) });
+    inps.push(inp);
+    cajaNombres.appendChild(el("div", { class: "mp-cap-fila" }, [el("span", { class: "mp-cap-n", texto: String(k + 1) }), inp, el("span", { class: "mp-suave mp-cap-co", texto: q.lat.toFixed(5) + ", " + q.lng.toFixed(5) })]));
+  });
+  var msg = el("p", { class: "campo-ayuda", id: "cap-msg", style: "min-height:1.2em;" });
+  var btnOk = el("button", { type: "button", class: "primario", id: "cap-guardar", texto: "Guardar capa", onclick: async function () {
+    var nombre = inpNom.value.replace(/[\\\/:*?"<>|.]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!nombre) { msg.textContent = "Escribe un nombre para la capa."; return; }
+    btnOk.disabled = true;
+    await crearCapaDePuntos(pm, { nombre: nombre, mapaId: mid, linea: rLinea.checked, nombres: inps.map(function (x) { return x.value; }) });
+    btnOk.disabled = false; cerrarModalCapa();
+  } });
+  var caja = el("div", { class: "modal" }, [
+    el("div", { class: "mp-panel-cab mp-gestor-cab" }, [el("h2", { texto: "Guardar como capa", style: "margin:0;font-size:1.1rem;" }), el("button", { type: "button", class: "mp-panel-x", texto: "✕", "aria-label": "Cerrar", onclick: cerrarModalCapa })]),
+    el("div", { class: "field" }, [el("label", { texto: "Nombre de la capa", for: "cap-nombre" }), inpNom]),
+    el("div", { class: "mp-suave", texto: "Qué guardar" }),
+    el("label", { class: "mp-chk" }, [rLinea, el("span", { texto: "Ruta: los puntos y la línea que los une" })]),
+    el("label", { class: "mp-chk" }, [rPuntos, el("span", { texto: "Solo puntos independientes (por ejemplo, estaciones)" })]),
+    el("div", { class: "mp-suave", texto: "Nombre de cada punto (si lo dejas vacío se llamará «Punto 1», «Punto 2»…)" }),
+    cajaNombres, msg,
+    el("div", { class: "mp-fila" }, [el("button", { type: "button", texto: "Cancelar", onclick: cerrarModalCapa }), btnOk])
+  ]);
+  modalCapa.appendChild(caja);
+  modalCapa.classList.add("on");
+}
 function mostrarTarjetaPuntoManual() {
   var t = $("mp-tarjeta"); if (!t || selManual < 0 || !puntosManuales[selManual]) return;
   var pm = puntosManuales[selManual], n = puntosManuales.length, txt = textoCoordenada(pm);
   t.textContent = "";
+  t.appendChild(crearAsaTarjeta(t)); aplicarDespTarjeta(t);
   t.appendChild(el("b", { texto: n > 1 ? "Punto " + (selManual + 1) + " de " + n : "Punto marcado" }));
   t.appendChild(el("div", { texto: "Lat " + pm.lat.toFixed(6) + "  ·  Lon " + pm.lng.toFixed(6) }));
+  var lnAlt = el("div", { class: "mp-suave", texto: pm.alt === undefined ? "Altitud: calculando…" : (pm.alt ? textoAltitud(pm.alt) : "") });
+  if (pm.alt === null) lnAlt.style.display = "none";
+  t.appendChild(lnAlt);
+  if (pm.alt === undefined) altitudDe(pm).then(function (a) { if (a) lnAlt.textContent = textoAltitud(a); else lnAlt.style.display = "none"; });
   if (n > 1) {
     var ant = selManual > 0 ? distanciaM(puntosManuales[selManual - 1], pm) : null;
     t.appendChild(el("div", { class: "mp-medida", texto: "Distancia total de la ruta: " + textoDistancia(distanciaTotalManual(n - 1)) }));
@@ -1814,6 +1991,8 @@ function mostrarTarjetaPuntoManual() {
     } }),
     el("button", { texto: "Quitar", onclick: function () { quitarPuntoManual(); } })
   ];
+  if (n > 1) botones.splice(2, 0, el("button", { texto: "🧭 Navegar la ruta", onclick: iniciarRutaManual }));
+  botones.splice(n > 1 ? 3 : 2, 0, el("button", { texto: "🗂 Guardar como capa", onclick: guardarPuntosComoCapa }));
   if (n > 1) botones.push(el("button", { texto: "Quitar todos", onclick: quitarTodosManuales }));
   t.appendChild(el("div", { class: "mp-fila" }, botones));
   t.style.display = "block";
@@ -2670,7 +2849,8 @@ function construirPantalla() {
     '<div id="mp-bsq"><div class="mp-bsq-fila"><input type="search" id="mp-bsq-q" placeholder="Lugar o coordenadas (-38,6575 -72,5929)" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="mp-btn chico" id="mp-bsq-ir">Ir</button><button type="button" class="mp-panel-x" id="mp-bsq-x" aria-label="Cerrar la búsqueda">✕</button></div><div id="mp-bsq-res"></div></div>' +
     '<div id="mp-panel-puntos"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
-      '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div></div>' +
+      '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div>' +
+      '<div id="mp-nav-ruta" class="mp-nav-ruta"><button type="button" id="mp-nav-ant">◀ Anterior</button><button type="button" id="mp-nav-sig">Saltar ▶</button></div></div>' +
     '<div id="mp-tarjeta"></div>' +
     '</div>';
   $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagarManual(); };
@@ -2685,6 +2865,8 @@ function construirPantalla() {
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
   $("mp-todos").onclick = verTodosLosMapas;
   $("mp-nav-cerrar").onclick = terminarNavegacion;
+  $("mp-nav-ant").onclick = function () { avanzarRuta(-1); };
+  $("mp-nav-sig").onclick = function () { avanzarRuta(1); };
   $("mp-volver-reg").onclick = volverAlRegistro;
   $("mp-grabar").onclick = function () { panelTracks(false); if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
   $("mp-tracks").onclick = function () { panelTracks(); };
@@ -2806,6 +2988,6 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto, verRecorrido: verRecorrido,
   /* para pruebas */
-  _debug: function () { return { geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; }, csvAGeoJSON: csvAGeoJSON, normalizarFC: normalizarFC, geoCapas: geoCapas, panelEstiloCapa: panelEstiloCapa, tipoPorNombre: tipoPorNombre, omitidas: function () { return csvOmitidas; } }; }
+  _debug: function () { return { altitudAprox: altitudAprox, iniciarRutaManual: iniciarRutaManual, guardarPuntosComoCapa: guardarPuntosComoCapa, marcarPuntoManual: marcarPuntoManual, avanzarRuta: avanzarRuta, actualizarNavegacion: actualizarNavegacion, geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; }, csvAGeoJSON: csvAGeoJSON, normalizarFC: normalizarFC, geoCapas: geoCapas, panelEstiloCapa: panelEstiloCapa, tipoPorNombre: tipoPorNombre, omitidas: function () { return csvOmitidas; } }; }
 };
 })();

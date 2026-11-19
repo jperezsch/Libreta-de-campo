@@ -187,3 +187,18 @@
 .mp-bsq-quitar{margin:4px 0 0; background:none; border:1.5px solid var(--borde); border-radius:10px; padding:8px 12px; color:var(--texto-sec); font-family:inherit; min-height:44px;}
 .mp-bsq-marca{width:24px; height:24px; border-radius:50%; background:rgba(217,83,79,.28); border:3px solid #d9534f; box-sizing:border-box; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 2px #fff;}
 .mp-bsq-marca i{width:6px; height:6px; border-radius:50%; background:#d9534f; display:block;}
+
+/* v2.85: asa para mover la tarjeta, y botones de la ruta en el panel de navegación */
+.mp-asa{position:sticky; top:-12px; margin:-12px -12px 6px; padding:7px 0 5px; text-align:center; touch-action:none; cursor:grab; background:var(--card); color:var(--suave, #7a7a7a); font-size:.78rem; letter-spacing:.04em; border-radius:var(--radio) var(--radio) 0 0; z-index:1; user-select:none; -webkit-user-select:none;}
+.mp-nav-ruta{display:none; gap:6px; margin-top:8px;}
+.mp-nav-ruta button{flex:1; min-height:40px; border-radius:9px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-weight:700; font-size:.82rem; cursor:pointer;}
+.mp-nav-ruta button:disabled{opacity:.4;}
+
+/* v2.85: cuadro "Guardar como capa" */
+#mp-modal-capa .modal{max-height:92vh; overflow-y:auto;}
+#mp-modal-capa .field input{width:100%; box-sizing:border-box;}
+.mp-cap-nombres{margin:6px 0 10px;}
+.mp-cap-fila{display:flex; align-items:center; gap:8px; margin:0 0 8px; flex-wrap:wrap;}
+.mp-cap-n{width:26px; height:26px; border-radius:50%; background:#d64545; color:#fff; font-size:.75rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;}
+.mp-cap-fila input{flex:1; min-width:120px; box-sizing:border-box; padding:10px 12px; font-size:1rem; border:1.5px solid var(--borde); border-radius:10px; background:var(--fondo,#fff); color:var(--texto);}
+.mp-cap-co{flex:0 0 100%; margin:-4px 0 0 34px;}
