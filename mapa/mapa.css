@@ -243,3 +243,11 @@
 #mp-nav{width:240px;}
 .mp-nav-modo button{min-width:0;}
 #mp-barra #mp-chip-gps{white-space:nowrap;}
+
+/* v2.91: brújula grande y única en la ventana de navegación */
+#mp-nav{width:252px;}
+#mp-rosa{width:116px; height:116px; cursor:pointer; touch-action:manipulation; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; transition:transform .15s;}
+#mp-rosa.pulsando{transform:scale(1.08);}
+#mp-nav-eta{margin:6px 0 0;}
+.mp-nav-modo-txt{margin:4px 0 0; font-size:.74rem; line-height:1.25;}
+#mp-rosa, #mp-rosa:focus{outline:none;}

@@ -1474,8 +1474,8 @@ function crearMapa() {
     container: "mp-mapa", style: construirEstilo(true), center: [-72.59, -38.66], zoom: 5, maxZoom: 19,
     attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false, fadeDuration: 0
   });
-  map.touchZoomRotate.enableRotation();   /* v2.44: giro libre con dos dedos (sin inclinación) */
-  map.on("rotate", actualizarNorte);
+  map.on("rotate", function () { actualizarNorte(); pintarRosa(); });
+  map.touchZoomRotate.disableRotation();   /* v2.91: fuera de la navegación el mapa no gira; durante la navegación con norte arriba sí */
   map.on("rotatestart", function (e) {
     if (e && e.originalEvent && rumbo.activo) { apagarRumbo(false); LC.toast("Giro manual: rumbo arriba apagado"); }
   });
@@ -1765,16 +1765,23 @@ function refrescarNavMapa() { if (map && mapaListo && map.getSource("nav")) map.
 function dibujarRosa() {
   var marcas = "";
   for (var g = 0; g < 360; g += 30) marcas += '<line x1="0" y1="' + (g % 90 === 0 ? -46 : -49) + '" x2="0" y2="-54" transform="rotate(' + g + ')" class="mp-rosa-marca"/>';
-  return '<svg id="mp-rosa" viewBox="-62 -62 124 124" aria-hidden="true">' +
-    '<circle r="55" class="mp-rosa-aro"/>' + marcas +
+  return '<svg id="mp-rosa" viewBox="-62 -62 124 124" role="button" tabindex="0" aria-label="Brújula de navegación. Mantén presionado para alternar entre objetivo arriba y norte arriba">' +
+    '<g id="mp-rosa-disco"><circle r="55" class="mp-rosa-aro"/>' + marcas +
     '<text x="0" y="-37" class="mp-rosa-n" text-anchor="middle">N</text><text x="39" y="4" class="mp-rosa-l" text-anchor="middle">E</text>' +
-    '<text x="0" y="45" class="mp-rosa-l" text-anchor="middle">S</text><text x="-39" y="4" class="mp-rosa-l" text-anchor="middle">O</text>' +
+    '<text x="0" y="45" class="mp-rosa-l" text-anchor="middle">S</text><text x="-39" y="4" class="mp-rosa-l" text-anchor="middle">O</text></g>' +
     '<g id="mp-rosa-rumbo" style="display:none"><polygon points="0,-60 6,-51 -6,-51" class="mp-rosa-tu"/></g>' +
     '<g id="mp-rosa-aguja"><polygon points="0,-34 8,0 -8,0" class="mp-rosa-flecha"/><polygon points="0,26 6,0 -6,0" class="mp-rosa-cola"/><circle r="3" class="mp-rosa-eje"/></g></svg>';
 }
+/* v2.91: la brújula muestra el mapa tal como se ve: el disco con la N gira con el mapa y la flecha apunta al destino respecto de la parte de arriba de la pantalla */
+function pintarRosa() {
+  var disco = $("mp-rosa-disco"), aguja = $("mp-rosa-aguja"), tu = $("mp-rosa-rumbo"); if (!disco || !aguja || !tu) return;
+  var g = map ? map.getBearing() : 0;
+  disco.setAttribute("transform", "rotate(" + (-g).toFixed(1) + ")");
+  if (nav && nav.rb != null) aguja.setAttribute("transform", "rotate(" + (nav.rb - g).toFixed(1) + ")");
+  if (nav && nav.rumboPropio != null && nav.rumboVisible) { tu.style.display = ""; tu.setAttribute("transform", "rotate(" + (nav.rumboPropio - g).toFixed(1) + ")"); } else tu.style.display = "none";
+}
 function actualizarNavegacion() {
   var cuadro = $("mp-nav"); if (!cuadro) return;
-  var br = $("mp-rumbo"); if (br) br.style.display = nav ? "" : "none";
   if (!nav && rumbo.activo) apagarRumbo(true);   /* al terminar la navegación el mapa vuelve al norte */
   if (!nav) { cuadro.style.display = "none"; return; }
   cuadro.style.display = "block";
@@ -1785,14 +1792,14 @@ function actualizarNavegacion() {
     if (nav.ruta) { $("mp-nav-ant").disabled = nav.ruta.pos <= 0; $("mp-nav-sig").disabled = nav.ruta.pos >= nav.ruta.pts.length - 1; }
   }
   renderChipsRuta();
-  var rum = $("mp-nav-rumbo"), dis = $("mp-nav-dist"), eta = $("mp-nav-eta"), aguja = $("mp-rosa-aguja"), tu = $("mp-rosa-rumbo");
+  var rum = $("mp-nav-rumbo"), dis = $("mp-nav-dist"), eta = $("mp-nav-eta"), tu = $("mp-rosa-rumbo");
   cuadro.classList.remove("llego");
   if (!gps.fix) {
     rum.textContent = "—"; dis.textContent = gps.watch == null ? "GPS apagado: toca GPS activar" : "Esperando señal GPS…"; eta.textContent = "";
-    tu.style.display = "none"; refrescarNavMapa(); return;
+    tu.style.display = "none"; nav.rb = null; refrescarNavMapa(); return;
   }
   var yo = { lng: gps.fix.lng, lat: gps.fix.lat }, d = distanciaM(yo, nav.destino), rb = rumboGrados(yo, nav.destino);
-  aguja.setAttribute("transform", "rotate(" + rb.toFixed(1) + ")");
+  nav.rb = rb;
   if (nav.arriba && map && mapaListo && d > 8) {   /* objetivo arriba: el mapa gira hacia el punto y sigue tu posición (salvo que muevas el mapa a mano) */
     map.jumpTo({ bearing: rb });
     if (Date.now() - rumbo.libre > 8000) map.jumpTo({ center: [yo.lng, yo.lat] });
@@ -1808,7 +1815,8 @@ function actualizarNavegacion() {
   }
   if (gps.fix.vel != null && gps.fix.vel >= 0.3) v = gps.fix.vel;
   if (v != null) nav.vel = nav.vel == null ? v : nav.vel * 0.6 + v * 0.4;
-  if (rumboPropio != null && v != null && v >= 0.4) { tu.style.display = ""; tu.setAttribute("transform", "rotate(" + rumboPropio.toFixed(1) + ")"); } else tu.style.display = "none";
+  nav.rumboPropio = rumboPropio; nav.rumboVisible = rumboPropio != null && v != null && v >= 0.4;
+  pintarRosa();
   var umbral = Math.max(10, Math.min(25, gps.fix.acc * 0.8));
   if (d <= umbral && nav.ruta && nav.ruta.pos < nav.ruta.pts.length - 1 && !nav.ruta.manual) {
     /* v2.85: llegó a un punto intermedio de la ruta; pasa al siguiente de la serie */
@@ -1883,7 +1891,7 @@ function iniciarRutaManual() {
   LC.toast("Ruta de " + pts.length + " puntos: empiezas en el " + pts[0].n + " y sigues hasta el " + pts[pts.length - 1].n, 3600);
 }
 function iniciarNavegacion(dest, ruta) {
-  nav = { destino: dest, ruta: ruta || null, hist: gps.fix ? [{ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat }] : [], vel: null, avisado: false, arriba: navArribaPref };
+  nav = { destino: dest, ruta: ruta || null, hist: gps.fix ? [{ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat }] : [], vel: null, avisado: false, arriba: true, rb: null, rumboPropio: null, rumboVisible: false };
   var cp = $("mp-nav-pts"); if (cp) cp.setAttribute("data-sig", "");
   if (nav.arriba && rumbo.activo) apagarRumbo(false);
   actualizarModoNav();
@@ -1895,28 +1903,44 @@ function iniciarNavegacion(dest, ruta) {
 function terminarNavegacion() {
   var estaba = nav && nav.arriba;
   nav = null; actualizarNavegacion(); refrescarNavMapa();
-  if (map && map.touchZoomRotate) { try { map.touchZoomRotate.enableRotation(); } catch (e) {} }
+  if (map && map.touchZoomRotate) { try { map.touchZoomRotate.disableRotation(); } catch (e) {} }
+  if (map && mapaListo && !estaba && Math.abs(map.getBearing()) > 1) map.easeTo({ bearing: 0, duration: 300 });
+  pintarRosa();
   if (estaba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });   /* al terminar, el mapa vuelve al norte */
 }
 /* v2.89: modo del mapa durante la navegación: norte arriba (gira libre con los dedos) u objetivo arriba (el mapa gira para que el punto quede hacia arriba) */
-var LS_NAVARRIBA = "libretacampo_mapa_navarriba_v1";
-var navArribaPref = leerJSON(LS_NAVARRIBA, false) === true;
 var navDesp = { x: 0, y: 0 };   /* desplazamiento de la ventana de navegación (se arrastra con el dedo) */
+/* v2.91: un solo control, la brújula de la ventana. Por defecto el mapa gira para que el destino quede hacia arriba (objetivo arriba);
+   con presión sostenida sobre la brújula se fija el norte arriba (el mapa se puede girar con los dedos); otra presión sostenida vuelve a objetivo arriba.
+   Con un toque en la brújula, en norte arriba, el mapa vuelve a poner el norte arriba. */
 function actualizarModoNav() {
-  var ar = !!(nav && nav.arriba), bn = $("mp-nav-modo-n"), bo = $("mp-nav-modo-o"); if (!bn || !bo) return;
-  bn.setAttribute("aria-pressed", ar ? "false" : "true"); bo.setAttribute("aria-pressed", ar ? "true" : "false");
-  bn.title = "El norte queda arriba. Puedes girar el mapa con los dedos.";
-  bo.title = "El mapa gira para que el punto de destino quede hacia arriba.";
-  /* en \"objetivo arriba\" el giro con los dedos se bloquea (el zoom con dos dedos sigue funcionando); con el norte arriba el giro es libre */
+  var ar = !!(nav && nav.arriba), t = $("mp-nav-modo-txt");
+  if (t) t.textContent = ar ? "Objetivo arriba. Mantén presionada la brújula para fijar el norte arriba." : "Norte arriba. Toca la brújula para enderezar el mapa. Presión sostenida: objetivo arriba.";
   if (map && map.touchZoomRotate) { try { if (ar) map.touchZoomRotate.disableRotation(); else map.touchZoomRotate.enableRotation(); } catch (e) {} }
 }
 function ponerModoNav(arriba) {
   if (!nav || nav.arriba === arriba) return;
-  nav.arriba = arriba; navArribaPref = arriba; guardarJSON(LS_NAVARRIBA, navArribaPref);
-  if (arriba && rumbo.activo) apagarRumbo(false);
+  nav.arriba = arriba;
   if (!arriba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });
   actualizarModoNav(); actualizarNavegacion();
-  LC.toast(arriba ? "Objetivo arriba: el mapa gira para que el punto quede hacia arriba" : "Norte arriba: el mapa mantiene el norte arriba y puedes girarlo con los dedos", 2800);
+  LC.toast(arriba ? "Objetivo arriba: el mapa gira para que el punto quede hacia arriba" : "Norte arriba: el mapa queda con el norte arriba y puedes girarlo con los dedos", 2800);
+}
+function instalarBrujula() {
+  var r = $("mp-rosa"), t = null, largo = false, ini = null;
+  function cancelar() { clearTimeout(t); t = null; }
+  r.addEventListener("pointerdown", function (e) {
+    largo = false; cancelar(); ini = { x: e.clientX, y: e.clientY }; r.classList.add("pulsando");
+    t = setTimeout(function () { t = null; largo = true; r.classList.remove("pulsando"); if (navigator.vibrate) navigator.vibrate(40); ponerModoNav(!(nav && nav.arriba)); }, 600);
+    e.stopPropagation();
+  });
+  r.addEventListener("pointermove", function (e) { if (t && ini && Math.hypot(e.clientX - ini.x, e.clientY - ini.y) > 10) { cancelar(); r.classList.remove("pulsando"); } });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { r.addEventListener(ev, function () { cancelar(); r.classList.remove("pulsando"); }); });
+  r.addEventListener("click", function () {
+    if (largo) { largo = false; return; }
+    if (nav && !nav.arriba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });   /* norte arriba: un toque endereza el mapa */
+    else if (nav) LC.toast("Objetivo arriba. Mantén presionada la brújula para fijar el norte arriba.", 3200);
+  });
+  r.addEventListener("contextmenu", function (e) { e.preventDefault(); });
 }
 function destinoEn(pt) {
   var caja = [[pt[0] - 14, pt[1] - 14], [pt[0] + 14, pt[1] + 14]];
@@ -3011,8 +3035,6 @@ function construirPantalla() {
     '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-mapas", "🗺️", "Mapas") + btnTb("mp-todos", "🌐", "Mis mapas") + '</div>' +
     '<div id="mp-ctrl">' +
       btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-nombres", "🔤", "Topónimos") + btnTb("mp-rutas", "🛣️", "Rutas") + btnTb("mp-buscar", "🔎", "Buscar") +
-      '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
-      btnTb("mp-rumbo", "🧭", "Rumbo", ' style="display:none"') +
     '</div>' +
     '<div id="mp-tracks-caja">' +
       '<div id="mp-panel-tracks"><div class="mp-panel-tit">Tracks</div>' +
@@ -3027,8 +3049,9 @@ function construirPantalla() {
     '<div id="mp-bsq"><div class="mp-bsq-fila"><input type="search" id="mp-bsq-q" placeholder="Lugar o coordenadas (-38,6575 -72,5929)" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="mp-btn chico" id="mp-bsq-ir">Ir</button><button type="button" class="mp-panel-x" id="mp-bsq-x" aria-label="Cerrar la búsqueda">✕</button></div><div id="mp-bsq-res"></div></div>' +
     '<div id="mp-panel-puntos"></div><div id="mp-panel-mapas"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
-      '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div>' +
-      '<div id="mp-nav-modo" class="mp-nav-modo" role="group" aria-label="Orientación del mapa al navegar"><button type="button" id="mp-nav-modo-n" aria-pressed="true">Norte arriba</button><button type="button" id="mp-nav-modo-o" aria-pressed="false">Objetivo arriba</button></div>' +
+      '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div></div></div>' +
+      '<div id="mp-nav-eta" class="mp-suave"></div>' +
+      '<div id="mp-nav-modo-txt" class="mp-suave mp-nav-modo-txt"></div>' +
       '<div id="mp-nav-ruta" class="mp-nav-ruta"><button type="button" id="mp-nav-ant" aria-label="Punto anterior">◀</button><div id="mp-nav-pts" class="mp-nav-pts"></div><button type="button" id="mp-nav-sig" aria-label="Punto siguiente">▶</button></div></div>' +
     '<div id="mp-tarjeta"></div>' +
     '</div>';
@@ -3044,7 +3067,7 @@ function construirPantalla() {
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
   $("mp-todos").onclick = alternarPanelMapas;
   $("mp-rutas").onclick = alternarRutas; $("mp-nombres").onclick = alternarNombres; botonesBase();
-  $("mp-nav-modo-n").onclick = function () { ponerModoNav(false); }; $("mp-nav-modo-o").onclick = function () { ponerModoNav(true); };
+  instalarBrujula(); actualizarModoNav();
   var navEl = $("mp-nav"); navEl.insertBefore(crearAsaTarjeta(navEl, navDesp), navEl.firstChild);
   $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-nav-ant").onclick = function () { avanzarRuta(-1); };
@@ -3059,8 +3082,6 @@ function construirPantalla() {
   $("mp-bloqueo").onclick = function () { panelTracks(false); bloquear(); };
   construirLeyenda();
   $("mp-chip-rec").onclick = function () { LC.abrirRegistro(); };   /* vuelve a la Observación que se está grabando */
-  $("mp-norte").onclick = function () { if (nav && nav.arriba) ponerModoNav(false); else if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
-  $("mp-rumbo").onclick = function () { if (rumbo.activo) apagarRumbo(true); else encenderRumbo(); };
 }
 
 /* v2.72: fondo satelital (Esri World Imagery), solo con conexión. Sin conexión vuelve solo al mapa guardado. */
