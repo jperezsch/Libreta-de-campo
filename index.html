@@ -1384,7 +1384,7 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
     </div>
     <details class="cfg-bloque" id="cfg-carpeta-local"><summary><span class="n">📁</span>Carpeta local</summary><div class="cfg-bloque-cuerpo" id="config-carpeta"></div></details>
     <details class="cfg-bloque" id="cfg-gestion-imagenes"><summary><span class="n">🖼</span>Gestión de imágenes</summary><div class="cfg-bloque-cuerpo" id="config-copia"></div></details>
-    <details class="cfg-bloque" id="cfg-gestion-mapas"><summary><span class="n">🗺</span>Gestión de mapas</summary><div class="cfg-bloque-cuerpo"><div id="config-mapa"></div><div id="config-mapa-admin"></div></div></details>
+    <details class="cfg-bloque" id="cfg-gestion-mapas"><summary><span class="n">🗺</span>Mapa y mapas sin conexión</summary><div class="cfg-bloque-cuerpo"><div id="config-mapa"></div><div id="config-mapa-admin"></div></div></details>
     <details class="cfg-bloque" id="cfg-sugerencias"><summary><span class="n">💡</span>Sugerencias de los campos</summary><div class="cfg-bloque-cuerpo" id="config-sugerencias"></div></details>
     <details class="cfg-bloque" id="cfg-datos"><summary><span class="n">🗂</span>Datos</summary><div class="cfg-bloque-cuerpo">
       <button type="button" class="btnfull btn-danger" id="btn-borrar-todo">🗑 Borrar todos los registros y sesiones</button>
@@ -4106,7 +4106,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-19 · v2.87";
+var APP_BUILD = "2026-11-20 · v2.88";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -12035,27 +12035,23 @@ document.getElementById("btn-descargar-unificado").addEventListener("click", fun
 
 
 /* ================= Mapa sin conexión (opcional) =================
-   Apagado por defecto: con el mapa desactivado no se carga ninguna librería ni archivo del mapa y la app
-   se comporta como siempre. Al activarlo se pide UNA vez la dirección del catálogo (queda guardada). */
+   v2.88: el mapa está siempre disponible (la pestaña Mapa es permanente). Con conexión usa el fondo satelital sin descargar nada;
+   los mapas sin conexión son opcionales y sirven para zonas sin señal. El catálogo público viene incorporado y se puede cambiar en Config. */
 var MAPA_CFG_KEY = "libretacampo_mapa_cfg_v1";
 var MAPA_IDX_KEY = "libretacampo_mapa_instalados_v1";
+var MAPA_CATALOGO_DEFECTO = "https://jperezsch.github.io/libreta-mapas/catalogo.json";   // v2.88: catálogo público predeterminado; ya no se pide al activar
 var mapaModulo = { estado:"no", promesa:null };   // no | cargando | listo | error
 function mapaCfg(){
+  var url = "";
   try{
     var c = JSON.parse(localStorage.getItem(MAPA_CFG_KEY) || "null");
-    if(c && typeof c==="object") return { activo:!!c.activo, catalogoUrl:String(c.catalogoUrl||"").replace(/(github\.io)\/libreta-mapas-prueba\//, "$1/libreta-mapas/"), pestana: c.pestana==="siempre" ? "siempre" : "auto" };
+    if(c && typeof c==="object") url = String(c.catalogoUrl||"").replace(/(github\.io)\/libreta-mapas-prueba\//, "$1/libreta-mapas/");
   }catch(e){}
-  return { activo:false, catalogoUrl:"", pestana:"auto" };
+  return { activo:true, catalogoUrl:url || MAPA_CATALOGO_DEFECTO, pestana:"siempre" };   // v2.88: siempre activo y con pestaña permanente
 }
 function mapaGuardarCfg(c){ return setLS(MAPA_CFG_KEY, JSON.stringify(c)); }
 function mapaInstalados(){ try{ return JSON.parse(localStorage.getItem(MAPA_IDX_KEY) || "{}") || {}; }catch(e){ return {}; } }
-function mapaPestanaVisible(){
-  var c = mapaCfg(); if(!c.activo) return false;
-  if(c.pestana==="siempre") return true;
-  if(!sesionActiva() && viajeActivo()) return true;   // v2.67: con un proyecto activo se pueden grabar recorridos de ruta sin sesión
-  var s = sesionActiva() || sesionEnPantalla();
-  return !!(s && s.mapaId && mapaInstalados()[s.mapaId]);
-}
+function mapaPestanaVisible(){ return true; }   // v2.88: la pestaña Mapa es permanente
 function navOrderActual(){
   if(visorActivo){ var ov = ["sesion","lista"]; if(mapaPestanaVisible()) ov.push("mapa"); return ov; }
   var o = ["sesion","form","lista"];
@@ -12126,7 +12122,7 @@ function mapaActivar(url){
   var c = mapaCfg();
   c.activo = true; if(url) c.catalogoUrl = url;
   if(!mapaGuardarCfg(c)){ toast("No se pudo guardar la configuración"); return; }
-  toast("🗺️ Mapa activado");
+  toast("🗺️ Dirección del catálogo guardada");
   mapaCargarModulo().then(function(){ actualizarPestanaMapa(); renderSesion(); });
   renderConfigMapa(); actualizarPestanaMapa();
 }
@@ -12134,12 +12130,12 @@ function mapaPedirDireccion(){
   var m = document.getElementById("modal-mapa-url");
   if(!m){
     m = document.createElement("div"); m.className = "modal-bg"; m.id = "modal-mapa-url";
-    m.innerHTML = '<div class="modal"><h2 style="margin:0 0 8px;font-size:1.1rem;">🗺️ Activar el mapa</h2>'+
-      '<p class="campo-ayuda" style="margin:0 0 10px;">Escribe o pega la dirección del catálogo de mapas que te entregó quien lo administra. Se guarda en este teléfono y no se vuelve a pedir.</p>'+
+    m.innerHTML = '<div class="modal"><h2 style="margin:0 0 8px;font-size:1.1rem;">🗺️ Dirección del catálogo</h2>'+
+      '<p class="campo-ayuda" style="margin:0 0 10px;">La app trae incorporado el catálogo público de mapas sin conexión. Cambia esta dirección solo si quien administra los mapas te entregó otra. Se guarda en este teléfono.</p>'+
       '<div class="field"><input type="url" id="mapa-url-input" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://…/catalogo.json"></div>'+
       '<p class="campo-ayuda" id="mapa-url-msg" style="min-height:1.2em;"></p>'+
       '<div style="display:flex;gap:8px;"><button type="button" class="btnfull btn-secondary" style="flex:1;margin:0;" id="mapa-url-cancelar">Cancelar</button>'+
-      '<button type="button" class="btnfull btn-primary" style="flex:1;margin:0;" id="mapa-url-ok">Activar</button></div></div>';
+      '<button type="button" class="btnfull btn-primary" style="flex:1;margin:0;" id="mapa-url-ok">Guardar</button></div></div>';
     document.body.appendChild(m);
     m.addEventListener("click", function(e){ if(e.target===m) m.classList.remove("on"); });
     document.getElementById("mapa-url-cancelar").addEventListener("click", function(){ m.classList.remove("on"); });
@@ -12235,46 +12231,21 @@ function renderConfigMapaAdmin(){
 })();
 function renderConfigMapa(){
   var cont = document.getElementById("config-mapa"); if(!cont) return;
-  var c = mapaCfg(), h = '<div class="mapa-cfg-card">';
-  if(!c.activo){
-    var idx = mapaInstalados(), nInst = Object.keys(idx).length, bytes = 0;
-    Object.keys(idx).forEach(function(k){ (idx[k].archivos||[]).forEach(function(a){ bytes += a.bytes||0; }); });
-    h += '<p class="estado">Desactivado</p>'+
-      '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Función opcional para ver tus registros sobre un mapa guardado en el teléfono, también sin conexión. Necesita la dirección de un catálogo de mapas.</span>'+
-      (nInst ? '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Hay '+nInst+' mapa(s) descargado(s) en este teléfono ('+(bytes/1048576).toFixed(1)+' MB). Se conservan; actívalo para administrarlos.</span>' : '')+
-      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-activar" style="margin:0;">🗺️ Activar el mapa</button>';
-  } else {
-    var host = ""; try{ host = new URL(c.catalogoUrl).host; }catch(e){}
-    h += '<p class="estado on">✅ Activado'+(host ? ' · catálogo en '+escapeHtml(host) : '')+'</p>'+
-      '<div class="field"><label>Pestaña Mapa</label><select id="mapa-cfg-pestana">'+
-        '<option value="auto"'+(c.pestana==="auto"?' selected':'')+'>Solo con mapa en la sesión</option>'+
-        '<option value="siempre"'+(c.pestana==="siempre"?' selected':'')+'>Siempre visible</option>'+
-      '</select><span class="campo-ayuda">Solo con mapa en la sesión: la pestaña aparece mientras la sesión tiene un mapa asociado e instalado. Siempre visible: aparece aunque no haya mapa para el área visitada.</span></div>'+
-      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-gestor" style="margin:0 0 8px;">⚙️ Mapas descargados y catálogo</button>'+
-      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-cambiar-url" style="margin:0 0 8px;">✏️ Cambiar la dirección del catálogo</button>'+
-      '<button type="button" class="btnfull btn-secondary" id="btn-mapa-desactivar" style="margin:0;">🔌 Desactivar el mapa</button>';
-  }
-  h += '</div>';
+  var c = mapaCfg();
+  var idx = mapaInstalados(), nInst = Object.keys(idx).length, bytes = 0;
+  Object.keys(idx).forEach(function(k){ (idx[k].archivos||[]).forEach(function(a){ bytes += a.bytes||0; }); });
+  var host = ""; try{ host = new URL(c.catalogoUrl).host; }catch(e){}
+  var h = '<div class="mapa-cfg-card"><p class="estado on">🗺️ La pestaña Mapa está siempre disponible</p>'+
+    '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">Con internet, la pestaña Mapa muestra tus registros sobre un fondo satelital, sin descargar nada. Los mapas sin conexión son una opción adicional: solo hacen falta para zonas sin señal de celular. Se descargan con internet, antes de salir a terreno.</span>'+
+    '<span class="campo-ayuda" style="display:block;margin-bottom:10px;">'+(nInst ? ('Mapas sin conexión descargados: '+nInst+' ('+(bytes/1048576).toFixed(1)+' MB).') : 'No hay mapas sin conexión descargados.')+(host ? ' Catálogo en '+escapeHtml(host)+'.' : '')+'</span>'+
+    '<button type="button" class="btnfull btn-secondary" id="btn-mapa-gestor" style="margin:0 0 8px;">⚙️ Mapas sin conexión y catálogo</button>'+
+    '<button type="button" class="btnfull btn-secondary" id="btn-mapa-cambiar-url" style="margin:0;">✏️ Cambiar la dirección del catálogo</button></div>';
   cont.innerHTML = h;
   var b;
-  if((b = document.getElementById("btn-mapa-activar"))) b.addEventListener("click", function(){
-    if(mapaCfg().catalogoUrl) mapaActivar(null); else mapaPedirDireccion();
-  });
-  if((b = document.getElementById("mapa-cfg-pestana"))) b.addEventListener("change", function(){
-    var cc = mapaCfg(); cc.pestana = this.value==="siempre" ? "siempre" : "auto"; mapaGuardarCfg(cc);
-    actualizarPestanaMapa(); toast(cc.pestana==="siempre" ? "La pestaña Mapa queda siempre visible" : "La pestaña Mapa aparece solo si la sesión tiene mapa");
-  });
   if((b = document.getElementById("btn-mapa-gestor"))) b.addEventListener("click", function(){
     if(window.MapaPro) MapaPro.abrirGestor("mapas"); else { toast("Cargando el mapa…"); mapaCargarModulo().then(function(){ if(window.MapaPro) MapaPro.abrirGestor("mapas"); }); }
   });
   if((b = document.getElementById("btn-mapa-cambiar-url"))) b.addEventListener("click", mapaPedirDireccion);
-  if((b = document.getElementById("btn-mapa-desactivar"))) b.addEventListener("click", function(){
-    if(!confirm("¿Desactivar el mapa?\n\nLa pestaña Mapa y el bloque de la sesión se ocultan. Los mapas descargados y la dirección del catálogo se conservan.")) return;
-    var cc = mapaCfg(); cc.activo = false; mapaGuardarCfg(cc);
-    if(window.MapaPro) MapaPro.alDesactivar();
-    actualizarPestanaMapa(); renderConfigMapa(); renderSesion();
-    toast("Mapa desactivado");
-  });
 }
 
 /* ---------------- Config ---------------- */
