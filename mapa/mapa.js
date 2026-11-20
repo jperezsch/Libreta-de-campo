@@ -397,7 +397,7 @@ function capasDelMapa(mapaId) {
 }
 async function cargarCapasMapa() {   /* v2.47: capas de todos los mapas instalados */
   var lista = [], res = [];
-  Object.keys(inst).sort().forEach(function (id) { lista = lista.concat(capasDelMapa(id)); });
+  Object.keys(inst).sort().filter(mapaActivo).forEach(function (id) { lista = lista.concat(capasDelMapa(id)); });
   for (var i = 0; i < lista.length; i++) {
     var c = lista[i];
     try {
@@ -1252,8 +1252,11 @@ function aplicarFiltroPuntos() {
 
 var ATTR_OSM = '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>';
 var ATTR_REL = '<a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener">Relieve: Mapterhorn</a>';
-function mapasOrdenados() { return Object.keys(inst).sort().map(function (id) { return inst[id]; }); }
-function firmaMapas() { return Object.keys(inst).sort().map(function (id) { return id + "@" + inst[id].version + "@" + inst[id].fecha; }).join("|") + (satActivo() ? "|sat" : ""); }
+/* v2.89: cada mapa descargado se puede activar o desactivar (capasVis.mapasOff[id] = true cuando está desactivado). Solo los activos se dibujan. */
+function mapaActivo(id) { return !(capasVis.mapasOff && capasVis.mapasOff[id]); }
+function idsActivos() { return Object.keys(inst).filter(mapaActivo); }
+function mapasOrdenados() { return Object.keys(inst).sort().filter(mapaActivo).map(function (id) { return inst[id]; }); }
+function firmaMapas() { return Object.keys(inst).sort().filter(mapaActivo).map(function (id) { return id + "@" + inst[id].version + "@" + inst[id].fecha; }).join("|") + (satActivo() ? "|sat" : ""); }
 /* v2.47: el estilo junta TODOS los mapas instalados. Cada mapa aporta su fuente "base<k>" y una copia de las capas del estilo base
    (intercaladas por orden, para que el apilado sea correcto entre mapas vecinos). El relieve y las curvas son una sola fuente que lee de todos los paquetes. */
 /* v2.72: toponimia. Los paquetes ya traen los nombres (capas "places" y "pois"); aquí se dibujan: localidades, áreas protegidas, cerros y puntos de interés. */
@@ -1312,6 +1315,28 @@ function capasAreas() {
       paint: { "text-color": "#004d55", "text-halo-color": "#ffffff", "text-halo-width": 2.2 } }
   ];
 }
+/* v2.89: "rutas" = caminos, senderos y vías férreas del mapa base. Los ríos y los límites no se cuentan. */
+function esRutaBase(L) { return !!L && L.type === "line" && /^roads_/.test(String(L.id).replace(/~\d+$/, "")); }
+function aplicarVisBase() {
+  if (!map || !mapaListo) return;
+  var tipo = {}; ESTILO_BASE.forEach(function (l) { tipo[l.id] = l; });
+  map.getStyle().layers.forEach(function (l) {
+    var b = tipo[l.id.replace(/~\d+$/, "")], v = null;
+    if (/^topo-/.test(l.id) || (b && b.type === "symbol")) v = visTopo() ? "visible" : "none";
+    else if (b && esRutaBase(b)) v = capasVis.rutas !== false ? "visible" : "none";
+    if (v) map.setLayoutProperty(l.id, "visibility", v);
+  });
+  botonesBase();
+}
+function botonesBase() {
+  var hay = idsActivos().length > 0;
+  [["mp-rutas", capasVis.rutas !== false], ["mp-nombres", visTopo()]].forEach(function (x) {
+    var b = $(x[0]); if (!b) return;
+    b.style.display = hay ? "" : "none"; b.classList.toggle("on", x[1]);
+  });
+}
+function alternarRutas() { capasVis.rutas = capasVis.rutas === false; guardarJSON(LS_CAPAS, capasVis); aplicarVisBase(); LC.toast(capasVis.rutas === false ? "Rutas del mapa ocultas" : "Rutas del mapa visibles", 1800); }
+function alternarNombres() { capasVis.topo = !visTopo(); guardarJSON(LS_CAPAS, capasVis); aplicarVisBase(); LC.toast(visTopo() ? "Nombres de lugares visibles" : "Nombres de lugares ocultos", 1800); }
 function construirEstilo(sinMapas) {
   var estilo = { version: 8, glyphs: rutaBase() + RUTA_MAPA + "fuentes/{fontstack}/{range}.pbf", sources: {}, layers: [] };
   var ms = sinMapas ? [] : mapasOrdenados();
@@ -1351,6 +1376,7 @@ function construirEstilo(sinMapas) {
         if (sat && L.type === "fill") return;   /* con satélite se quitan los rellenos; quedan caminos, ríos y nombres encima */
         var c = JSON.parse(JSON.stringify(L));
         if (L.id === "water_waterway_label") c.minzoom = 11;   /* v2.72: nombres de quebradas y ríos desde más lejos */
+        if ((L.type === "symbol" && !visTopo()) || (esRutaBase(L) && capasVis.rutas === false)) c.layout = Object.assign({}, c.layout, { visibility: "none" });   /* v2.89: botones Nombres y Rutas */
         if (sat && L.type === "symbol") c.paint = Object.assign({}, c.paint, { "text-color": "#ffffff", "text-halo-color": "rgba(0,0,0,0.8)", "text-halo-width": 1.6 });
         if (L.source === "base") c.source = "base" + k;
         if (k > 0) c.id = L.id + "~" + k;
@@ -1412,14 +1438,15 @@ function construirEstilo(sinMapas) {
   /* v2.58: punto marcado a mano con un toque sostenido */
   /* v2.76: medición con varios puntos temporales: línea que los une, rótulo de cada tramo y número de cada punto */
   capas.push({ id: "nav-medida", type: "line", source: "nav", filter: ["==", ["get", "tipo"], "medida"], layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": "#d64545", "line-width": 3, "line-opacity": 0.9 } });
+    paint: { "line-color": ["case", ["==", ["get", "ok"], 1], "#9aa59d", "#d64545"], "line-width": 3, "line-opacity": ["case", ["==", ["get", "ok"], 1], 0.55, 0.9] } });
   capas.push({ id: "nav-manual-halo", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
-    paint: { "circle-radius": ["case", ["==", ["get", "sel"], 1], 20, 15], "circle-color": "#d64545", "circle-opacity": 0.22 } });
+    paint: { "circle-radius": ["case", ["==", ["get", "sel"], 1], 20, ["==", ["get", "act"], 1], 19, 15], "circle-color": ["case", ["==", ["get", "ok"], 1], "#9aa59d", ["==", ["get", "act"], 1], "#c9962c", "#d64545"], "circle-opacity": ["case", ["==", ["get", "ok"], 1], 0.12, 0.24] } });
   capas.push({ id: "nav-manual", type: "circle", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
-    paint: { "circle-radius": 10, "circle-color": "#d64545", "circle-stroke-color": "#ffffff", "circle-stroke-width": ["case", ["==", ["get", "sel"], 1], 4, 2.5] } });
+    paint: { "circle-radius": 10, "circle-color": ["case", ["==", ["get", "ok"], 1], "#9aa59d", "#d64545"], "circle-opacity": ["case", ["==", ["get", "ok"], 1], 0.6, 1],
+      "circle-stroke-color": ["case", ["==", ["get", "act"], 1], "#c9962c", "#ffffff"], "circle-stroke-opacity": ["case", ["==", ["get", "ok"], 1], 0.6, 1], "circle-stroke-width": ["case", ["==", ["get", "sel"], 1], 4, ["==", ["get", "act"], 1], 4, 2.5] } });
   capas.push({ id: "nav-manual-n", type: "symbol", source: "nav", filter: ["==", ["get", "tipo"], "manual"],
-    layout: { "text-field": ["get", "n"], "text-font": ["NotoSans-Medium"], "text-size": 11, "text-allow-overlap": true, "text-ignore-placement": true },
-    paint: { "text-color": "#ffffff" } });
+    layout: { "text-field": ["case", ["==", ["get", "ok"], 1], ["concat", "✓", ["get", "n"]], ["get", "n"]], "text-font": ["NotoSans-Medium"], "text-size": ["case", ["==", ["get", "ok"], 1], 10, 11], "text-allow-overlap": true, "text-ignore-placement": true },
+    paint: { "text-color": "#ffffff", "text-opacity": ["case", ["==", ["get", "ok"], 1], 0.85, 1] } });
   capas.push({ id: "nav-tramo", type: "symbol", source: "nav", filter: ["==", ["get", "tipo"], "tramo"],
     layout: { "text-field": ["get", "etq"], "text-font": ["NotoSans-Medium"], "text-size": 11, "text-offset": [0, -1.1], "text-allow-overlap": true },
     paint: { "text-color": "#a32626", "text-halo-color": "#ffffff", "text-halo-width": 2 } });
@@ -1449,7 +1476,10 @@ function crearMapa() {
   });
   map.touchZoomRotate.enableRotation();   /* v2.44: giro libre con dos dedos (sin inclinación) */
   map.on("rotate", actualizarNorte);
-  map.on("rotatestart", function (e) { if (e && e.originalEvent && rumbo.activo) { apagarRumbo(false); LC.toast("Giro manual: rumbo arriba apagado"); } });
+  map.on("rotatestart", function (e) {
+    if (e && e.originalEvent && rumbo.activo) { apagarRumbo(false); LC.toast("Giro manual: rumbo arriba apagado"); }
+    if (e && e.originalEvent && nav && nav.arriba) { nav.arriba = false; navArribaPref = false; guardarJSON(LS_NAVARRIBA, false); actualizarModoNav(); LC.toast("Giro manual: objetivo arriba apagado"); }
+  });
   map.on("dragstart", function (e) { if (e && e.originalEvent) rumbo.libre = Date.now(); });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
   map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 100 }), "bottom-right");
@@ -1532,22 +1562,34 @@ function enfocarArea(a, animar) { map.fitBounds([[a[0], a[1]], [a[2], a[3]]], { 
 /* v2.47: "Ver en el mapa" desde el gestor o desde la pestaña Sesión: abre la pestaña Mapa y la lleva a la zona de ese mapa */
 function verMapa(id) {
   if (!inst[id]) { LC.toast("Ese mapa no está instalado"); return; }
+  if (!mapaActivo(id)) ponerMapaActivo(id, true, true);
+  cerrarPanelMapas();
   pendienteEnfoque = id;
   cerrarGestor();
   if (LC.state.currentView === "mapa") alMostrar(); else LC.irA("mapa");
 }
+function ponerMapaActivo(id, on, sinRender) {
+  if (!inst[id]) return;
+  if (!capasVis.mapasOff) capasVis.mapasOff = {};
+  if (on) delete capasVis.mapasOff[id]; else capasVis.mapasOff[id] = true;
+  guardarJSON(LS_CAPAS, capasVis);
+  chipMapa(); actualizarAviso();
+  if (!sinRender) { renderGestor(); renderPanelMapas(); }
+  if (map && mapaListo && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas().then(function () { refrescarPuntos(); renderPanelMapas(); });
+}
 function chipMapa() {
   var c = $("mp-sub"); if (!c) return;
-  var ids = Object.keys(inst);
-  c.textContent = !ids.length ? (online && fondoSat ? "Fondo satelital" : "Sin mapas guardados") : ids.length === 1 ? nombreCorto(inst[ids[0]].nombre) : ids.length + " mapas";
+  var total = Object.keys(inst).length, ids = idsActivos();
+  c.textContent = !total ? (online && fondoSat ? "Fondo satelital" : "Sin mapas guardados") : !ids.length ? "Mapas desactivados" : ids.length === 1 ? nombreCorto(inst[ids[0]].nombre) : ids.length + " mapas";
   var r = $("mp-chip-red"); r.textContent = "Sin conexión"; r.style.display = online ? "none" : "inline-block";
+  botonesBase();
 }
 function actualizarAviso() {
   var a = $("mp-aviso"); if (!a) return;
   var s = LC.sesionActiva() || LC.sesionEnPantalla(), txt = "";
-  var hay = Object.keys(inst).length > 0;
-  if (!hay && !online) txt = "Sin conexión y sin mapa guardado: solo ves tus puntos sobre fondo liso. Los mapas sin conexión se descargan con internet, antes de salir (botón Mapas).";
-  else if (!hay && !fondoSat) txt = "El fondo satelital está apagado y no hay mapas sin conexión: ves tus puntos sobre fondo liso. Activa 🛰️ Satélite o descarga un mapa en Mapas.";
+  var total = Object.keys(inst).length, hay = idsActivos().length > 0, off = total > 0 && !hay;
+  if (!hay && !online) txt = off ? "Sin conexión y con los mapas descargados desactivados: solo ves tus puntos sobre fondo liso. Actívalos en Mis mapas." : "Sin conexión y sin mapa guardado: solo ves tus puntos sobre fondo liso. Los mapas sin conexión se descargan con internet, antes de salir (botón Mapas).";
+  else if (!hay && !fondoSat) txt = off ? "El satélite está apagado y los mapas descargados están desactivados: ves tus puntos sobre fondo liso. Activa 🛰️ Satélite o un mapa en Mis mapas." : "El fondo satelital está apagado y no hay mapas sin conexión: ves tus puntos sobre fondo liso. Activa 🛰️ Satélite o descarga un mapa en Mapas.";
   else if (hay && !online && fondoSat) txt = "Sin señal: se muestra el mapa guardado en lugar del satélite.";
   else if (s && s.mapaId && !inst[s.mapaId]) txt = "El mapa asociado a esta sesión no está instalado. Toca Mapas.";
   a.textContent = txt; a.style.display = txt ? "block" : "none";
@@ -1653,6 +1695,7 @@ async function encenderRumbo() {
     if (!rumbo.sensor) LC.toast("Sin permiso para la brújula. Se usará el rumbo del GPS al caminar.", 5000);
   } else rumbo.sensor = true;
   rumbo.activo = true; rumbo.h = null; rumbo.libre = 0; rumbo.recibido = false;
+  if (nav && nav.arriba) { nav.arriba = false; actualizarModoNav(); }   /* los dos modos de giro no se combinan */
   if (rumbo.sensor) {
     window.addEventListener("deviceorientationabsolute", alOrientacion, true);   /* Android (Chrome); en otros navegadores el evento simplemente no llega */
     window.addEventListener("deviceorientation", alOrientacion, true);          /* iPhone (webkitCompassHeading) y navegadores con orientación absoluta */
@@ -1704,14 +1747,16 @@ function textoTiempo(seg) {
 function geoNav() {
   var fc = { type: "FeatureCollection", features: [] };
   var pm = puntosManuales;
+  var hechos = {}, actual = 0;   /* v2.89: puntos de la ruta ya alcanzados (por número de punto) y punto objetivo actual */
+  if (nav && nav.ruta) { nav.ruta.pts.forEach(function (q, k) { if (nav.ruta.hecho[k]) hechos[q.n] = 1; }); actual = nav.ruta.pts[nav.ruta.pos].n; }
   if (pm.length > 1) {
-    fc.features.push({ type: "Feature", properties: { tipo: "medida" }, geometry: { type: "LineString", coordinates: pm.map(function (q) { return [q.lng, q.lat]; }) } });
+    for (var sg = 1; sg < pm.length; sg++) fc.features.push({ type: "Feature", properties: { tipo: "medida", ok: hechos[sg] && hechos[sg + 1] ? 1 : 0 }, geometry: { type: "LineString", coordinates: [[pm[sg - 1].lng, pm[sg - 1].lat], [pm[sg].lng, pm[sg].lat]] } });
     for (var i = 1; i < pm.length; i++) {
       fc.features.push({ type: "Feature", properties: { tipo: "tramo", etq: textoDistancia(distanciaM(pm[i - 1], pm[i])) },
         geometry: { type: "Point", coordinates: [(pm[i - 1].lng + pm[i].lng) / 2, (pm[i - 1].lat + pm[i].lat) / 2] } });
     }
   }
-  pm.forEach(function (q, i) { fc.features.push({ type: "Feature", properties: { tipo: "manual", n: String(i + 1), sel: i === selManual ? 1 : 0 }, geometry: { type: "Point", coordinates: [q.lng, q.lat] } }); });
+  pm.forEach(function (q, i) { fc.features.push({ type: "Feature", properties: { tipo: "manual", n: String(i + 1), sel: i === selManual ? 1 : 0, ok: hechos[i + 1] ? 1 : 0, act: actual === i + 1 ? 1 : 0 }, geometry: { type: "Point", coordinates: [q.lng, q.lat] } }); });
   if (!nav) return fc;
   fc.features.push({ type: "Feature", properties: { tipo: "destino" }, geometry: { type: "Point", coordinates: [nav.destino.lng, nav.destino.lat] } });
   if (gps.fix) fc.features.push({ type: "Feature", properties: { tipo: "linea" }, geometry: { type: "LineString", coordinates: [[gps.fix.lng, gps.fix.lat], [nav.destino.lng, nav.destino.lat]] } });
@@ -1740,6 +1785,7 @@ function actualizarNavegacion() {
     cr.style.display = nav.ruta ? "flex" : "none";
     if (nav.ruta) { $("mp-nav-ant").disabled = nav.ruta.pos <= 0; $("mp-nav-sig").disabled = nav.ruta.pos >= nav.ruta.pts.length - 1; }
   }
+  renderChipsRuta();
   var rum = $("mp-nav-rumbo"), dis = $("mp-nav-dist"), eta = $("mp-nav-eta"), aguja = $("mp-rosa-aguja"), tu = $("mp-rosa-rumbo");
   cuadro.classList.remove("llego");
   if (!gps.fix) {
@@ -1748,6 +1794,10 @@ function actualizarNavegacion() {
   }
   var yo = { lng: gps.fix.lng, lat: gps.fix.lat }, d = distanciaM(yo, nav.destino), rb = rumboGrados(yo, nav.destino);
   aguja.setAttribute("transform", "rotate(" + rb.toFixed(1) + ")");
+  if (nav.arriba && map && mapaListo && d > 8) {   /* objetivo arriba: el mapa gira hacia el punto y sigue tu posición (salvo que muevas el mapa a mano) */
+    map.jumpTo({ bearing: rb });
+    if (Date.now() - rumbo.libre > 8000) map.jumpTo({ center: [yo.lng, yo.lat] });
+  }
   rum.textContent = Math.round(rb) + "° " + puntoCardinal(rb);
   /* velocidad: la que informa el GPS o, si no, el desplazamiento de los últimos segundos */
   var ahora = gps.fix.t, h = nav.hist.filter(function (x) { return ahora - x.t <= 30000; });
@@ -1761,9 +1811,10 @@ function actualizarNavegacion() {
   if (v != null) nav.vel = nav.vel == null ? v : nav.vel * 0.6 + v * 0.4;
   if (rumboPropio != null && v != null && v >= 0.4) { tu.style.display = ""; tu.setAttribute("transform", "rotate(" + rumboPropio.toFixed(1) + ")"); } else tu.style.display = "none";
   var umbral = Math.max(10, Math.min(25, gps.fix.acc * 0.8));
-  if (d <= umbral && nav.ruta && nav.ruta.pos < nav.ruta.pts.length - 1) {
+  if (d <= umbral && nav.ruta && nav.ruta.pos < nav.ruta.pts.length - 1 && !nav.ruta.manual) {
     /* v2.85: llegó a un punto intermedio de la ruta; pasa al siguiente de la serie */
     var alcanzado = nav.ruta.pts[nav.ruta.pos].n;
+    nav.ruta.hecho[nav.ruta.pos] = true;
     if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
     fijarDestinoRuta(nav.ruta.pos + 1);
     LC.toast("Alcanzaste el punto " + alcanzado + ". Sigue al punto " + nav.ruta.pts[nav.ruta.pos].n, 2800);
@@ -1771,7 +1822,10 @@ function actualizarNavegacion() {
   }
   if (d <= umbral) {
     cuadro.classList.add("llego");
-    dis.textContent = nav.ruta ? "¡Fin de la ruta!" : "¡Llegaste!"; eta.textContent = "A " + Math.round(d) + " m del punto";
+    var rr = nav.ruta, finRuta = !rr || rr.pos >= rr.pts.length - 1;
+    if (rr) { rr.hecho[rr.pos] = true; renderChipsRuta(); }
+    dis.textContent = !rr ? "¡Llegaste!" : finRuta ? "¡Fin de la ruta!" : "¡Llegaste al punto " + rr.pts[rr.pos].n + "!";
+    eta.textContent = rr && !finRuta ? "Elige el siguiente punto" : "A " + Math.round(d) + " m del punto";
     if (!nav.avisado) { nav.avisado = true; if (navigator.vibrate) navigator.vibrate([60, 40, 60]); }
   } else {
     nav.avisado = false;
@@ -1789,6 +1843,25 @@ function restoRuta() {
   var t = 0; for (var i = r.pos + 1; i < r.pts.length; i++) t += distanciaM(r.pts[i - 1], r.pts[i]);
   return t;
 }
+/* v2.89: elegir a mano el punto objetivo de la ruta (volver a un punto ya alcanzado o saltar adelante). Volver atrás no avanza solo al llegar. */
+function elegirPuntoRuta(k) {
+  var r = nav && nav.ruta; if (!r || k < 0 || k >= r.pts.length) return;
+  r.manual = k < r.pos || !!r.hecho[k]; r.hecho[k] = false;
+  fijarDestinoRuta(k); actualizarNavegacion();
+}
+function renderChipsRuta() {
+  var cont = $("mp-nav-pts"); if (!cont || !nav || !nav.ruta) return;
+  var r = nav.ruta, sig = r.pos + ":" + r.hecho.map(Number).join("");
+  if (cont.getAttribute("data-sig") === sig) return;
+  cont.setAttribute("data-sig", sig); cont.textContent = "";
+  r.pts.forEach(function (q, k) {
+    var ok = !!r.hecho[k], act = k === r.pos;
+    cont.appendChild(el("button", { type: "button", class: "mp-pt" + (ok ? " hecho" : "") + (act ? " act" : ""), texto: (ok ? "✓" : "") + q.n,
+      "aria-label": "Punto " + q.n + (ok ? ", alcanzado" : "") + (act ? ", objetivo actual" : ""), onclick: function () { elegirPuntoRuta(k); } }));
+  });
+  var cur = cont.querySelector(".act");
+  if (cur) cont.scrollLeft = Math.max(0, cur.offsetLeft - cont.clientWidth / 2 + cur.offsetWidth / 2);
+}
 function fijarDestinoRuta(pos) {
   var r = nav.ruta, q = r.pts[pos]; r.pos = pos;
   nav.destino = { lng: q.lng, lat: q.lat, nombre: "punto " + q.n + " (" + (pos + 1) + " de " + r.pts.length + ")" };
@@ -1797,7 +1870,7 @@ function fijarDestinoRuta(pos) {
 function avanzarRuta(delta) {
   if (!nav || !nav.ruta) return;
   var p = nav.ruta.pos + delta; if (p < 0 || p >= nav.ruta.pts.length) return;
-  fijarDestinoRuta(p); actualizarNavegacion();
+  elegirPuntoRuta(p);
 }
 function iniciarRutaManual() {
   var pm = puntosManuales; if (pm.length < 2) return;
@@ -1806,18 +1879,44 @@ function iniciarRutaManual() {
   var yo = { lng: gps.fix.lng, lat: gps.fix.lat };
   var pts = pm.map(function (q, i) { return { lng: q.lng, lat: q.lat, n: i + 1 }; });
   if (distanciaM(yo, pm[pm.length - 1]) < distanciaM(yo, pm[0])) pts.reverse();
-  iniciarNavegacion({ lng: pts[0].lng, lat: pts[0].lat, nombre: "" }, { pts: pts, pos: 0 });
+  iniciarNavegacion({ lng: pts[0].lng, lat: pts[0].lat, nombre: "" }, { pts: pts, pos: 0, hecho: pts.map(function () { return false; }), manual: false });
   fijarDestinoRuta(0); actualizarNavegacion();
   LC.toast("Ruta de " + pts.length + " puntos: empiezas en el " + pts[0].n + " y sigues hasta el " + pts[pts.length - 1].n, 3600);
 }
 function iniciarNavegacion(dest, ruta) {
-  nav = { destino: dest, ruta: ruta || null, hist: gps.fix ? [{ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat }] : [], vel: null, avisado: false };
+  nav = { destino: dest, ruta: ruta || null, hist: gps.fix ? [{ t: gps.fix.t, lng: gps.fix.lng, lat: gps.fix.lat }] : [], vel: null, avisado: false, arriba: navArribaPref };
+  var cp = $("mp-nav-pts"); if (cp) cp.setAttribute("data-sig", "");
+  if (nav.arriba && rumbo.activo) apagarRumbo(false);
+  actualizarModoNav();
   if (gps.watch == null) gpsEncender();
   cerrarPanelPuntos(); cerrarTarjeta();
   actualizarNavegacion();
   if (!ruta) LC.toast("Navegando hacia " + dest.nombre + ". Toca ✕ para terminar", 3200);
 }
-function terminarNavegacion() { nav = null; actualizarNavegacion(); refrescarNavMapa(); }
+function terminarNavegacion() {
+  var estaba = nav && nav.arriba;
+  nav = null; actualizarNavegacion(); refrescarNavMapa();
+  if (estaba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });   /* al terminar, el mapa vuelve al norte */
+}
+/* v2.89: modo del mapa durante la navegación: norte arriba (gira libre con los dedos) u objetivo arriba (el mapa gira para que el punto quede hacia arriba) */
+var LS_NAVARRIBA = "libretacampo_mapa_navarriba_v1";
+var navArribaPref = leerJSON(LS_NAVARRIBA, false) === true;
+var navDesp = { x: 0, y: 0 };   /* desplazamiento de la ventana de navegación (se arrastra con el dedo) */
+function actualizarModoNav() {
+  var b = $("mp-nav-modo"); if (!b) return;
+  var ar = !!(nav && nav.arriba);
+  b.textContent = ar ? "🎯 Objetivo arriba" : "🧭 Norte arriba";
+  b.setAttribute("aria-pressed", ar ? "true" : "false");
+  b.title = ar ? "El mapa gira para que el punto quede hacia arriba. Toca para volver al norte arriba." : "El mapa mantiene el norte arriba y gira solo con tus dedos. Toca para poner el objetivo arriba.";
+}
+function alternarModoNav() {
+  if (!nav) return;
+  nav.arriba = !nav.arriba; navArribaPref = nav.arriba; guardarJSON(LS_NAVARRIBA, navArribaPref);
+  if (nav.arriba && rumbo.activo) apagarRumbo(false);
+  if (!nav.arriba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });
+  actualizarModoNav(); actualizarNavegacion();
+  LC.toast(nav.arriba ? "El mapa girará para que el punto quede hacia arriba" : "Mapa con el norte arriba", 2400);
+}
 function destinoEn(pt) {
   var caja = [[pt[0] - 14, pt[1] - 14], [pt[0] + 14, pt[1] + 14]];
   var capas = ["puntos-circ", "puntos-nota", "capas-estaciones"].filter(function (l) { return map.getLayer(l); });
@@ -1906,22 +2005,23 @@ async function altitudDe(pm) {
 function textoAltitud(a) {
   return "Altitud ≈ " + a.m + " m (modelo de relieve" + (a.dif >= 30 ? "; terreno escarpado, puede variar unos ±" + Math.round(a.dif / 2) + " m" : "") + ")";
 }
-function crearAsaTarjeta(t) {
+function crearAsaTarjeta(t, desp) {
+  desp = desp || tarjDesp;
   var asa = el("div", { class: "mp-asa", title: "Arrastra para mover esta ventana" }, [el("span", { texto: "⋯ arrastra para mover ⋯" })]), ini = null;
   asa.addEventListener("pointerdown", function (e) {
-    ini = { x: e.clientX, y: e.clientY, dx: tarjDesp.x, dy: tarjDesp.y };
+    ini = { x: e.clientX, y: e.clientY, dx: desp.x, dy: desp.y };
     if (asa.setPointerCapture) { try { asa.setPointerCapture(e.pointerId); } catch (x) {} }
     e.preventDefault(); e.stopPropagation();
   });
   asa.addEventListener("pointermove", function (e) {
     if (!ini) return;
     var L = $("mp-lienzo").getBoundingClientRect(), r = t.getBoundingClientRect();
-    var bl = r.left - tarjDesp.x, bt = r.top - tarjDesp.y;
+    var bl = r.left - desp.x, bt = r.top - desp.y;
     var nx = ini.dx + e.clientX - ini.x, ny = ini.dy + e.clientY - ini.y;
     var loX = L.left - bl, hiX = L.right - (bl + r.width), loY = L.top - bt, hiY = L.bottom - (bt + r.height);
     if (hiX < loX) hiX = loX; if (hiY < loY) hiY = loY;
-    tarjDesp.x = Math.round(Math.max(loX, Math.min(hiX, nx))); tarjDesp.y = Math.round(Math.max(loY, Math.min(hiY, ny)));
-    t.style.transform = "translate(" + tarjDesp.x + "px," + tarjDesp.y + "px)";
+    desp.x = Math.round(Math.max(loX, Math.min(hiX, nx))); desp.y = Math.round(Math.max(loY, Math.min(hiY, ny)));
+    t.style.transform = "translate(" + desp.x + "px," + desp.y + "px)";
     e.preventDefault();
   });
   function fin() { ini = null; }
@@ -2103,7 +2203,37 @@ function encuadrarConjunto(c) {
   else { b.extend([c.bbox[0], c.bbox[1]]); b.extend([c.bbox[2], c.bbox[3]]); }
   map.fitBounds(b, { padding: 70, maxZoom: 17, duration: 500 });
 }
-function cerrarPanelPuntos() { var pn = $("mp-panel-puntos"); if (pn) pn.style.display = "none"; var b = $("mp-puntos"); if (b) b.classList.remove("on"); }
+function cerrarPanelPuntos() { var pn = $("mp-panel-puntos"); if (pn) pn.style.display = "none"; var b = $("mp-puntos"); if (b) b.classList.remove("on"); cerrarPanelMapas(); }
+/* v2.89: panel "Mis mapas": los mapas descargados, cada uno con su casilla para activarlo o desactivarlo (separado del catálogo, que está en Mapas) */
+function cerrarPanelMapas() { var p = $("mp-panel-mapas"); if (p) p.style.display = "none"; var b = $("mp-todos"); if (b) b.classList.remove("on"); }
+function renderPanelMapas() {
+  var pn = $("mp-panel-mapas"); if (!pn || pn.style.display !== "block") return;
+  pn.textContent = "";
+  pn.appendChild(el("div", { class: "mp-panel-cab" }, [el("b", { texto: "Mapas descargados" }), el("button", { type: "button", class: "mp-panel-x", texto: "✕", "aria-label": "Cerrar", onclick: cerrarPanelMapas })]));
+  var ids = Object.keys(inst).sort(function (a, b) { return String(inst[a].nombre).localeCompare(String(inst[b].nombre)); });
+  if (!ids.length) pn.appendChild(el("p", { class: "mp-suave", texto: "No hay mapas descargados." }));
+  ids.forEach(function (id) {
+    var i = inst[id], act = mapaActivo(id), peso = archivosDe(i).reduce(function (t, a) { return t + (a.bytes || 0); }, 0);
+    var inp = el("input", { type: "checkbox", "aria-label": "Mostrar " + nombreCorto(i.nombre) }); inp.checked = act;
+    inp.onchange = function () { ponerMapaActivo(id, inp.checked); };
+    var ver = el("button", { type: "button", class: "mp-panel-ver", onclick: function () { verMapa(id); } }, [el("b", { texto: nombreCorto(i.nombre) }), el("span", { class: "mp-suave", texto: mb(peso) + " · " + (act ? "visible" : "desactivado") })]);
+    pn.appendChild(el("div", { class: "mp-panel-fila" + (act ? "" : " off") }, [inp, ver]));
+  });
+  var fila = [];
+  if (idsActivos().length) fila.push(el("button", { type: "button", texto: "Ver todos", onclick: function () { verTodosLosMapas(); cerrarPanelMapas(); } }));
+  fila.push(el("button", { type: "button", texto: "Catálogo y descargas", onclick: function () { cerrarPanelMapas(); abrirGestor("mapas"); } }));
+  pn.appendChild(el("div", { class: "mp-fila", style: "margin-top:8px;" }, fila));
+  if (ids.length) pn.appendChild(el("p", { class: "mp-suave", style: "margin:8px 0 0;", texto: "La casilla muestra u oculta el mapa. Toca el nombre para acercar el mapa a su zona." }));
+}
+function alternarPanelMapas() {
+  var p = $("mp-panel-mapas"); if (!p) return;
+  var abierto = p.style.display === "block";
+  cerrarPanelPuntos();
+  if (abierto) return;
+  p.style.display = "block"; $("mp-todos").classList.add("on");
+  renderPanelMapas();
+  if (idsActivos().length) verTodosLosMapas();
+}
 function textoSubSesion(c) {
   var ocultos = c.regs.filter(function (r) { return !visReg(r.id); }).length;
   return (c.n || !c.nRec ? c.n + (c.n === 1 ? " punto" : " puntos") : "") + (c.nRec ? (c.n ? " · " : "") + c.nRec + (c.nRec === 1 ? " recorrido" : " recorridos") : "") + (c.activa ? " · activa" : "") + (ocultos ? " · " + ocultos + (ocultos === 1 ? " oculto" : " ocultos") : "");
@@ -2196,7 +2326,7 @@ function renderPanelPuntos() {
 function alternarPanelPuntos() {
   var pn = $("mp-panel-puntos"); if (!pn) return;
   if (pn.style.display === "block") { cerrarPanelPuntos(); return; }
-  renderPanelPuntos(); pn.style.display = "block"; $("mp-puntos").classList.add("on");
+  cerrarPanelMapas(); renderPanelPuntos(); pn.style.display = "block"; $("mp-puntos").classList.add("on");
 }
 
 /* ---------- Guardar punto aquí ---------- */
@@ -2473,6 +2603,9 @@ function tarjetaMapa(entrada, enCatalogo) {
     var fila = [];
     if (i) {
       cuerpo.push(el("p", { class: "mp-suave", texto: "Instalado, versión " + i.version + ", guardado " + i.fecha + "" }));
+      var chkAct = el("input", { type: "checkbox" }); chkAct.checked = mapaActivo(id);
+      chkAct.onchange = function () { ponerMapaActivo(id, chkAct.checked); };
+      cuerpo.push(el("label", { class: "mp-chk" }, [chkAct, el("span", { texto: "Mostrar en el mapa" })]));
       var nLoc = capasLoc.filter(function (c) { return c.mapaId === id; }).length;
       cuerpo.push(el("p", { class: "mp-suave", texto: "Capas instaladas: " + (i.capas || []).length + (nLoc ? " · importadas: " + nLoc : "") }));
       var hayVersion = enCatalogo && entrada.version && entrada.version !== i.version, pend = enCatalogo ? capasPendientes(entrada) : [];
@@ -2499,7 +2632,7 @@ function tarjetaMapa(entrada, enCatalogo) {
       } })]));
     }
   }
-  return el("div", { class: "mp-caja" }, cuerpo);
+  return el("div", { class: "mp-caja" + (i && !mapaActivo(id) ? " inactivo" : "") }, cuerpo);
 }
 
 function infoDiag() {
@@ -2576,7 +2709,7 @@ function renderGestor() {
     var cajaBusca = el("div", { class: "mp-busca" });   /* v2.58: buscador destacado, fijo arriba de la lista */
     cu.appendChild(cajaBusca);
     cu.appendChild(el("div", { class: "mp-caja" }, [
-      el("p", { class: "mp-suave", texto: "Los mapas sin conexión son opcionales: con internet la pestaña Mapa ya funciona con el fondo satelital. Descarga uno solo para zonas sin señal de celular, antes de salir." }),
+      el("p", { class: "mp-suave", texto: "Con conexión, el mapa usa imágenes satelitales. Los mapas descargados permiten usarlo donde no hay señal." }),
       el("p", { class: "mp-suave", texto: (online ? "En línea. " : "Sin conexión. ") + catInfo }),
       el("p", { class: "mp-suave", texto: "Espacio usado por la app: " + (almEst.usado != null ? mb(almEst.usado) : "?") + " de " + (almEst.cuota != null ? mb(almEst.cuota) : "?") + ". Almacenamiento protegido: " + (almEst.protegido == null ? "sin dato" : almEst.protegido ? "sí" : "no") + "." }),
       el("div", { class: "mp-fila" }, [
@@ -2595,20 +2728,26 @@ function renderGestor() {
       if (vistos[id]) return;
       entradas.push({ e: { id: id, nombre: inst[id].nombre, region: inst[id].region, version: inst[id].version, archivos: inst[id].archivos.map(function (a) { return { tipo: a.tipo, bytes: a.bytes }; }) }, enCat: false });
     });
-    var listaMapas = el("div", {});
+    var listaDesc = el("div", {}), listaCat = el("div", {});   /* v2.89: mapas descargados primero y, aparte, el catálogo sin descargar */
     var cuenta = el("p", { class: "mp-suave", style: "margin:6px 0 0;" });
     var pintarLista = function () {
-      var q = normBusqueda(busquedaMapas), n = 0;
-      listaMapas.textContent = "";
+      var q = normBusqueda(busquedaMapas), nD = 0, nC = 0, tD = 0, tC = 0;
+      listaDesc.textContent = ""; listaCat.textContent = "";
+      var hD = el("h3", { class: "mp-bloque-tit" }), hC = el("h3", { class: "mp-bloque-tit" });
+      listaDesc.appendChild(hD); listaCat.appendChild(hC);
       entradas.forEach(function (x) {
+        var esDesc = !!inst[x.e.id]; if (esDesc) tD++; else tC++;
         if (q) {
           var pajar = normBusqueda([x.e.nombre, x.e.region, x.e.version, x.e.id].concat(capasDe(x.e).map(function (c) { return c.nombre || c.id; })).join(" "));
           if (q.split(" ").some(function (t) { return t && pajar.indexOf(t) < 0; })) return;
         }
-        n++; listaMapas.appendChild(tarjetaMapa(x.e, x.enCat));
+        if (esDesc) { nD++; listaDesc.appendChild(tarjetaMapa(x.e, x.enCat)); } else { nC++; listaCat.appendChild(tarjetaMapa(x.e, x.enCat)); }
       });
-      if (!n) listaMapas.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa coincide con «" + busquedaMapas.trim() + "»." : "No hay mapas para mostrar." }));
-      cuenta.textContent = q ? n + " de " + entradas.length + " mapas" : entradas.length + " mapas";
+      hD.textContent = "Mapas descargados (" + (q ? nD + " de " + tD : tD) + ")";
+      hC.textContent = "Catálogo, sin descargar (" + (q ? nC + " de " + tC : tC) + ")";
+      if (!nD) listaDesc.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa descargado coincide con «" + busquedaMapas.trim() + "»." : "No hay mapas descargados." }));
+      if (!nC) listaCat.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa del catálogo coincide con «" + busquedaMapas.trim() + "»." : (cat ? "Todos los mapas del catálogo están descargados." : "Sin catálogo. Conéctate para verlo.") }));
+      cuenta.textContent = q ? (nD + nC) + " de " + entradas.length + " mapas" : entradas.length + " mapas";
     };
     var buscador = el("input", { type: "search", placeholder: "Nombre, región, versión o capa…", autocomplete: "off", autocapitalize: "off", spellcheck: "false", class: "mp-busca-input" });
     buscador.value = busquedaMapas;
@@ -2616,7 +2755,7 @@ function renderGestor() {
     cajaBusca.appendChild(el("label", { class: "mp-busca-rot", texto: "🔍 Buscar en el catálogo de mapas" }));
     cajaBusca.appendChild(buscador);
     cajaBusca.appendChild(cuenta);
-    cu.appendChild(listaMapas);
+    cu.appendChild(listaDesc); cu.appendChild(listaCat);
     pintarLista();
   } else if (vistaGestor === "capas") {
     var tieneRel = relieveNombres.length > 0 || mapasOrdenados().some(function (m) { return archivoTipo(m, "relieve"); });
@@ -2628,7 +2767,7 @@ function renderGestor() {
         if (!map || !mapaListo) return;
         if (clave === "sombra" && map.getLayer("relieve-sombra")) map.setLayoutProperty("relieve-sombra", "visibility", v);
         if (clave === "curvas") ["curvas-linea", "curvas-texto"].forEach(function (id) { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", v); });
-        if (clave === "topo") map.getStyle().layers.forEach(function (l) { if (/^topo-/.test(l.id)) map.setLayoutProperty(l.id, "visibility", v); });
+        if (clave === "topo") aplicarVisBase();
       };
       return el("label", { class: "mp-chk" }, [inp, el("span", { texto: texto })]);
     };
@@ -2870,7 +3009,7 @@ function construirPantalla() {
     '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-cancelar-elec" style="display:none">✕ Cancelar elección de coordenada</button><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
     '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-mapas", "🗺️", "Mapas") + '</div>' +
     '<div id="mp-ctrl">' +
-      btnTb("mp-buscar", "🔎", "Buscar") + btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🌐", "Mis mapas") +
+      btnTb("mp-buscar", "🔎", "Buscar") + btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-rutas", "🛣️", "Rutas") + btnTb("mp-nombres", "🔤", "Nombres") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🌐", "Mis mapas") +
       '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
       btnTb("mp-rumbo", "🧭", "Rumbo", ' style="display:none"') +
     '</div>' +
@@ -2885,10 +3024,11 @@ function construirPantalla() {
     '<div id="mp-leyenda" role="group" aria-label="Tipos de punto: toca para mostrar u ocultar"></div>' +
     '<div id="mp-aviso"></div>' +
     '<div id="mp-bsq"><div class="mp-bsq-fila"><input type="search" id="mp-bsq-q" placeholder="Lugar o coordenadas (-38,6575 -72,5929)" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="mp-btn chico" id="mp-bsq-ir">Ir</button><button type="button" class="mp-panel-x" id="mp-bsq-x" aria-label="Cerrar la búsqueda">✕</button></div><div id="mp-bsq-res"></div></div>' +
-    '<div id="mp-panel-puntos"></div>' +
+    '<div id="mp-panel-puntos"></div><div id="mp-panel-mapas"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
       '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div>' +
-      '<div id="mp-nav-ruta" class="mp-nav-ruta"><button type="button" id="mp-nav-ant">◀ Anterior</button><button type="button" id="mp-nav-sig">Saltar ▶</button></div></div>' +
+      '<button type="button" id="mp-nav-modo" class="mp-nav-modo"></button>' +
+      '<div id="mp-nav-ruta" class="mp-nav-ruta"><button type="button" id="mp-nav-ant" aria-label="Punto anterior">◀</button><div id="mp-nav-pts" class="mp-nav-pts"></div><button type="button" id="mp-nav-sig" aria-label="Punto siguiente">▶</button></div></div>' +
     '<div id="mp-tarjeta"></div>' +
     '</div>';
   $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagarManual(); };
@@ -2901,7 +3041,10 @@ function construirPantalla() {
   $("mp-bsq-q").addEventListener("input", function () { sugerirCoordenadas(); });
   $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
-  $("mp-todos").onclick = verTodosLosMapas;
+  $("mp-todos").onclick = alternarPanelMapas;
+  $("mp-rutas").onclick = alternarRutas; $("mp-nombres").onclick = alternarNombres; botonesBase();
+  $("mp-nav-modo").onclick = alternarModoNav;
+  var navEl = $("mp-nav"); navEl.insertBefore(crearAsaTarjeta(navEl, navDesp), navEl.firstChild);
   $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-nav-ant").onclick = function () { avanzarRuta(-1); };
   $("mp-nav-sig").onclick = function () { avanzarRuta(1); };

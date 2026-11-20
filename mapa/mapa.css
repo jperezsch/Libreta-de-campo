@@ -202,3 +202,18 @@
 .mp-cap-n{width:26px; height:26px; border-radius:50%; background:#d64545; color:#fff; font-size:.75rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;}
 .mp-cap-fila input{flex:1; min-width:120px; box-sizing:border-box; padding:10px 12px; font-size:1rem; border:1.5px solid var(--borde); border-radius:10px; background:var(--fondo,#fff); color:var(--texto);}
 .mp-cap-co{flex:0 0 100%; margin:-4px 0 0 34px;}
+
+/* v2.89: panel Mis mapas, bloques del gestor, ventana de navegación móvil, puntos de la ruta y botones Rutas/Nombres */
+#mp-panel-mapas{position:absolute; top:68px; right:66px; width:min(290px, calc(100% - 78px)); max-height:calc(100% - 160px); overflow:auto; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:10px 12px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:4;}
+.mp-panel-fila.off{opacity:.55;}
+.mp-bloque-tit{margin:14px 0 6px; font-size:1rem; padding-bottom:4px; border-bottom:1.5px solid var(--borde);}
+.mp-caja.inactivo{opacity:.72;}
+#mp-nav .mp-asa{position:static; margin:-8px -10px 4px; padding:4px 0 3px; font-size:.7rem;}
+.mp-nav-modo{display:block; width:100%; margin-top:8px; min-height:38px; border-radius:9px; border:1.5px solid var(--verde); background:var(--card); color:var(--verde); font-weight:700; font-size:.82rem; cursor:pointer;}
+.mp-nav-modo[aria-pressed="true"]{background:var(--verde); color:#fff;}
+#mp-nav-ant,#mp-nav-sig{flex:0 0 38px;}
+.mp-nav-pts{flex:1; display:flex; gap:4px; overflow-x:auto; min-width:0; scrollbar-width:none;}
+.mp-nav-pts::-webkit-scrollbar{display:none;}
+.mp-nav-ruta .mp-pt{flex:0 0 auto; min-width:38px; min-height:38px; padding:0 8px; border-radius:19px; border:1.5px solid #c26a5f; background:var(--card); color:#a32626; font-weight:700; font-size:.82rem;}
+.mp-nav-ruta .mp-pt.hecho{border-color:#9aa59d; color:#7b867e; background:transparent; opacity:.75;}
+.mp-nav-ruta .mp-pt.act{background:#c9962c; border-color:#c9962c; color:#fff; opacity:1;}
