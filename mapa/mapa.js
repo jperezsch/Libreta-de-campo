@@ -1042,6 +1042,7 @@ window.addEventListener("pagehide", function () { guardarGrab(true); });
 
 function refrescarTracks() { if (map && mapaListo && map.getSource("tracks")) { map.getSource("tracks").setData(geoTracks()); aplicarFiltroPuntos(); } }
 var pendienteVer = null, pendienteBounds = null, resaltado = null, resaltadoT = null;
+var eleccion = null;   /* v2.87: modo "elegir coordenada" lanzado desde Ubicación manual de Nuevo */
 var retorno = null;   /* v2.43: registro desde el que se llegó con "Ver en el mapa": { id, volverA } */
 function geoResaltado() {
   return { type: "FeatureCollection", features: resaltado ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [resaltado.lng, resaltado.lat] } }] : [] };
@@ -1053,7 +1054,26 @@ function ponerResaltado(p, fijo) {
 }
 function botonVolverRegistro() {
   var b = $("mp-volver-reg"); if (!b) return;
-  b.style.display = retorno ? "" : "none";
+  b.style.display = retorno && !eleccion ? "" : "none";
+  var c = $("mp-cancelar-elec"); if (c) c.style.display = eleccion ? "" : "none";
+}
+/* v2.87: desde Ubicación manual de Nuevo se abre el mapa para tocar la coordenada; "Usar esta coordenada" vuelve a Nuevo con latitud y longitud cargadas */
+function elegirCoordenada() {
+  eleccion = { activo: true }; retorno = null; puntosManuales = []; selManual = -1;
+  LC.irA("mapa");
+  LC.toast("Toca el mapa (o mantén pulsado) para marcar la coordenada y luego pulsa «Usar esta coordenada».", 5500);
+}
+function cancelarEleccion() {
+  if (!eleccion) return;
+  eleccion = null; puntosManuales = []; selManual = -1;
+  if (map && mapaListo) refrescarNavMapa();
+  cerrarTarjeta(); botonVolverRegistro();
+  LC.irA("form");
+}
+async function usarCoordenadaElegida(pm) {
+  eleccion = null; botonVolverRegistro();
+  puntosManuales = []; selManual = -1; if (map && mapaListo) refrescarNavMapa(); cerrarTarjeta();
+  LC.aplicarCoordenadaManual(pm.lat, pm.lng);
 }
 function volverAlRegistro() {
   if (!retorno) return;
@@ -1450,6 +1470,7 @@ function crearMapa() {
   instalarPulsacionLarga();
   map.on("click", function (ev) {
     if (pulsacionReciente) { pulsacionReciente = false; return; }
+    if (eleccion) { cerrarPanelPuntos(); panelTracks(false); marcarPuntoManual(ev.lngLat.lng, ev.lngLat.lat); return; }
     cerrarPanelPuntos(); panelTracks(false);
     if (resaltado) ponerResaltado(null);
     var p = ev.point, caja = [[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]];
@@ -1575,6 +1596,7 @@ async function alMostrar() {
 }
 function alOcultar() {
   clearInterval(vivoTimer); vivoTimer = null; apagarRumbo(false);
+  if (eleccion) { eleccion = null; puntosManuales = []; selManual = -1; if (map && mapaListo) refrescarNavMapa(); }   /* v2.87: salir del mapa cancela la elección */
   retorno = null; botonVolverRegistro();
   cerrarTarjeta(); cerrarPanelPuntos();
   document.body.classList.remove("vista-mapa");
@@ -1803,6 +1825,7 @@ function distanciaTotalManual(hasta) {
   return t;
 }
 function marcarPuntoManual(lng, lat) {
+  if (eleccion) puntosManuales = [];
   puntosManuales.push({ lng: lng, lat: lat });
   selManual = puntosManuales.length - 1;
   refrescarNavMapa();
@@ -1981,7 +2004,7 @@ function mostrarTarjetaPuntoManual() {
   } else {
     t.appendChild(el("div", { class: "mp-suave", texto: "Activa el GPS para ver la distancia y navegar hasta aquí." }));
   }
-  t.appendChild(el("div", { class: "mp-suave", texto: n > 1 ? "Marcas temporales. Mantén pulsado en otro lugar para sumar un punto; toca un punto para elegirlo." : "Es una marca temporal. Mantén pulsado en otro lugar para sumar puntos y medir una ruta." }));
+  t.appendChild(el("div", { class: "mp-suave", texto: eleccion ? "Toca otro lugar para mover la marca. Con «Usar esta coordenada» vuelves a Nuevo con latitud y longitud cargadas." : n > 1 ? "Marcas temporales. Mantén pulsado en otro lugar para sumar un punto; toca un punto para elegirlo." : "Es una marca temporal. Mantén pulsado en otro lugar para sumar puntos y medir una ruta." }));
   var botones = [
     el("button", { class: "primario", texto: "💾 Guardar aquí", onclick: function () { guardarPuntoManual(pm); } }),
     el("button", { texto: "🧭 Navegar hasta aquí", onclick: function () { iniciarNavegacion({ lng: pm.lng, lat: pm.lat, nombre: "el punto marcado" }); } }),
@@ -1994,6 +2017,11 @@ function mostrarTarjetaPuntoManual() {
   if (n > 1) botones.splice(2, 0, el("button", { texto: "🧭 Navegar la ruta", onclick: iniciarRutaManual }));
   botones.splice(n > 1 ? 3 : 2, 0, el("button", { texto: "🗂 Guardar como capa", onclick: guardarPuntosComoCapa }));
   if (n > 1) botones.push(el("button", { texto: "Quitar todos", onclick: quitarTodosManuales }));
+  if (eleccion) botones = [
+    el("button", { class: "primario", texto: "✔ Usar esta coordenada", onclick: function () { usarCoordenadaElegida(pm); } }),
+    botones.filter(function (b) { return /Copiar/.test(b.textContent); })[0],
+    el("button", { texto: "Cancelar", onclick: cancelarEleccion })
+  ];
   t.appendChild(el("div", { class: "mp-fila" }, botones));
   t.style.display = "block";
 }
@@ -2829,7 +2857,7 @@ function construirPantalla() {
     '<div class="topbar mp-topbar"><div class="brand"><span class="ic">🗺️</span><div><h2>Mapa</h2><p class="sub" id="mp-sub">Sin mapa instalado</p></div></div></div>' +
     '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
-    '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
+    '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-cancelar-elec" style="display:none">✕ Cancelar elección de coordenada</button><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
     '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-mapas", "🗺️", "Mapas") + '</div>' +
     '<div id="mp-ctrl">' +
       btnTb("mp-buscar", "🔎", "Buscar") + btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🌐", "Mis mapas") +
@@ -2868,6 +2896,7 @@ function construirPantalla() {
   $("mp-nav-ant").onclick = function () { avanzarRuta(-1); };
   $("mp-nav-sig").onclick = function () { avanzarRuta(1); };
   $("mp-volver-reg").onclick = volverAlRegistro;
+  $("mp-cancelar-elec").onclick = cancelarEleccion;
   $("mp-grabar").onclick = function () { panelTracks(false); if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
   $("mp-tracks").onclick = function () { panelTracks(); };
   $("mp-etiq").onclick = alternarEtiquetas; botonEtiquetas();
@@ -2986,7 +3015,7 @@ async function init(lc) {
 
 window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
-  abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto, verRecorrido: verRecorrido,
+  abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto, verRecorrido: verRecorrido, elegirCoordenada: elegirCoordenada,
   /* para pruebas */
   _debug: function () { return { altitudAprox: altitudAprox, iniciarRutaManual: iniciarRutaManual, guardarPuntosComoCapa: guardarPuntosComoCapa, marcarPuntoManual: marcarPuntoManual, avanzarRuta: avanzarRuta, actualizarNavegacion: actualizarNavegacion, geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; }, csvAGeoJSON: csvAGeoJSON, normalizarFC: normalizarFC, geoCapas: geoCapas, panelEstiloCapa: panelEstiloCapa, tipoPorNombre: tipoPorNombre, omitidas: function () { return csvOmitidas; } }; }
 };
