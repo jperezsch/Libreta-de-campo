@@ -1188,8 +1188,8 @@ function propsEtiq(modo) {
   else { P["text-anchor"] = "top"; P["text-offset"] = ["case", ["==", ["get", "nota"], 1], ["literal", [0, 1.4]], ["literal", [0, 1.35]]]; }
   return P;
 }
-var LS_FONDO = "libretacampo_mapa_fondo_v1";
-var fondoSat = leerJSON(LS_FONDO, "mapa") === "sat";
+var LS_FONDO = "libretacampo_mapa_fondo_v1", LS_INTRO = "libretacampo_mapa_intro_v1";
+var fondoSat = leerJSON(LS_FONDO, "sat") === "sat";   /* v2.88: el satélite (con conexión) es el fondo por defecto; los mapas sin conexión son opcionales */
 function satActivo() { return fondoSat && online; }
 var URL_SAT = "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 var ATTR_SAT = '<a href="https://www.esri.com/" target="_blank" rel="noopener">Imagen © Esri, Maxar, Earthstar Geographics</a>';
@@ -1539,13 +1539,16 @@ function verMapa(id) {
 function chipMapa() {
   var c = $("mp-sub"); if (!c) return;
   var ids = Object.keys(inst);
-  c.textContent = !ids.length ? "Sin mapa instalado" : ids.length === 1 ? nombreCorto(inst[ids[0]].nombre) : ids.length + " mapas";
+  c.textContent = !ids.length ? (online && fondoSat ? "Fondo satelital" : "Sin mapas guardados") : ids.length === 1 ? nombreCorto(inst[ids[0]].nombre) : ids.length + " mapas";
   var r = $("mp-chip-red"); r.textContent = "Sin conexión"; r.style.display = online ? "none" : "inline-block";
 }
 function actualizarAviso() {
   var a = $("mp-aviso"); if (!a) return;
   var s = LC.sesionActiva() || LC.sesionEnPantalla(), txt = "";
-  if (!Object.keys(inst).length) txt = "No hay mapas instalados. Toca Mapas para descargar uno. Mientras tanto ves tus puntos sobre fondo liso.";
+  var hay = Object.keys(inst).length > 0;
+  if (!hay && !online) txt = "Sin conexión y sin mapa guardado: solo ves tus puntos sobre fondo liso. Los mapas sin conexión se descargan con internet, antes de salir (botón Mapas).";
+  else if (!hay && !fondoSat) txt = "El fondo satelital está apagado y no hay mapas sin conexión: ves tus puntos sobre fondo liso. Activa 🛰️ Satélite o descarga un mapa en Mapas.";
+  else if (hay && !online && fondoSat) txt = "Sin señal: se muestra el mapa guardado en lugar del satélite.";
   else if (s && s.mapaId && !inst[s.mapaId]) txt = "El mapa asociado a esta sesión no está instalado. Toca Mapas.";
   a.textContent = txt; a.style.display = txt ? "block" : "none";
 }
@@ -1553,6 +1556,12 @@ function actualizarAviso() {
 async function alMostrar() {
   if (!LISTO) return;
   document.body.classList.add("vista-mapa");
+  try {   /* v2.88: aviso único la primera vez que se abre el mapa */
+    if (!localStorage.getItem(LS_INTRO) && !Object.keys(inst).length) {
+      localStorage.setItem(LS_INTRO, "1");
+      LC.toast("Con internet ves el fondo satelital. Para zonas sin señal, descarga un mapa en «Mapas» antes de salir.", 8000);
+    }
+  } catch (e) {}
   if (!map) { crearMapa(); return; }
   if (!mapaListo) return;
   if (estiloPromesa) await estiloPromesa;
@@ -2567,6 +2576,7 @@ function renderGestor() {
     var cajaBusca = el("div", { class: "mp-busca" });   /* v2.58: buscador destacado, fijo arriba de la lista */
     cu.appendChild(cajaBusca);
     cu.appendChild(el("div", { class: "mp-caja" }, [
+      el("p", { class: "mp-suave", texto: "Los mapas sin conexión son opcionales: con internet la pestaña Mapa ya funciona con el fondo satelital. Descarga uno solo para zonas sin señal de celular, antes de salir." }),
       el("p", { class: "mp-suave", texto: (online ? "En línea. " : "Sin conexión. ") + catInfo }),
       el("p", { class: "mp-suave", texto: "Espacio usado por la app: " + (almEst.usado != null ? mb(almEst.usado) : "?") + " de " + (almEst.cuota != null ? mb(almEst.cuota) : "?") + ". Almacenamiento protegido: " + (almEst.protegido == null ? "sin dato" : almEst.protegido ? "sí" : "no") + "." }),
       el("div", { class: "mp-fila" }, [
@@ -2706,7 +2716,7 @@ function renderGestor() {
 
 /* ---------- bloque "Mapa asociado" (pestaña Sesión) ---------- */
 function estadoAsociado(s) {
-  if (!s.mapaId) return { txt: "Sin mapa asociado. La pestaña Mapa mostrará igual todos los mapas instalados; asociar uno sirve para que la app te avise si falta descargarlo y para llevarte a su zona al abrir la sesión.", cls: "" };
+  if (!s.mapaId) return { txt: "Sin mapa sin conexión asociado. Con internet, la pestaña Mapa usa el fondo satelital. Si esta zona no tiene señal de celular, asocia un mapa y descárgalo antes de salir: así la app te avisa si falta y te lleva a su zona al abrir la sesión.", cls: "" };
   if (desc && desc.id === s.mapaId) return { txt: "Descargando… " + Math.round(desc.hecho / (desc.total || 1) * 100) + "%", cls: "aviso" };
   if (inst[s.mapaId]) return { txt: "✅ Listo para salir: mapa instalado (" + mb(archivosDe(inst[s.mapaId]).reduce(function (t, a) { return t + (a.bytes || 0); }, 0)) + ", versión " + inst[s.mapaId].version + ").", cls: "ok" };
   var e = entradaCatalogo(s.mapaId);
@@ -2718,7 +2728,7 @@ function renderAsociado(s) {
   cont.textContent = "";
   if (!LISTO) { cont.appendChild(el("p", { class: "campo-ayuda", texto: "🗺️ El mapa no está disponible: faltan archivos de la carpeta de apoyo." })); return; }
   var campo = el("div", { class: "mp-asoc-caja" });
-  campo.appendChild(el("div", { class: "bloque-titulo", texto: "🗺️ Mapa asociado" }));
+  campo.appendChild(el("div", { class: "bloque-titulo", texto: "🗺️ Mapa sin conexión (opcional)" }));
   var sel = el("select", { id: "mp-asoc-sel" });
   sel.appendChild(el("option", { value: "", texto: "Sin mapa" }));
   var ids = [], vistos = {};
@@ -2916,7 +2926,7 @@ function botonSatelite() {
   rotuloTb("mp-sat", "🛰️", fondoSat && !online ? "Sin señal" : "Satélite");
 }
 function satRefrescar() {
-  botonSatelite();
+  botonSatelite(); chipMapa(); actualizarAviso();
   if (map && mapaListo && LC && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas();
 }
 /* v2.74: botones cuadrados con ícono y rótulo corto */
@@ -3006,7 +3016,7 @@ async function init(lc) {
   await reconciliar();
   await leerAlmacenamiento();
   await cargarCatalogo();
-  refrescarUI();
+  refrescarUI(); chipMapa();
   LC.actualizarPestanaMapa();
   if (LC.state.currentView === "mapa") alMostrar();
   precargarArchivos();
