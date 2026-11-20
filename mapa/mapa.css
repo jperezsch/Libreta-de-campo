@@ -217,3 +217,29 @@
 .mp-nav-ruta .mp-pt{flex:0 0 auto; min-width:38px; min-height:38px; padding:0 8px; border-radius:19px; border:1.5px solid #c26a5f; background:var(--card); color:#a32626; font-weight:700; font-size:.82rem;}
 .mp-nav-ruta .mp-pt.hecho{border-color:#9aa59d; color:#7b867e; background:transparent; opacity:.75;}
 .mp-nav-ruta .mp-pt.act{background:#c9962c; border-color:#c9962c; color:#fff; opacity:1;}
+
+/* v2.90: bloques del gestor claramente separados, control de dos opciones en la navegación y nueva disposición de botones */
+.mp-bloque{margin:0 0 26px; border:2px solid var(--verde); border-radius:var(--radio); overflow:hidden; background:var(--fondo);}
+.mp-bloque-cat{border-color:#3b5b7a;}
+.mp-bloque .mp-bloque-tit{margin:0; padding:11px 12px; font-size:1.02rem; border:0; background:var(--verde); color:#fff;}
+.mp-bloque-cat .mp-bloque-tit{background:#3b5b7a;}
+.mp-bloque-sub{margin:0; padding:7px 12px; font-size:.82rem; color:var(--texto-sec); background:var(--card); border-bottom:1px solid var(--borde);}
+.mp-bloque > .mp-caja{margin:10px;}
+.mp-bloque > p.mp-suave{margin:10px 12px;}
+.mp-nav-modo{display:flex; width:100%; margin-top:8px; border:1.5px solid var(--verde); border-radius:9px; overflow:hidden; background:var(--card);}
+.mp-nav-modo button{flex:1; min-height:38px; border:0; background:var(--card); color:var(--verde); font-weight:700; font-size:.78rem; cursor:pointer; padding:0 4px;}
+.mp-nav-modo button + button{border-left:1.5px solid var(--verde);}
+.mp-nav-modo button[aria-pressed="true"]{background:var(--verde); color:#fff;}
+#mp-barra{right:244px;}
+#mp-barra .mp-chip{white-space:normal; line-height:1.15; border-radius:14px; text-align:left;}
+#mp-aviso{top:68px; right:72px;}
+#mp-nav{top:68px;}
+#mp-leyenda{top:64px;}
+.mp-nav-pts{position:relative;}
+.mp-nav-ruta #mp-nav-ant, .mp-nav-ruta #mp-nav-sig{flex:0 0 42px; padding:0;}
+.mp-nav-modo button{font-size:.7rem; white-space:nowrap; letter-spacing:-.01em;}
+#mp-barra .mp-chip{padding:5px 9px; font-size:.76rem;}
+#mp-chip-gps{white-space:nowrap;}
+#mp-nav{width:240px;}
+.mp-nav-modo button{min-width:0;}
+#mp-barra #mp-chip-gps{white-space:nowrap;}

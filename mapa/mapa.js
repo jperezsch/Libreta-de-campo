@@ -1336,7 +1336,7 @@ function botonesBase() {
   });
 }
 function alternarRutas() { capasVis.rutas = capasVis.rutas === false; guardarJSON(LS_CAPAS, capasVis); aplicarVisBase(); LC.toast(capasVis.rutas === false ? "Rutas del mapa ocultas" : "Rutas del mapa visibles", 1800); }
-function alternarNombres() { capasVis.topo = !visTopo(); guardarJSON(LS_CAPAS, capasVis); aplicarVisBase(); LC.toast(visTopo() ? "Nombres de lugares visibles" : "Nombres de lugares ocultos", 1800); }
+function alternarNombres() { capasVis.topo = !visTopo(); guardarJSON(LS_CAPAS, capasVis); aplicarVisBase(); LC.toast(visTopo() ? "Topónimos visibles" : "Topónimos ocultos", 1800); }
 function construirEstilo(sinMapas) {
   var estilo = { version: 8, glyphs: rutaBase() + RUTA_MAPA + "fuentes/{fontstack}/{range}.pbf", sources: {}, layers: [] };
   var ms = sinMapas ? [] : mapasOrdenados();
@@ -1478,7 +1478,6 @@ function crearMapa() {
   map.on("rotate", actualizarNorte);
   map.on("rotatestart", function (e) {
     if (e && e.originalEvent && rumbo.activo) { apagarRumbo(false); LC.toast("Giro manual: rumbo arriba apagado"); }
-    if (e && e.originalEvent && nav && nav.arriba) { nav.arriba = false; navArribaPref = false; guardarJSON(LS_NAVARRIBA, false); actualizarModoNav(); LC.toast("Giro manual: objetivo arriba apagado"); }
   });
   map.on("dragstart", function (e) { if (e && e.originalEvent) rumbo.libre = Date.now(); });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
@@ -1896,6 +1895,7 @@ function iniciarNavegacion(dest, ruta) {
 function terminarNavegacion() {
   var estaba = nav && nav.arriba;
   nav = null; actualizarNavegacion(); refrescarNavMapa();
+  if (map && map.touchZoomRotate) { try { map.touchZoomRotate.enableRotation(); } catch (e) {} }
   if (estaba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });   /* al terminar, el mapa vuelve al norte */
 }
 /* v2.89: modo del mapa durante la navegación: norte arriba (gira libre con los dedos) u objetivo arriba (el mapa gira para que el punto quede hacia arriba) */
@@ -1903,19 +1903,20 @@ var LS_NAVARRIBA = "libretacampo_mapa_navarriba_v1";
 var navArribaPref = leerJSON(LS_NAVARRIBA, false) === true;
 var navDesp = { x: 0, y: 0 };   /* desplazamiento de la ventana de navegación (se arrastra con el dedo) */
 function actualizarModoNav() {
-  var b = $("mp-nav-modo"); if (!b) return;
-  var ar = !!(nav && nav.arriba);
-  b.textContent = ar ? "🎯 Objetivo arriba" : "🧭 Norte arriba";
-  b.setAttribute("aria-pressed", ar ? "true" : "false");
-  b.title = ar ? "El mapa gira para que el punto quede hacia arriba. Toca para volver al norte arriba." : "El mapa mantiene el norte arriba y gira solo con tus dedos. Toca para poner el objetivo arriba.";
+  var ar = !!(nav && nav.arriba), bn = $("mp-nav-modo-n"), bo = $("mp-nav-modo-o"); if (!bn || !bo) return;
+  bn.setAttribute("aria-pressed", ar ? "false" : "true"); bo.setAttribute("aria-pressed", ar ? "true" : "false");
+  bn.title = "El norte queda arriba. Puedes girar el mapa con los dedos.";
+  bo.title = "El mapa gira para que el punto de destino quede hacia arriba.";
+  /* en \"objetivo arriba\" el giro con los dedos se bloquea (el zoom con dos dedos sigue funcionando); con el norte arriba el giro es libre */
+  if (map && map.touchZoomRotate) { try { if (ar) map.touchZoomRotate.disableRotation(); else map.touchZoomRotate.enableRotation(); } catch (e) {} }
 }
-function alternarModoNav() {
-  if (!nav) return;
-  nav.arriba = !nav.arriba; navArribaPref = nav.arriba; guardarJSON(LS_NAVARRIBA, navArribaPref);
-  if (nav.arriba && rumbo.activo) apagarRumbo(false);
-  if (!nav.arriba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });
+function ponerModoNav(arriba) {
+  if (!nav || nav.arriba === arriba) return;
+  nav.arriba = arriba; navArribaPref = arriba; guardarJSON(LS_NAVARRIBA, navArribaPref);
+  if (arriba && rumbo.activo) apagarRumbo(false);
+  if (!arriba && map && mapaListo) map.easeTo({ bearing: 0, duration: 300 });
   actualizarModoNav(); actualizarNavegacion();
-  LC.toast(nav.arriba ? "El mapa girará para que el punto quede hacia arriba" : "Mapa con el norte arriba", 2400);
+  LC.toast(arriba ? "Objetivo arriba: el mapa gira para que el punto quede hacia arriba" : "Norte arriba: el mapa mantiene el norte arriba y puedes girarlo con los dedos", 2800);
 }
 function destinoEn(pt) {
   var caja = [[pt[0] - 14, pt[1] - 14], [pt[0] + 14, pt[1] + 14]];
@@ -2115,16 +2116,16 @@ function mostrarTarjetaPuntoManual() {
   }
   t.appendChild(el("div", { class: "mp-suave", texto: eleccion ? "Toca otro lugar para mover la marca. Con «Usar esta coordenada» vuelves a Nuevo con latitud y longitud cargadas." : n > 1 ? "Marcas temporales. Mantén pulsado en otro lugar para sumar un punto; toca un punto para elegirlo." : "Es una marca temporal. Mantén pulsado en otro lugar para sumar puntos y medir una ruta." }));
   var botones = [
-    el("button", { class: "primario", texto: "💾 Guardar aquí", onclick: function () { guardarPuntoManual(pm); } }),
-    el("button", { texto: "🧭 Navegar hasta aquí", onclick: function () { iniciarNavegacion({ lng: pm.lng, lat: pm.lat, nombre: "el punto marcado" }); } }),
-    el("button", { texto: "📋 Copiar", onclick: function () {
+    el("button", { class: "primario", texto: "💾 Guardar registro aquí", onclick: function () { guardarPuntoManual(pm); } }),
+    el("button", { texto: "🗂 Guardar como capa", onclick: guardarPuntosComoCapa }),
+    el("button", { texto: "📋 Copiar coordenada", onclick: function () {
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { LC.toast("Coordenadas copiadas: " + txt, 3200); }, function () { LC.toast("Coordenadas: " + txt, 5000); });
       else LC.toast("Coordenadas: " + txt, 5000);
     } }),
-    el("button", { texto: "Quitar", onclick: function () { quitarPuntoManual(); } })
+    el("button", { texto: "🧭 Navegar hasta aquí", onclick: function () { iniciarNavegacion({ lng: pm.lng, lat: pm.lat, nombre: "el punto marcado" }); } })
   ];
-  if (n > 1) botones.splice(2, 0, el("button", { texto: "🧭 Navegar la ruta", onclick: iniciarRutaManual }));
-  botones.splice(n > 1 ? 3 : 2, 0, el("button", { texto: "🗂 Guardar como capa", onclick: guardarPuntosComoCapa }));
+  if (n > 1) botones.push(el("button", { texto: "🧭 Navegar la ruta", onclick: iniciarRutaManual }));
+  botones.push(el("button", { texto: "Quitar", onclick: function () { quitarPuntoManual(); } }));
   if (n > 1) botones.push(el("button", { texto: "Quitar todos", onclick: quitarTodosManuales }));
   if (eleccion) botones = [
     el("button", { class: "primario", texto: "✔ Usar esta coordenada", onclick: function () { usarCoordenadaElegida(pm); } }),
@@ -2221,7 +2222,7 @@ function renderPanelMapas() {
   });
   var fila = [];
   if (idsActivos().length) fila.push(el("button", { type: "button", texto: "Ver todos", onclick: function () { verTodosLosMapas(); cerrarPanelMapas(); } }));
-  fila.push(el("button", { type: "button", texto: "Catálogo y descargas", onclick: function () { cerrarPanelMapas(); abrirGestor("mapas"); } }));
+  fila.push(el("button", { type: "button", texto: "Catálogo: mapas disponibles", onclick: function () { cerrarPanelMapas(); abrirGestor("mapas"); } }));
   pn.appendChild(el("div", { class: "mp-fila", style: "margin-top:8px;" }, fila));
   if (ids.length) pn.appendChild(el("p", { class: "mp-suave", style: "margin:8px 0 0;", texto: "La casilla muestra u oculta el mapa. Toca el nombre para acercar el mapa a su zona." }));
 }
@@ -2728,13 +2729,13 @@ function renderGestor() {
       if (vistos[id]) return;
       entradas.push({ e: { id: id, nombre: inst[id].nombre, region: inst[id].region, version: inst[id].version, archivos: inst[id].archivos.map(function (a) { return { tipo: a.tipo, bytes: a.bytes }; }) }, enCat: false });
     });
-    var listaDesc = el("div", {}), listaCat = el("div", {});   /* v2.89: mapas descargados primero y, aparte, el catálogo sin descargar */
+    var listaDesc = el("div", { class: "mp-bloque mp-bloque-desc" }), listaCat = el("div", { class: "mp-bloque mp-bloque-cat" });   /* v2.89: mapas descargados primero y, aparte, el catálogo sin descargar */
     var cuenta = el("p", { class: "mp-suave", style: "margin:6px 0 0;" });
     var pintarLista = function () {
       var q = normBusqueda(busquedaMapas), nD = 0, nC = 0, tD = 0, tC = 0;
       listaDesc.textContent = ""; listaCat.textContent = "";
       var hD = el("h3", { class: "mp-bloque-tit" }), hC = el("h3", { class: "mp-bloque-tit" });
-      listaDesc.appendChild(hD); listaCat.appendChild(hC);
+      listaDesc.appendChild(hD); listaDesc.appendChild(el("p", { class: "mp-bloque-sub", texto: "Guardados en este teléfono. Funcionan sin conexión." })); listaCat.appendChild(hC); listaCat.appendChild(el("p", { class: "mp-bloque-sub", texto: "Todavía no están en este teléfono. Se descargan con internet." }));
       entradas.forEach(function (x) {
         var esDesc = !!inst[x.e.id]; if (esDesc) tD++; else tC++;
         if (q) {
@@ -2744,9 +2745,9 @@ function renderGestor() {
         if (esDesc) { nD++; listaDesc.appendChild(tarjetaMapa(x.e, x.enCat)); } else { nC++; listaCat.appendChild(tarjetaMapa(x.e, x.enCat)); }
       });
       hD.textContent = "Mapas descargados (" + (q ? nD + " de " + tD : tD) + ")";
-      hC.textContent = "Catálogo, sin descargar (" + (q ? nC + " de " + tC : tC) + ")";
+      hC.textContent = "Catálogo: mapas disponibles (" + (q ? nC + " de " + tC : tC) + ")";
       if (!nD) listaDesc.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa descargado coincide con «" + busquedaMapas.trim() + "»." : "No hay mapas descargados." }));
-      if (!nC) listaCat.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa del catálogo coincide con «" + busquedaMapas.trim() + "»." : (cat ? "Todos los mapas del catálogo están descargados." : "Sin catálogo. Conéctate para verlo.") }));
+      if (!nC) listaCat.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa del catálogo coincide con «" + busquedaMapas.trim() + "»." : (cat ? "Todos los mapas disponibles ya están descargados." : "Sin catálogo. Conéctate para verlo.") }));
       cuenta.textContent = q ? (nD + nC) + " de " + entradas.length + " mapas" : entradas.length + " mapas";
     };
     var buscador = el("input", { type: "search", placeholder: "Nombre, región, versión o capa…", autocomplete: "off", autocapitalize: "off", spellcheck: "false", class: "mp-busca-input" });
@@ -3007,9 +3008,9 @@ function construirPantalla() {
     '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
     '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-cancelar-elec" style="display:none">✕ Cancelar elección de coordenada</button><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
-    '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-mapas", "🗺️", "Mapas") + '</div>' +
+    '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-mapas", "🗺️", "Mapas") + btnTb("mp-todos", "🌐", "Mis mapas") + '</div>' +
     '<div id="mp-ctrl">' +
-      btnTb("mp-buscar", "🔎", "Buscar") + btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-rutas", "🛣️", "Rutas") + btnTb("mp-nombres", "🔤", "Nombres") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-todos", "🌐", "Mis mapas") +
+      btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-nombres", "🔤", "Topónimos") + btnTb("mp-rutas", "🛣️", "Rutas") + btnTb("mp-buscar", "🔎", "Buscar") +
       '<button type="button" class="mp-btn mp-centrar" id="mp-norte" aria-label="Volver al norte" style="display:none"><svg viewBox="-13 -13 26 26" width="26" height="26" aria-hidden="true"><g id="mp-norte-g"><polygon points="0,-11 5,1 -5,1" fill="#b5473a"/><polygon points="0,11 5,1 -5,1" fill="#8a8f8a"/></g></svg></button>' +
       btnTb("mp-rumbo", "🧭", "Rumbo", ' style="display:none"') +
     '</div>' +
@@ -3027,7 +3028,7 @@ function construirPantalla() {
     '<div id="mp-panel-puntos"></div><div id="mp-panel-mapas"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
       '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div><div id="mp-nav-eta" class="mp-suave"></div></div></div>' +
-      '<button type="button" id="mp-nav-modo" class="mp-nav-modo"></button>' +
+      '<div id="mp-nav-modo" class="mp-nav-modo" role="group" aria-label="Orientación del mapa al navegar"><button type="button" id="mp-nav-modo-n" aria-pressed="true">Norte arriba</button><button type="button" id="mp-nav-modo-o" aria-pressed="false">Objetivo arriba</button></div>' +
       '<div id="mp-nav-ruta" class="mp-nav-ruta"><button type="button" id="mp-nav-ant" aria-label="Punto anterior">◀</button><div id="mp-nav-pts" class="mp-nav-pts"></div><button type="button" id="mp-nav-sig" aria-label="Punto siguiente">▶</button></div></div>' +
     '<div id="mp-tarjeta"></div>' +
     '</div>';
@@ -3043,7 +3044,7 @@ function construirPantalla() {
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
   $("mp-todos").onclick = alternarPanelMapas;
   $("mp-rutas").onclick = alternarRutas; $("mp-nombres").onclick = alternarNombres; botonesBase();
-  $("mp-nav-modo").onclick = alternarModoNav;
+  $("mp-nav-modo-n").onclick = function () { ponerModoNav(false); }; $("mp-nav-modo-o").onclick = function () { ponerModoNav(true); };
   var navEl = $("mp-nav"); navEl.insertBefore(crearAsaTarjeta(navEl, navDesp), navEl.firstChild);
   $("mp-nav-cerrar").onclick = terminarNavegacion;
   $("mp-nav-ant").onclick = function () { avanzarRuta(-1); };
@@ -3058,7 +3059,7 @@ function construirPantalla() {
   $("mp-bloqueo").onclick = function () { panelTracks(false); bloquear(); };
   construirLeyenda();
   $("mp-chip-rec").onclick = function () { LC.abrirRegistro(); };   /* vuelve a la Observación que se está grabando */
-  $("mp-norte").onclick = function () { if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
+  $("mp-norte").onclick = function () { if (nav && nav.arriba) ponerModoNav(false); else if (map) map.easeTo({ bearing: 0, duration: 300 }); if (rumbo.activo) apagarRumbo(false); };
   $("mp-rumbo").onclick = function () { if (rumbo.activo) apagarRumbo(true); else encenderRumbo(); };
 }
 
