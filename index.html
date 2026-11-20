@@ -93,6 +93,18 @@ html[data-tema="noche"] .banner-curso.modo-viendo{background:#1c2733; border-col
 .banner-sesion-registro.activa{background:var(--verde-cl); color:var(--verde-osc);}
 .banner-sesion-registro.archivada{background:#fdeee9; color:#8a3a1f;}
 .banner-sesion-activa-fijo{padding:8px 14px; font-size:.78rem; font-weight:700; background:var(--verde-cl); color:var(--verde-osc);}
+/* v2.87: los dos indicadores de arriba en Nuevo se leen como un bloque informativo: etiqueta (chip) + dato */
+.banner-sesion-activa-fijo{display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-left:6px solid var(--verde); border-bottom:1px solid var(--borde);}
+.ind-tit{display:inline-block; flex:none; font-size:.66rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; padding:3px 8px; border-radius:6px; background:var(--verde); color:#fff; white-space:nowrap;}
+html[data-tema="noche"] .ind-tit{color:#0f1a13;}
+.ind-dato{font-size:.95rem; font-weight:700; color:var(--texto); min-width:0; overflow-wrap:anywhere;}
+.banner-curso{border-left:6px solid var(--rojo);}
+.banner-curso .ind-tit{background:var(--rojo); color:#fff;}
+html[data-tema="noche"] .banner-curso .ind-tit{background:#b5473a; color:#fff;}
+.banner-curso.modo-viendo{border-left-color:var(--texto-sec);}
+.banner-curso.modo-viendo .ind-tit{background:var(--texto-sec); color:#fff;}
+.banner-curso .codigo-inline{background:rgba(255,255,255,.75); border:1px solid #d9a58f; border-radius:6px; padding:3px 8px; font-size:.95rem; color:#5a2412;}
+html[data-tema="noche"] .banner-curso .codigo-inline{background:rgba(0,0,0,.3); border-color:#6b3420; color:#f6d3c4;}
 @keyframes pulse{0%{opacity:1;}50%{opacity:.35;}100%{opacity:1;}}
 
 .pad{padding:14px;}
@@ -293,9 +305,13 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 #gps-manual-wrap.abierto{display:block;}
 #gps-manual-wrap.resaltado input{border-color:var(--rojo); box-shadow:0 0 0 2px rgba(181,71,58,.2);}
 .manual-toggle{
-  width:100%; background:none; border:none; padding:9px 2px; margin-top:6px; display:flex; align-items:center; gap:6px;
-  font-size:.85rem; font-weight:700; color:var(--texto-sec); cursor:pointer;
+  width:100%; background:rgba(201,150,44,.14); border:1.5px dashed var(--ambar); border-radius:10px; padding:11px 12px; margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:6px;
+  font-size:.92rem; font-weight:800; color:var(--ambar-osc); cursor:pointer;
 }
+.manual-toggle.abierto{border-style:solid; border-bottom-left-radius:0; border-bottom-right-radius:0; margin-bottom:0;}
+/* v2.87: el cuadro de Ubicación manual desplegado queda enmarcado, separado de Localidad específica */
+#gps-manual-wrap.abierto{margin-top:0; margin-bottom:18px; padding:12px; border:1.5px solid var(--ambar); border-top:none; border-radius:0 0 10px 10px; background:rgba(201,150,44,.07);}
+#btn-manual-mapa{margin:0 0 12px;}
 .manual-chev{transition:transform .2s; font-size:.8rem;}
 .manual-toggle.abierto .manual-chev{transform:rotate(90deg);}
 
@@ -307,9 +323,9 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .codigo-inline:focus{outline:none; border-bottom-style:solid; border-bottom-color:var(--rojo);}
 
 /* ---- Sección secundaria colapsable: datos generales del registro ---- */
-.dg-box{background:#eeece4; border:1.5px solid var(--borde); border-radius:14px; overflow:hidden;}
+.dg-box{background:#eeece4; border:1.5px solid var(--borde); border-radius:14px; overflow:hidden; box-shadow:inset 6px 0 0 var(--verde), 0 2px 7px rgba(0,0,0,.12);}
 html[data-tema="noche"] .dg-box{background:#1c1a14;}
-.dg-header{width:100%; background:none; border:none; padding:18px 16px; display:flex; justify-content:space-between; align-items:center; font-size:1.05rem; font-weight:800; color:var(--texto); cursor:pointer;}
+.dg-header{width:100%; background:var(--verde-cl); border:none; padding:18px 16px; display:flex; justify-content:space-between; align-items:center; font-size:1.05rem; font-weight:800; color:var(--texto); cursor:pointer;}
 .dg-chev{transition:transform .2s; font-size:1.6rem; color:var(--verde); flex-shrink:0; margin-left:10px;}
 .dg-box.abierto .dg-chev{transform:rotate(180deg);}
 .dg-body{display:none; padding:4px 14px 16px;}
@@ -579,6 +595,8 @@ details.mas-opciones.en-sesion{margin:2px 0 12px;}
 .bloque{background:var(--card); border:1.5px solid var(--borde); border-left:5px solid var(--verde); border-radius:var(--radio); padding:14px 14px 6px; margin:0 0 18px; box-shadow:var(--sombra);}
 .bloque .section-title{margin:6px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--borde); color:var(--verde-osc);}
 .bloque > .section-title:first-child{margin-top:0;}
+/* v2.87: pestaña Sesión, títulos de bloque con una banda suave (misma tipografía, algo más destacados) */
+#s-sesion .bloque > .section-title:first-child, #s-sesion .bloque > .bloque-titulo:first-child{margin:-14px -14px 12px -14px; padding:9px 14px; background:var(--verde-cl); border-bottom:1px solid var(--borde); border-radius:calc(var(--radio) - 2px) calc(var(--radio) - 2px) 0 0;}
 .bloque-titulo{font-size:.85rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--verde-osc); margin:0 0 12px; padding-bottom:6px; border-bottom:1px solid var(--borde);}
 .bloque-subtitulo{font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--texto-sec); margin:2px 0 6px;}
 .sesion-acciones-fila{display:flex; gap:8px; margin:0 0 14px;}
@@ -617,7 +635,11 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
 .muestra-tab.on{background:var(--verde); color:#fff;}
 /* campo bloqueado (N° individuos en muestra mixta) */
 input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); color:var(--texto-sec); border-style:dashed; cursor:not-allowed; opacity:.8; pointer-events:none; -webkit-user-select:none; user-select:none;}
-.comp-fila{border:1.5px solid var(--borde); border-radius:12px; padding:10px; margin:10px 0; background:var(--card);}
+.comp-fila{border:1.5px solid var(--borde); border-radius:10px; padding:6px 6px 4px 8px; margin:6px 0; background:var(--card);}
+.comp-linea{display:flex; align-items:center; gap:6px;}
+.comp-linea .comp-taxon{flex:1; min-width:0;}
+.comp-linea .comp-nind{flex:0 0 64px; width:64px; min-width:0; text-align:center;}
+.comp-linea .comp-x{flex:none; min-width:36px; min-height:36px;}
 .comp-fila .field{margin-bottom:8px;}
 .comp-cab{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:.85rem; color:var(--texto-sec);}
 .comp-x{background:none; border:0; color:var(--texto-sec); font-size:1.1rem; min-width:40px; min-height:40px; cursor:pointer;}
@@ -690,7 +712,7 @@ body.modo-visor{padding-top:56px;}
 body.modo-visor .navbtn[data-s="form"], body.modo-visor .navbtn[data-s="exportar"], body.modo-visor .navbtn[data-s="config"]{display:none;}
 body.modo-visor .solo-edicion, body.modo-visor .btn-icon-danger, body.modo-visor .reg-handle, body.modo-visor #btn-modo-reordenar,
 body.modo-visor .btn-finalizar-sesion-inline, body.modo-visor #btn-nueva-salida, body.modo-visor #btn-editar-sesion,
-body.modo-visor #btn-reactivar-sesion, body.modo-visor #btn-guardar-sesion, body.modo-visor #btn-descartar-sesion-nueva,
+body.modo-visor #btn-reactivar-sesion, body.modo-visor #btn-guardar-sesion, body.modo-visor #btn-descartar-sesion-nueva, body.modo-visor #btn-borrar-sesion,
 body.modo-visor .btn-restaurar-orden, body.modo-visor #btn-consulta-editar,
 body.modo-visor [data-vj-acc="activar"], body.modo-visor [data-vj-acc="nota"], body.modo-visor #btn-bit-nota,
 body.modo-visor #btn-bit-exportar-zip{display:none !important;}
@@ -935,6 +957,7 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
 
     <button type="button" class="btnfull btn-primary" id="btn-guardar-sesion" style="margin-top:6px;">💾 Guardar datos de la sesión</button>
     <button type="button" class="btnfull btn-secondary" id="btn-descartar-sesion-nueva" style="display:none; margin-top:8px;">Descartar sesión nueva</button>
+    <button type="button" class="btnfull btn-danger" id="btn-borrar-sesion" style="display:none; margin-top:8px;">🗑 Borrar esta sesión</button>
     <div style="height:90px;"></div>
   </div>
 </div>
@@ -1009,7 +1032,7 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
 <div class="screen" id="s-form">
   <div class="topbar"><div class="brand"><span class="ic">🔬</span><div><h2>Registro</h2><p class="sub">Captura los registros</p></div></div></div>
   <div id="banner-sesion-activa-fijo" class="banner-sesion-activa-fijo"></div>
-  <div class="banner-curso" id="banner-curso"><span class="dotlive" id="banner-curso-dot"></span> <span id="banner-curso-texto">Registro en curso</span> <span id="codigo-banner-wrap">— <input type="text" id="f-codigo" class="codigo-inline"></span></div>
+  <div class="banner-curso" id="banner-curso"><span class="dotlive" id="banner-curso-dot"></span> <span id="banner-curso-texto" class="ind-tit">Registro en curso</span> <span id="codigo-banner-wrap"><input type="text" id="f-codigo" class="codigo-inline"></span></div>
   <div id="f-codigo-aviso" class="campo-aviso-codigo"></div>
   <div id="banner-sesion-registro" class="banner-sesion-registro" style="display:none;"></div>
   <div class="pad">
@@ -1125,6 +1148,7 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
 
     <button type="button" class="manual-toggle" id="btn-toggle-manual"><span>Ubicación manual</span><span class="manual-chev" id="manual-chev">▸</span></button>
     <div class="manual-body" id="gps-manual-wrap">
+      <button type="button" class="btnfull btn-secondary" id="btn-manual-mapa" style="display:none;">🗺 Elegir en el mapa</button>
       <div class="row2">
         <input type="text" class="manual" id="f-lat" placeholder="Latitud">
         <input type="text" class="manual" id="f-lon" placeholder="Longitud">
@@ -1197,8 +1221,19 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
       <button type="button" class="muestra-tab" role="tab" data-mixta="1" aria-selected="false">Muestra mixta<small>(múltiples taxones)</small></button>
     </div>
     <input type="checkbox" id="f-compuesta" style="display:none" tabindex="-1" aria-hidden="true">
+    <div id="metodo-principal" class="field" style="margin-top:0;"><label>Método de recolección</label>
+      <select id="f-metodo">
+        <option value="">—</option>
+        <option>Búsqueda directa</option><option>Cernido de hojarasca</option><option>Trampa pitfall</option>
+        <option>Trampa de luz</option><option>Red de golpeo (beating)</option><option>Red entomológica</option>
+        <option>Bajo rocas / troncos</option><option>Buceo / snorkel</option><option>Draga</option>
+        <option value="__otro__">Otro (especificar)</option>
+      </select>
+      <input type="text" id="f-metodo-otro" spellcheck="true" list="dl-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-otro"></datalist>
+    </div>
+
     <div class="field"><label id="label-taxon-libre">Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
-    <div class="field"><label id="label-nind">N° individuos</label><input type="number" id="f-nind" min="0"></div>
+    <div class="field" id="campo-nind"><label id="label-nind">N° individuos</label><input type="number" id="f-nind" min="0"></div>
     <div class="field"><label id="label-condicion">Condición / conservación</label>
       <select id="f-condicion">
         <option value="">—</option>
@@ -1214,6 +1249,14 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
       </select>
     </div>
     <div class="switch-row" id="tejido-switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
+      <div id="habitat-microhabitat-principal">
+    <div class="field"><label>Microhábitat <button type="button" class="ayuda-q" style="margin-left:6px; vertical-align:middle;" data-ayuda="ayuda-microhabitat" aria-label="Ayuda sobre Microhábitat" aria-expanded="false">?</button></label>
+      <div class="ayuda-txt" id="ayuda-microhabitat">Lugar preciso dentro del hábitat donde vive o se refugia el organismo. Ej: hojarasca, bajo piedras, bajo cortezas, etc.</div>
+      <input type="text" id="f-referencia" spellcheck="true" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
+    <div class="field"><label>Interacciones <button type="button" class="ayuda-q" style="margin-left:6px; vertical-align:middle;" data-ayuda="ayuda-interacciones" aria-label="Ayuda sobre Interacciones" aria-expanded="false">?</button></label>
+      <div class="ayuda-txt" id="ayuda-interacciones">Ej: Asociaciones con hospederos, interacciones tróficas, etc.</div>
+      <textarea id="f-interacciones" spellcheck="true"></textarea></div>
+    </div>
     <div id="comp-wrap" style="display:none;">
       <div class="comp-titulo">🧪 Taxones de la muestra <button type="button" class="ayuda-q" data-ayuda="ayuda-taxones" aria-label="Ayuda sobre los taxones de la muestra" aria-expanded="false">?</button></div>
       <div class="ayuda-txt" id="ayuda-taxones">Todos comparten el mismo número de campo, punto, fecha y hora. En «Detalle» puedes darle a un taxón otra conservación, otro microhábitat u otro método de recolección; si lo dejas vacío, usa los de la muestra.</div>
@@ -1233,25 +1276,6 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
 
     <div id="seccion-fotos-notas" class="bloque">
       <div class="section-title"><span class="n">📝</span>Observaciones y notas</div>
-      <div id="habitat-microhabitat-principal">
-    <div class="field" style="margin-top:14px;"><label>Microhábitat <button type="button" class="ayuda-q" style="margin-left:6px; vertical-align:middle;" data-ayuda="ayuda-microhabitat" aria-label="Ayuda sobre Microhábitat" aria-expanded="false">?</button></label>
-      <div class="ayuda-txt" id="ayuda-microhabitat">Lugar preciso dentro del hábitat donde vive o se refugia el organismo. Ej: hojarasca, bajo piedras, bajo cortezas, etc.</div>
-      <input type="text" id="f-referencia" spellcheck="true" list="dl-referencia"><datalist id="dl-referencia"></datalist></div>
-    <div class="field"><label>Interacciones <button type="button" class="ayuda-q" style="margin-left:6px; vertical-align:middle;" data-ayuda="ayuda-interacciones" aria-label="Ayuda sobre Interacciones" aria-expanded="false">?</button></label>
-      <div class="ayuda-txt" id="ayuda-interacciones">Ej: Asociaciones con hospederos, interacciones tróficas, etc.</div>
-      <textarea id="f-interacciones" spellcheck="true"></textarea></div>
-    </div>
-
-    <div id="metodo-principal" class="field" style="margin-top:14px;"><label>Método de recolección</label>
-      <select id="f-metodo">
-        <option value="">—</option>
-        <option>Búsqueda directa</option><option>Cernido de hojarasca</option><option>Trampa pitfall</option>
-        <option>Trampa de luz</option><option>Red de golpeo (beating)</option><option>Red entomológica</option>
-        <option>Bajo rocas / troncos</option><option>Buceo / snorkel</option><option>Draga</option>
-        <option value="__otro__">Otro (especificar)</option>
-      </select>
-      <input type="text" id="f-metodo-otro" spellcheck="true" list="dl-metodo-otro" placeholder="Especifica el método" style="display:none; margin-top:7px;"><datalist id="dl-metodo-otro"></datalist>
-    </div>
 
     
     <div class="field" id="campo-nota-titulo" style="display:none;">
@@ -4077,7 +4101,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-18 · v2.86";
+var APP_BUILD = "2026-11-19 · v2.87";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -5062,6 +5086,12 @@ function aplicarModoEdicionSesion(){
   document.getElementById("btn-editar-sesion").style.display = editando ? "none" : "";
   document.getElementById("btn-guardar-sesion").style.display = editando ? "" : "none";
   document.getElementById("btn-descartar-sesion-nueva").style.display = (s.borrador && editando) ? "" : "none";
+  var bb = document.getElementById("btn-borrar-sesion");
+  if(bb){
+    var hayRegs = state.registros.some(function(r){ return r.sesionId===s.id; });
+    bb.style.display = (!s.borrador && !visorActivo) ? "" : "none";
+    bb.textContent = hayRegs ? "🗑 Borrar esta sesión y sus registros" : "🗑 Borrar esta sesión";
+  }
   var filaAcc = document.getElementById("sesion-acciones-fila");
   filaAcc.style.display = (document.getElementById("btn-reactivar-sesion").style.display==="none" && editando) ? "none" : "";
 }
@@ -5338,6 +5368,10 @@ function cerrarSesionActiva(){
 }
 document.getElementById("btn-nueva-salida").addEventListener("click", function(){ crearNuevaSalida(); });
 document.getElementById("btn-descartar-sesion-nueva").addEventListener("click", descartarSesionNueva);
+document.getElementById("btn-borrar-sesion").addEventListener("click", function(){
+  var s = sesionEnPantalla(); if(!s || s.borrador) return;
+  if(state.registros.some(function(r){ return r.sesionId===s.id; })) eliminarSesionConRegistros(s.id); else eliminarSesionVacia(s.id);
+});
 
 /* ---------------- LISTA DE REGISTROS ---------------- */
 function renderChips(){
@@ -5604,7 +5638,7 @@ function renderListaTarjetas(lista, justSavedId){
       var btnColapsar = '<button type="button" class="btn-colapsar-sesion" data-sesion-lista="'+escapeHtml(g.sesionId)+'">'+(colapsada?'▾ Expandir':'▸ Colapsar')+'</button>';
       var accHtml = modoSeleccion
         ? ('<span class="sa-izq">'+(g.registros.length ? '<button type="button" class="btn-colapsar-sesion" data-sel-todos="'+escapeHtml(g.sesionId)+'">☑ Todos</button>' : '')+'</span><span class="sa-der">'+btnColapsar+'</span>')
-        : ('<span class="sa-izq">'+botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+'</span><span class="sa-der">'+btnColapsar+(sesG ? '<button type="button" class="btn-menu btn-menu-sesion" data-ses-menu="'+escapeHtml(g.sesionId)+'" aria-label="Más acciones de la sesión">⋯</button>' : '')+'</span>');
+        : ('<span class="sa-izq">'+botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+'</span><span class="sa-der">'+btnColapsar+'</span>');
       var headerHtml = '<div class="narr-sesion-header">' +
         '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span class="cnt">('+g.registros.length+')</span></span>' +
         '<span class="narr-sesion-acciones">'+accHtml+'</span>' +
@@ -5656,7 +5690,6 @@ function renderListaTarjetas(lista, justSavedId){
     }
     verRegistroExistente(c.dataset.id);
   }); });
-  cont.querySelectorAll('[data-ses-menu]').forEach(function(b){ b.addEventListener("click", function(e){ e.stopPropagation(); menuSesion(b.dataset.sesMenu); }); });
   cont.querySelectorAll('[data-sel-todos]').forEach(function(b){
     b.addEventListener("click", function(e){
       e.stopPropagation();
@@ -6299,7 +6332,7 @@ function htmlCabeceraViaje(v, nSes){
     '<span class="vj-acciones">'+
       '<button type="button" class="mini-btn" data-vj-acc="bitacora" data-id="'+v.id+'">📖 Bitácora</button>'+
       '<button type="button" class="mini-btn" data-vj-acc="colapsar" data-id="'+v.id+'">'+(col?'▾ Expandir':'▸ Colapsar')+'</button>'+
-      '<button type="button" class="btn-menu" data-vj-acc="menu" data-id="'+v.id+'" aria-label="Más acciones del proyecto">⋯</button>'+
+      '<button type="button" class="mini-btn" data-vj-acc="nota" data-id="'+v.id+'">＋ Nota</button>'+
     '</span>'+
   '</div>';
 }
@@ -6496,26 +6529,6 @@ function menuAcciones(titulo, items){
 function cerrarMenuAcciones(){ document.getElementById("modal-menu").classList.remove("on"); }
 document.getElementById("mm-x").addEventListener("click", cerrarMenuAcciones);
 document.getElementById("modal-menu").addEventListener("click", function(e){ if(e.target===this) cerrarMenuAcciones(); });
-function menuViaje(id){
-  var v = viajePorId(id); if(!v) return;
-  var items = [];
-  if(!visorActivo){
-    items.push(v.id===state.viajeActivoId ? {l:"☆ Quitar como proyecto activo", fn:function(){ alternarViajeActivo(id); }} : {l:"★ Activar este proyecto", fn:function(){ alternarViajeActivo(id); }});
-    items.push({l:"✏️ Renombrar proyecto", fn:function(){ renombrarViaje(id); }});
-    items.push({l:"＋ Nota de bitácora", fn:function(){ abrirNotaViaje(id, null); }});
-  }
-  items.push({l:"📖 Ver la bitácora", fn:function(){ abrirBitacora(id); }});
-  if(!visorActivo) items.push({l:"🗑 Borrar el proyecto", peligro:true, fn:function(){ borrarViaje(id); }});
-  menuAcciones("🧭 "+v.nombre, items);
-}
-function menuSesion(id){
-  var s = sesionPorId(id); if(!s || visorActivo) return;
-  var hay = state.registros.some(function(r){ return r.sesionId===id; });
-  var items = [{l:"✏️ Editar datos de la sesión", fn:function(){ verEnSesion(id); }}];
-  if(hay) items.push({l:"☑ Seleccionar registros", fn:function(){ entrarSeleccion(id); }});
-  items.push({l:hay ? "🗑 Borrar la sesión y sus registros" : "🗑 Borrar la sesión", peligro:true, fn:function(){ if(hay) eliminarSesionConRegistros(id); else eliminarSesionVacia(id); }});
-  menuAcciones(etiquetaSesionCorta(id), items);
-}
 /* v2.83: los proyectos se ordenan por la fecha que se declara en Gestión de proyectos (Inicio y, si falta, Término). Sin esas fechas se usa
    la primera sesión del proyecto y, al final, la fecha de creación. Un proyecto creado después para agrupar sesiones antiguas queda donde corresponde. */
 function fechaOrdenViaje(v){
@@ -6565,7 +6578,6 @@ document.addEventListener("click", function(e){
   if(acc==="activar") alternarViajeActivo(id);
   else if(acc==="nota") abrirNotaViaje(id, null);
   else if(acc==="bitacora") abrirBitacora(id);
-  else if(acc==="menu") menuViaje(id);
   else if(acc==="colapsar"){ if(viajesColapsados.has(id)) viajesColapsados.delete(id); else viajesColapsados.add(id); refrescarVistasViaje(); }
 }, true);
 
@@ -7285,7 +7297,7 @@ function actualizarBannerSesionActivaFijo(){
   var s = sesionActiva();
   var banner = document.getElementById("banner-sesion-activa-fijo");
   if(!banner) return;
-  banner.textContent = s ? ("🟢 Sesión activa: " + nombreSesionMostrar(s)) : "⚪ Sin sesión activa";
+  banner.innerHTML = s ? ('<span class="ind-tit">🟢 Sesión activa</span><span class="ind-dato">'+escapeHtml(nombreSesionMostrar(s))+'</span>') : '<span class="ind-tit" style="background:var(--texto-sec);">⚪ Sin sesión activa</span>';
 }
 function actualizarBannerSesionRegistro(){
   actualizarBannerSesionActivaFijo();
@@ -7420,11 +7432,11 @@ function htmlComponente(c, i){
   var abierto = (c.condicion || c.referencia || c.interacciones || c.metodo) ? ' open' : '';
   var metOtro = !!c.metodo && METODOS_COLECCION.indexOf(c.metodo) < 0;
   return '<div class="comp-fila" data-cid="'+escapeHtml(c.id || "")+'">'+
-    '<div class="comp-cab"><b class="comp-num">Taxón '+(i+1)+'</b><button type="button" class="comp-x" aria-label="Quitar este taxón">✕</button></div>'+
-    '<div class="field"><input type="text" class="comp-taxon" spellcheck="true" list="dl-taxon" placeholder="Nombre del taxón" value="'+escapeHtml(c.taxon || "")+'"></div>'+
-    '<div class="row2"><div class="field"><label>N° individuos</label><input type="number" class="comp-nind" min="0" value="'+escapeHtml(c.nind != null ? String(c.nind) : "")+'"></div>'+
-    '<label class="comp-tejido-lab"><input type="checkbox" class="comp-tejido"'+(c.tejido ? ' checked' : '')+'> 🧬 Tejido</label></div>'+
-    '<details class="comp-detalle"'+abierto+'><summary>Detalle: conservación, microhábitat, interacciones y método</summary>'+
+    '<div class="comp-linea"><input type="text" class="comp-taxon" spellcheck="true" list="dl-taxon" placeholder="Nombre del taxón" value="'+escapeHtml(c.taxon || "")+'">'+
+    '<input type="number" class="comp-nind" min="0" inputmode="numeric" placeholder="N°" aria-label="N° individuos" value="'+escapeHtml(c.nind != null ? String(c.nind) : "")+'">'+
+    '<button type="button" class="comp-x" aria-label="Quitar este taxón">✕</button></div>'+
+    '<details class="comp-detalle"'+abierto+'><summary>Detalle: tejido, conservación y más</summary>'+
+      '<label class="comp-tejido-lab"><input type="checkbox" class="comp-tejido"'+(c.tejido ? ' checked' : '')+'> 🧬 Tejido</label>'+
       '<div class="field"><label>Condición / conservación</label><select class="comp-cond">'+opcionesCondicionComp(c.condicion || "")+'</select></div>'+
       '<div class="field"><label>Microhábitat</label><input type="text" class="comp-ref" spellcheck="true" list="dl-referencia" placeholder="Igual que la muestra" value="'+escapeHtml(c.referencia || "")+'"></div>'+
       '<div class="field"><label>Interacciones</label><textarea class="comp-int" spellcheck="true" placeholder="Igual que la muestra">'+escapeHtml(c.interacciones || "")+'</textarea></div>'+
@@ -7454,10 +7466,11 @@ function aplicarModoCompuesta(){
   document.getElementById("comp-wrap").style.display = on ? "block" : "none";
   document.getElementById("tejido-switch-row").style.display = on ? "none" : "";
   ni.readOnly = on;
-  document.getElementById("label-nind").textContent = on ? "🔒 N° individuos (suma de los taxones)" : "N° individuos";
+  document.getElementById("campo-nind").style.display = on ? "none" : "";
+  document.getElementById("label-nind").textContent = "N° individuos";
   document.getElementById("label-taxon-libre").textContent = on ? "Nombre general de la muestra (taxón más inclusivo)" : "Taxón / descripción";
   document.getElementById("f-taxon-libre").placeholder = on ? "Ej.: Isopoda, Coleoptera… (distinto del primer taxón de la lista)" : "";
-  document.getElementById("label-condicion").textContent = on ? "Condición / conservación de la muestra" : "Condición / conservación";
+  document.getElementById("label-condicion").textContent = on ? "Conservación de la muestra" : "Condición / conservación";
   if(on) actualizarResumenComp();
 }
 // Dibuja las filas a partir de state.draft.componentes (la fuente en memoria) y ajusta el resto del bloque
@@ -7621,11 +7634,18 @@ document.getElementById("btn-toggle-dg").addEventListener("click", function(){
 document.getElementById("btn-cerrar-dg").addEventListener("click", function(){
   document.querySelector(".dg-box").classList.remove("abierto");
 });
+document.getElementById("btn-manual-mapa").addEventListener("click", function(){
+  if(window.MapaPro && MapaPro.elegirCoordenada) MapaPro.elegirCoordenada();
+  else toast("Activa el mapa en Config para elegir la coordenada ahí", 4200);
+});
+function actualizarBotonManualMapa(){ var b = document.getElementById("btn-manual-mapa"); if(b) b.style.display = mapaCfg().activo ? "" : "none"; }
 document.getElementById("btn-toggle-manual").addEventListener("click", function(){
+  actualizarBotonManualMapa();
   this.classList.toggle("abierto");
   document.getElementById("gps-manual-wrap").classList.toggle("abierto");
 });
 function abrirIngresoManual(){
+  actualizarBotonManualMapa();
   document.getElementById("btn-toggle-manual").classList.add("abierto");
   document.getElementById("gps-manual-wrap").classList.add("abierto");
 }
@@ -12393,7 +12413,26 @@ function aplicarPosicionAlBorrador(lat, lon, alt, accuracy, nLecturas){
   toast("Ubicación tomada desde el mapa" + (accuracy!=null ? " · ±"+Math.round(accuracy)+" m" : "") + (nLecturas>1 ? " ("+nLecturas+" lecturas)" : ""));
   return true;
 }
+// v2.87: coordenada elegida tocando el mapa desde Ubicación manual; vuelve a Nuevo con latitud y longitud cargadas
+function aplicarCoordenadaManual(lat, lon){
+  if(!state.draft || state.draft._viendo){ irA("form"); return false; }
+  state.draft.lat = lat.toFixed(6);
+  state.draft.lon = lon.toFixed(6);
+  state.draft.precisionGps = null;
+  if(!state.draft.fecha){ var ahora = new Date(); state.draft.fecha = fechaLocalISO(ahora); state.draft.hora = horaLocalHM(ahora); }
+  guardarDraft();
+  irA("form");
+  document.getElementById("f-lat").value = state.draft.lat;
+  document.getElementById("f-lon").value = state.draft.lon;
+  if(state.draft.fecha) document.getElementById("f-fecha").value = state.draft.fecha;
+  if(state.draft.hora) document.getElementById("f-hora").value = state.draft.hora;
+  abrirIngresoManual();
+  actualizarGpsBox();
+  toast("Coordenada tomada del mapa");
+  return true;
+}
 window.LC = {
+  aplicarCoordenadaManual: aplicarCoordenadaManual,
   state: state, appBuild: APP_BUILD,
   irA: irA, toast: toast, escapeHtml: escapeHtml,
   colorSesion: colorSesion, sesionActiva: sesionActiva, sesionEnPantalla: sesionEnPantalla, sesionPorId: sesionPorId,
