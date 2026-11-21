@@ -216,6 +216,7 @@ var desc = null;                         /* descarga en curso */
 try { localStorage.removeItem(LS_ACTUAL); } catch (e) {}   /* v2.47: ya no hay "mapa en uso": se muestran todos los mapas instalados */
 var estiloFirma = undefined;             /* v2.47: firma de los mapas instalados cuyo estilo está aplicado ("" = fondo liso) */
 var pendienteEnfoque = null;             /* v2.47: id del mapa al que ir en cuanto se muestre la pestaña Mapa */
+var opcionesCapaAbierta = null;          /* v2.93: capa con el panel «Más» abierto */
 var mapaImportId = null;                 /* v2.47: mapa elegido en Capas para importar una capa */
 var ultimaSesionVista = null;
 var capasVis = leerJSON(LS_CAPAS, { sombra: true, curvas: true, anteriores: true });
@@ -395,9 +396,13 @@ function capasDelMapa(mapaId) {
   capasLoc.filter(function (c) { return c.mapaId === mapaId; }).forEach(function (c) { out.push({ clave: "l:" + c.id, id: c.id, mapaId: mapaId, nombre: c.nombre, origen: "local", archivo: c.archivo, tipo: c.tipo }); });
   return out;
 }
+function capasLibres() {   /* v2.93: capas guardadas sin asociación a un mapa descargado */
+  return capasLoc.filter(function (c) { return !c.mapaId; }).map(function (c) { return { clave: "l:" + c.id, id: c.id, mapaId: "", nombre: c.nombre, origen: "local", archivo: c.archivo, tipo: c.tipo }; });
+}
 async function cargarCapasMapa() {   /* v2.47: capas de todos los mapas instalados */
   var lista = [], res = [];
   Object.keys(inst).sort().filter(mapaActivo).forEach(function (id) { lista = lista.concat(capasDelMapa(id)); });
+  lista = lista.concat(capasLibres());   /* v2.93: capas sin mapa asociado, siempre disponibles */
   for (var i = 0; i < lista.length; i++) {
     var c = lista[i];
     try {
@@ -505,15 +510,15 @@ function mostrarTarjetaCapa(f, lngLat) {
   t.appendChild(el("div", { class: "mp-fila" }, [el("button", { texto: "Cerrar", onclick: cerrarTarjeta })]));
   t.style.display = "block";
 }
-async function importarCapaLocal(file, mapaId) {
-  if (!mapaId || !inst[mapaId]) { LC.toast("Elige primero un mapa instalado"); return; }
+async function importarCapaLocal(file, mapaId, vinculo) {
+  if (mapaId && !inst[mapaId]) { LC.toast("Elige un mapa instalado, o «Sin mapa»"); return; }
   var tipo = tipoPorNombre(file.name);
   if (!tipo) { LC.toast("Formato no admitido. Usa CSV, GeoJSON, GPX o shapefile en .zip", 5000); return; }
   if (file.size > 25 * 1048576) { LC.toast("El archivo pesa más de 25 MB", 5000); return; }
-  var m = inst[mapaId], r;
+  var m = mapaId ? inst[mapaId] : null, r;
   try { r = await parsearCapa(file, tipo); }
   catch (e) { LC.toast("No se pudo leer la capa: " + (e.message || e), 6000); anotarError("importar capa", e); return; }
-  var total = r.cuenta.puntos + r.cuenta.lineas + r.cuenta.poligonos, a = m.area;
+  var total = r.cuenta.puntos + r.cuenta.lineas + r.cuenta.poligonos, a = m ? m.area : null;
   if (a && (r.bbox[2] < a[0] || r.bbox[0] > a[2] || r.bbox[3] < a[1] || r.bbox[1] > a[3])) {
     var msg = "Ningún elemento de la capa cae dentro del área de este mapa.";
     if (!(r.bbox[3] < a[0] || r.bbox[1] > a[2] || r.bbox[2] < a[1] || r.bbox[0] > a[3])) msg += " Parece que las coordenadas están en orden latitud, longitud.";
@@ -523,7 +528,7 @@ async function importarCapaLocal(file, mapaId) {
   var id = "l" + Date.now().toString(36), archivo = "capa-local-" + id + ".geojson", blob = new Blob([JSON.stringify(r.fc)], { type: "application/geo+json" });
   try { await Alm.guardar(archivo, blob); }
   catch (e) { LC.toast("No se pudo guardar la capa: " + (e.message || e), 6000); anotarError("guardar capa", e); return; }
-  capasLoc.push({ id: id, mapaId: mapaId, nombre: file.name.replace(/\.[^.]+$/, ""), archivo: archivo, tipo: tipo, bytes: blob.size, fecha: fechaHM(), elementos: r.cuenta });
+  capasLoc.push({ id: id, mapaId: mapaId || "", vinculo: vinculo || "", nombre: file.name.replace(/\.[^.]+$/, ""), archivo: archivo, tipo: tipo, bytes: blob.size, fecha: fechaHM(), elementos: r.cuenta });
   guardarJSON(LS_CAPAS_LOC, capasLoc);
   if (tipo === "csv") estiloAbierto = id;
   await recargarCapas();
@@ -549,6 +554,87 @@ function panelEstiloCapa(c) {
     el("div", { class: "mp-estilo-fila" }, [el("label", {}, [el("span", { class: "mp-suave", texto: "Forma del punto" }), selF]), el("label", {}, [el("span", { class: "mp-suave", texto: "Tamaño" }), selT])]),
     el("label", { class: "mp-chk" }, [chkE, el("span", { texto: "Mostrar el nombre junto al punto" })])
   ]);
+}
+
+/* ---------- v2.93: vínculo de capas con sesiones o proyectos, y descarga (GeoJSON, GPX, CSV) ---------- */
+function opcionesVinculo() {
+  var o = [["", "Sin vínculo"]], st = LC.state || {};
+  (st.viajes || []).forEach(function (v) { o.push(["viaje:" + v.id, "🧭 Proyecto: " + v.nombre]); });
+  (st.sesiones || []).forEach(function (s) { o.push(["sesion:" + s.id, "📁 Sesión: " + LC.nombreSesionMostrar(s)]); });
+  return o;
+}
+function nombreVinculo(v) {
+  if (!v) return "";
+  var op = opcionesVinculo().filter(function (x) { return x[0] === v; })[0];
+  return op ? op[1] : "vínculo que ya no existe";
+}
+function selectorVinculo(valor, alCambiar) {
+  var s = el("select", {});
+  opcionesVinculo().forEach(function (x) { s.appendChild(el("option", { value: x[0], texto: x[1] })); });
+  s.value = valor || ""; if (s.value !== (valor || "")) s.value = "";
+  s.onchange = function () { alCambiar(s.value); };
+  return s;
+}
+async function leerCapaFC(en) {
+  var f = await Alm.leer(en.archivo); if (!f) throw new Error("archivo ausente");
+  return JSON.parse(await f.text());
+}
+function xmlEsc(t) { return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function fcAGpx(fc, nombre) {
+  var wpt = [], trk = [];
+  function anillo(c) { return c.map(function (q) { return '<trkpt lat="' + q[1] + '" lon="' + q[0] + '"></trkpt>'; }).join(""); }
+  fc.features.forEach(function (f) {
+    var g = f.geometry, p = f.properties || {}, nom = xmlEsc(p.nombre || p.name || "");
+    if (!g) return;
+    if (g.type === "Point") wpt.push('<wpt lat="' + g.coordinates[1] + '" lon="' + g.coordinates[0] + '">' + (isFinite(p.altitud_m) && p.altitud_m !== "" ? "<ele>" + p.altitud_m + "</ele>" : "") + "<name>" + nom + "</name>" + (p.descripcion ? "<desc>" + xmlEsc(p.descripcion) + "</desc>" : "") + "</wpt>");
+    else if (g.type === "MultiPoint") g.coordinates.forEach(function (c) { wpt.push('<wpt lat="' + c[1] + '" lon="' + c[0] + '"><name>' + nom + "</name></wpt>"); });
+    else if (g.type === "LineString") trk.push("<trk><name>" + nom + "</name><trkseg>" + anillo(g.coordinates) + "</trkseg></trk>");
+    else if (g.type === "MultiLineString") trk.push("<trk><name>" + nom + "</name>" + g.coordinates.map(function (l) { return "<trkseg>" + anillo(l) + "</trkseg>"; }).join("") + "</trk>");
+    else if (g.type === "Polygon") trk.push("<trk><name>" + nom + "</name>" + g.coordinates.map(function (l) { return "<trkseg>" + anillo(l) + "</trkseg>"; }).join("") + "</trk>");
+    else if (g.type === "MultiPolygon") g.coordinates.forEach(function (pl) { trk.push("<trk><name>" + nom + "</name>" + pl.map(function (l) { return "<trkseg>" + anillo(l) + "</trkseg>"; }).join("") + "</trk>"); });
+  });
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Libreta de Campo" xmlns="http://www.topografix.com/GPX/1/1"><metadata><name>' + xmlEsc(nombre) + "</name></metadata>\n" + wpt.join("\n") + "\n" + trk.join("\n") + "\n</gpx>\n";
+}
+function fcACsv(fc) {
+  var pts = fc.features.filter(function (f) { return f.geometry && f.geometry.type === "Point"; });
+  var claves = [];
+  pts.forEach(function (f) { Object.keys(f.properties || {}).forEach(function (k) { if (!/^(nombre|latitud|longitud|lat|lon|_.*)$/i.test(k) && claves.indexOf(k) < 0) claves.push(k); }); });
+  function q(v) { v = v == null ? "" : String(v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  var filas = [["nombre", "latitud", "longitud"].concat(claves).map(q).join(",")];
+  pts.forEach(function (f) {
+    var p = f.properties || {}, c = f.geometry.coordinates;
+    filas.push([p.nombre || p.name || "", c[1], c[0]].concat(claves.map(function (k) { return p[k]; })).map(q).join(","));
+  });
+  return { texto: "﻿" + filas.join("\r\n") + "\r\n", puntos: pts.length, otros: fc.features.length - pts.length };
+}
+function bajarTexto(texto, nombreArch, mime) {
+  var blob = new Blob([texto], { type: mime }), url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = nombreArch; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 800);
+}
+async function descargarCapaLocal(id, fmt) {
+  var en = capasLoc.filter(function (x) { return x.id === id; })[0]; if (!en) return;
+  var fc; try { fc = await leerCapaFC(en); } catch (e) { LC.toast("No se pudo leer la capa para descargarla", 4000); return; }
+  var base = (en.nombre || "capa").replace(/[\\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim() || "capa";
+  if (fmt === "gpx") bajarTexto(fcAGpx(fc, en.nombre), base + ".gpx", "application/gpx+xml");
+  else if (fmt === "csv") {
+    var r = fcACsv(fc);
+    if (!r.puntos) { LC.toast("Esta capa no tiene puntos: el CSV solo guarda puntos. Usa GeoJSON o GPX.", 5000); return; }
+    bajarTexto(r.texto, base + ".csv", "text/csv");
+    if (r.otros) LC.toast("CSV listo con " + r.puntos + " puntos. Las líneas y polígonos no entran en el CSV (están en GeoJSON y GPX).", 5500);
+  } else bajarTexto(JSON.stringify(fc, null, 1), base + ".geojson", "application/geo+json");
+}
+/* capas vinculadas a sesiones o proyectos, para el paquete .zip de exportación */
+async function capasVinculadas(idsSesiones, idsViajes) {
+  var res = [];
+  for (var i = 0; i < capasLoc.length; i++) {
+    var en = capasLoc[i], v = en.vinculo || "", ok = false;
+    if (v.indexOf("sesion:") === 0) ok = idsSesiones.indexOf(v.slice(7)) >= 0;
+    else if (v.indexOf("viaje:") === 0) ok = idsViajes.indexOf(v.slice(6)) >= 0;
+    if (!ok) continue;
+    try { res.push({ id: en.id, nombre: en.nombre, vinculo: v, fc: await leerCapaFC(en) }); } catch (e) { anotarError("capa vinculada " + en.nombre, e); }
+  }
+  return res;
 }
 async function eliminarCapaLocal(id) {
   var c = capasLoc.filter(function (x) { return x.id === id; })[0]; if (!c) return;
@@ -616,7 +702,7 @@ async function reconciliar() {
   for (var li = 0; li < capasLoc.length; li++) {
     var fl = null;
     try { fl = await Alm.leer(capasLoc[li].archivo); } catch (e) { anotarError("leer " + capasLoc[li].archivo, e); }
-    if (fl && inst[capasLoc[li].mapaId]) locOk.push(capasLoc[li]); else if (fl) await Alm.borrar(capasLoc[li].archivo);
+    if (fl && (!capasLoc[li].mapaId || inst[capasLoc[li].mapaId])) locOk.push(capasLoc[li]); else if (fl) await Alm.borrar(capasLoc[li].archivo);
   }
   capasLoc = locOk; guardarJSON(LS_CAPAS_LOC, capasLoc);
   var usados = {};
@@ -1058,22 +1144,24 @@ function botonVolverRegistro() {
   var c = $("mp-cancelar-elec"); if (c) c.style.display = eleccion ? "" : "none";
 }
 /* v2.87: desde Ubicación manual de Nuevo se abre el mapa para tocar la coordenada; "Usar esta coordenada" vuelve a Nuevo con latitud y longitud cargadas */
-function elegirCoordenada() {
-  eleccion = { activo: true }; retorno = null; puntosManuales = []; selManual = -1;
+function elegirCoordenada(opts) {
+  eleccion = { activo: true, alElegir: opts && opts.alElegir, alCancelar: opts && opts.alCancelar, alSalir: opts && opts.alSalir }; retorno = null; puntosManuales = []; selManual = -1;
   LC.irA("mapa");
   LC.toast("Toca el mapa (o mantén pulsado) para marcar la coordenada y luego pulsa «Usar esta coordenada».", 5500);
 }
 function cancelarEleccion() {
   if (!eleccion) return;
+  var cb = eleccion.alCancelar;
   eleccion = null; puntosManuales = []; selManual = -1;
   if (map && mapaListo) refrescarNavMapa();
   cerrarTarjeta(); botonVolverRegistro();
-  LC.irA("form");
+  if (cb) cb(); else LC.irA("form");
 }
 async function usarCoordenadaElegida(pm) {
+  var cb = eleccion && eleccion.alElegir;
   eleccion = null; botonVolverRegistro();
   puntosManuales = []; selManual = -1; if (map && mapaListo) refrescarNavMapa(); cerrarTarjeta();
-  LC.aplicarCoordenadaManual(pm.lat, pm.lng);
+  if (cb) cb(pm.lat, pm.lng); else LC.aplicarCoordenadaManual(pm.lat, pm.lng);
 }
 function volverAlRegistro() {
   if (!retorno) return;
@@ -1256,7 +1344,7 @@ var ATTR_REL = '<a href="https://mapterhorn.com/attribution" target="_blank" rel
 function mapaActivo(id) { return !(capasVis.mapasOff && capasVis.mapasOff[id]); }
 function idsActivos() { return Object.keys(inst).filter(mapaActivo); }
 function mapasOrdenados() { return Object.keys(inst).sort().filter(mapaActivo).map(function (id) { return inst[id]; }); }
-function firmaMapas() { return Object.keys(inst).sort().filter(mapaActivo).map(function (id) { return id + "@" + inst[id].version + "@" + inst[id].fecha; }).join("|") + (satActivo() ? "|sat" : ""); }
+function firmaMapas() { return Object.keys(inst).sort().filter(mapaActivo).map(function (id) { return id + "@" + inst[id].version + "@" + inst[id].fecha; }).join("|") + (satActivo() ? "|sat" : "") + (callesActivo() ? "|cal" : ""); }
 /* v2.47: el estilo junta TODOS los mapas instalados. Cada mapa aporta su fuente "base<k>" y una copia de las capas del estilo base
    (intercaladas por orden, para que el apilado sea correcto entre mapas vecinos). El relieve y las curvas son una sola fuente que lee de todos los paquetes. */
 /* v2.72: toponimia. Los paquetes ya traen los nombres (capas "places" y "pois"); aquí se dibujan: localidades, áreas protegidas, cerros y puntos de interés. */
@@ -1292,6 +1380,84 @@ function capasToponimia(k, sat) {
       paint: { "text-color": colTxt, "text-halo-color": halo, "text-halo-width": 1.5 } }
   ];
 }
+
+/* ---------- v2.93: calles y lugares en línea (OpenFreeMap, datos de OpenStreetMap) ----------
+   Capa vectorial gratuita, sin llave, que se dibuja donde NO hay un mapa descargado y con conexión. Los mapas descargados tienen prioridad:
+   las calles, nombres y lugares en línea se ocultan dentro del recuadro de cada mapa activo. Sin conexión no se dibuja nada de esto. */
+var URL_CALLES = "https://tiles.openfreemap.org/planet";
+var ATTR_CALLES = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">© OpenMapTiles</a> Datos de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+var LS_CALLES = "libretacampo_mapa_calles_tj_v1", teselasCalles = null, attrCalles = ATTR_CALLES, maxzCalles = 14;
+/* El TileJSON se pide aparte y con límite de tiempo: si la fuente se declarara con "url" y esa petición no respondiera (señal débil con el teléfono «en línea»),
+   el mapa nunca terminaría de cargar. Con las teselas ya resueltas, un fallo de red solo deja las calles sin dibujar. */
+async function resolverCalles() {
+  if (teselasCalles || !online || capasVis.calles === false) return;
+  var tj = null;
+  try {
+    var ac = new AbortController(), to = setTimeout(function () { ac.abort(); }, 8000);
+    var r = await fetch(URL_CALLES, { signal: ac.signal, cache: "no-cache" }); clearTimeout(to);
+    if (r.ok) { tj = await r.json(); guardarJSON(LS_CALLES, { t: Date.now(), tj: { tiles: tj.tiles, maxzoom: tj.maxzoom, attribution: tj.attribution } }); }
+  } catch (e) { /* sin respuesta: se intenta con la copia reciente */ }
+  if (!tj || !tj.tiles || !tj.tiles.length) { var c = leerJSON(LS_CALLES, null); if (c && c.tj && c.tj.tiles && Date.now() - c.t < 12 * 3600 * 1000) tj = c.tj; }
+  if (!tj || !tj.tiles || !tj.tiles.length) return;
+  teselasCalles = tj.tiles; maxzCalles = tj.maxzoom || 14;
+  if (map && mapaListo && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas().then(function () { refrescarPuntos(); });
+}
+function callesActivo() { return online && capasVis.calles !== false && !!teselasCalles; }
+function geoAreasMulti() {
+  var cs = [];
+  mapasOrdenados().forEach(function (m) { var a = m.area; if (a && a.length === 4) cs.push([[[a[0], a[1]], [a[2], a[1]], [a[2], a[3]], [a[0], a[3]], [a[0], a[1]]]]); });
+  return cs.length ? { type: "MultiPolygon", coordinates: cs } : null;
+}
+function capasCalles(sat) {
+  var mp = geoAreasMulti(), S = "calles", NOM = ["coalesce", ["get", "name:es"], ["get", "name"]];
+  var vL = capasVis.rutas !== false ? "visible" : "none", vT = visTopo() ? "visible" : "none";
+  function F(base) { var f = ["all"].concat(base); if (mp) f.push(["!", ["within", mp]]); return f; }
+  var LINEA = ["==", ["geometry-type"], "LineString"], PUNTO = ["==", ["geometry-type"], "Point"];
+  var MAY = ["motorway", "trunk", "primary", "secondary"], MEN = ["tertiary", "minor", "service"], SEN = ["path", "track", "pedestrian"];
+  var col = {
+    cM: sat ? "rgba(0,0,0,0.55)" : "#c9a45a", fM: sat ? "#ffe9a8" : "#f8d58a",
+    cm: sat ? "rgba(0,0,0,0.45)" : "#b9b9b9", fm: sat ? "rgba(255,255,255,0.92)" : "#ffffff",
+    fs: sat ? "#ffd9a0" : "#b5651d",
+    txt: sat ? "#ffffff" : "#2b2b2b", halo: sat ? "rgba(0,0,0,0.85)" : "#ffffff"
+  };
+  function ancho(extra, a, b, c, d) { return ["interpolate", ["linear"], ["zoom"], 6, a, 12, b, 15, c, 18, d]; }
+  var L = [];
+  L.push({ id: "calles-mayores-borde", type: "line", source: S, "source-layer": "transportation", minzoom: 6, filter: F([LINEA, ["in", ["get", "class"], ["literal", MAY]]]),
+    layout: { visibility: vL, "line-cap": "round", "line-join": "round" }, paint: { "line-color": col.cM, "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.6, 12, 4.5, 15, 8, 18, 18] } });
+  L.push({ id: "calles-menores-borde", type: "line", source: S, "source-layer": "transportation", minzoom: 12, filter: F([LINEA, ["in", ["get", "class"], ["literal", MEN]]]),
+    layout: { visibility: vL, "line-cap": "round", "line-join": "round" }, paint: { "line-color": col.cm, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.8, 15, 4.5, 18, 13] } });
+  L.push({ id: "calles-mayores", type: "line", source: S, "source-layer": "transportation", minzoom: 6, filter: F([LINEA, ["in", ["get", "class"], ["literal", MAY]]]),
+    layout: { visibility: vL, "line-cap": "round", "line-join": "round" }, paint: { "line-color": col.fM, "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.8, 12, 2.8, 15, 6, 18, 15] } });
+  L.push({ id: "calles-menores", type: "line", source: S, "source-layer": "transportation", minzoom: 12, filter: F([LINEA, ["in", ["get", "class"], ["literal", MEN]]]),
+    layout: { visibility: vL, "line-cap": "round", "line-join": "round" }, paint: { "line-color": col.fm, "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.9, 15, 3, 18, 10] } });
+  L.push({ id: "calles-senderos", type: "line", source: S, "source-layer": "transportation", minzoom: 13, filter: F([LINEA, ["in", ["get", "class"], ["literal", SEN]]]),
+    layout: { visibility: vL, "line-cap": "butt", "line-join": "round" }, paint: { "line-color": col.fs, "line-width": ["interpolate", ["linear"], ["zoom"], 13, 1, 17, 2.4], "line-dasharray": [2, 1.5] } });
+  var paintTxt = { "text-color": col.txt, "text-halo-color": col.halo, "text-halo-width": 1.6 };
+  function nombreVia(id, minz, clases, tam) {
+    return { id: id, type: "symbol", source: S, "source-layer": "transportation_name", minzoom: minz, filter: F([LINEA, ["in", ["get", "class"], ["literal", clases]], ["has", "name"]]),
+      layout: { visibility: vT, "symbol-placement": "line", "text-field": NOM, "text-font": ["NotoSans-Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], minz, tam[0], 18, tam[1]], "symbol-spacing": 220, "text-padding": 2, "text-max-angle": 40 }, paint: paintTxt };
+  }
+  L.push(nombreVia("calles-nombres-mayores", 11, MAY, [10, 14]));
+  L.push(nombreVia("calles-nombres-menores", 13.5, MEN.concat(SEN), [10, 13.5]));
+  L.push({ id: "calles-numeros", type: "symbol", source: S, "source-layer": "housenumber", minzoom: 17, filter: F([PUNTO, ["has", "housenumber"]]),
+    layout: { visibility: vT, "text-field": ["get", "housenumber"], "text-font": ["NotoSans-Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 17, 10, 19, 13], "text-padding": 1 },
+    paint: { "text-color": sat ? "#ffe9a8" : "#7a4a00", "text-halo-color": col.halo, "text-halo-width": 1.3 } });
+  function lugar(id, minz, clases, tam, fuente) {
+    return { id: id, type: "symbol", source: S, "source-layer": "place", minzoom: minz, filter: F([PUNTO, ["in", ["get", "class"], ["literal", clases]], ["has", "name"]]),
+      layout: { visibility: vT, "text-field": NOM, "text-font": [fuente], "text-size": ["interpolate", ["linear"], ["zoom"], minz, tam[0], 16, tam[1]], "text-padding": 4, "text-max-width": 8, "symbol-sort-key": ["coalesce", ["get", "rank"], 99] },
+      paint: { "text-color": col.txt, "text-halo-color": col.halo, "text-halo-width": 1.7 } };
+  }
+  L.push(lugar("calles-lugares-grandes", 5, ["city", "town"], [12, 19], "NotoSans-Medium"));
+  L.push(lugar("calles-lugares-medios", 9, ["village", "suburb", "quarter"], [11, 15], "NotoSans-Regular"));
+  L.push(lugar("calles-lugares-barrios", 12, ["neighbourhood", "hamlet", "isolated_dwelling"], [10, 13], "NotoSans-Italic"));
+  var ptoF = F([PUNTO, ["has", "name"], ["any", ["<=", ["get", "rank"], 25], [">=", ["zoom"], 16]]]);
+  L.push({ id: "calles-poi-punto", type: "circle", source: S, "source-layer": "poi", minzoom: 14, filter: ptoF, layout: { visibility: vT },
+    paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 14, 2.2, 18, 4.5], "circle-color": sat ? "#ffffff" : "#5f6b73", "circle-stroke-color": sat ? "#000000" : "#ffffff", "circle-stroke-width": 1 } });
+  L.push({ id: "calles-poi-texto", type: "symbol", source: S, "source-layer": "poi", minzoom: 14.5, filter: ptoF,
+    layout: { visibility: vT, "text-field": NOM, "text-font": ["NotoSans-Regular"], "text-size": ["interpolate", ["linear"], ["zoom"], 14.5, 10, 18, 13], "text-max-width": 8, "text-variable-anchor": ["top", "bottom", "left", "right"], "text-radial-offset": 0.7, "symbol-sort-key": ["coalesce", ["get", "rank"], 99] },
+    paint: { "text-color": sat ? "#ffffff" : "#41505a", "text-halo-color": col.halo, "text-halo-width": 1.5 } });
+  return L;
+}
 /* v2.73: zona de cada mapa instalado, visible desde lejos (recuadro, punto central y nombre) para ubicarlos en la vista general */
 var COL_AREA = "#00838f";
 function geoAreas() {
@@ -1322,14 +1488,15 @@ function aplicarVisBase() {
   var tipo = {}; ESTILO_BASE.forEach(function (l) { tipo[l.id] = l; });
   map.getStyle().layers.forEach(function (l) {
     var b = tipo[l.id.replace(/~\d+$/, "")], v = null;
-    if (/^topo-/.test(l.id) || (b && b.type === "symbol")) v = visTopo() ? "visible" : "none";
+    if (/^calles-/.test(l.id)) v = l.type === "line" ? (capasVis.rutas !== false ? "visible" : "none") : (visTopo() ? "visible" : "none");
+    else if (/^topo-/.test(l.id) || (b && b.type === "symbol")) v = visTopo() ? "visible" : "none";
     else if (b && esRutaBase(b)) v = capasVis.rutas !== false ? "visible" : "none";
     if (v) map.setLayoutProperty(l.id, "visibility", v);
   });
   botonesBase();
 }
 function botonesBase() {
-  var hay = idsActivos().length > 0;
+  var hay = idsActivos().length > 0 || callesActivo();
   [["mp-rutas", capasVis.rutas !== false], ["mp-nombres", visTopo()]].forEach(function (x) {
     var b = $(x[0]); if (!b) return;
     b.style.display = hay ? "" : "none"; b.classList.toggle("on", x[1]);
@@ -1376,6 +1543,8 @@ function construirEstilo(sinMapas) {
         if (sat && L.type === "fill") return;   /* con satélite se quitan los rellenos; quedan caminos, ríos y nombres encima */
         var c = JSON.parse(JSON.stringify(L));
         if (L.id === "water_waterway_label") c.minzoom = 11;   /* v2.72: nombres de quebradas y ríos desde más lejos */
+        if (L.id === "roads_labels_minor") c.minzoom = 14;   /* v2.93: nombres de calles menores un nivel antes (los paquetes traen calles menores desde z14) */
+        if (L.id === "address_label") c.minzoom = 17;   /* v2.93: números de casa un nivel antes */
         if ((L.type === "symbol" && !visTopo()) || (esRutaBase(L) && capasVis.rutas === false)) c.layout = Object.assign({}, c.layout, { visibility: "none" });   /* v2.89: botones Nombres y Rutas */
         if (sat && L.type === "symbol") c.paint = Object.assign({}, c.paint, { "text-color": "#ffffff", "text-halo-color": "rgba(0,0,0,0.8)", "text-halo-width": 1.6 });
         if (L.source === "base") c.source = "base" + k;
@@ -1389,6 +1558,10 @@ function construirEstilo(sinMapas) {
     capas = capas.concat(etiquetas, topo);
   } else {
     capas = [{ id: "fondo", type: "background", paint: { "background-color": "#eef0ec" } }].concat(sat ? [capaSat] : [], extra, etiquetas);
+  }
+  if (callesActivo()) {   /* v2.93: calles y lugares en línea, bajo los datos propios y fuera de los mapas descargados */
+    estilo.sources.calles = { type: "vector", tiles: teselasCalles, minzoom: 0, maxzoom: maxzCalles, attribution: ATTR_CALLES };
+    capas = capas.concat(capasCalles(sat));
   }
   if (!sinMapas && ms.length) { estilo.sources.areas = { type: "geojson", data: geoAreas() }; capas = capas.concat(capasAreas()); }
   estilo.sources.capas = { type: "geojson", data: geoCapas() };
@@ -1484,7 +1657,7 @@ function crearMapa() {
   map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 100 }), "bottom-right");
   map.on("error", function (ev) {
     var msg = ev && ev.error && ev.error.message ? ev.error.message : "";
-    if (/fuera del área|sin relieve/.test(msg)) return;
+    if (/fuera del área|sin relieve/.test(msg) || (ev && ev.sourceId === "calles")) return;   /* v2.93: sin conexión las teselas en línea fallan sin avisar */
     anotarError("mapa", ev.error || ev);
   });
   map.on("styleimagemissing", function (e) {
@@ -1541,6 +1714,8 @@ function crearMapa() {
   });
   estiloFirma = "";
   map.once("load", function () { mapaListo = true; alMostrar(); });
+  /* v2.93: si todas las teselas en línea fallan (señal débil), MapLibre no vuelve a dibujar y el evento «load» podría no llegar; el vigía fuerza un redibujo hasta que llegue. */
+  var vigiaLoad = setInterval(function () { if (mapaListo || !map) { clearInterval(vigiaLoad); return; } if (map.loaded()) map.triggerRepaint(); }, 700);
 }
 
 async function aplicarMapas() {
@@ -1552,7 +1727,9 @@ async function aplicarMapas() {
     nuevoManagerDem();
     estiloFirma = firmaMapas();
     map.setStyle(construirEstilo(false), { diff: false });
-    map.once("idle", function () { metricas.aperturaMs = Math.round(performance.now() - t0); res(); });
+    var vigiaIdle = setInterval(function () { if (map && map.loaded()) map.triggerRepaint(); }, 700);   /* v2.93: ver nota en crearMapa */
+    var tope = setTimeout(function () { clearInterval(vigiaIdle); res(); }, 12000);
+    map.once("idle", function () { clearInterval(vigiaIdle); clearTimeout(tope); metricas.aperturaMs = Math.round(performance.now() - t0); res(); });
     chipMapa();
   });
 }
@@ -1645,7 +1822,7 @@ async function alMostrar() {
 }
 function alOcultar() {
   clearInterval(vivoTimer); vivoTimer = null; apagarRumbo(false);
-  if (eleccion) { eleccion = null; puntosManuales = []; selManual = -1; if (map && mapaListo) refrescarNavMapa(); }   /* v2.87: salir del mapa cancela la elección */
+  if (eleccion) { var cbS = eleccion.alSalir; eleccion = null; puntosManuales = []; selManual = -1; if (map && mapaListo) refrescarNavMapa(); if (cbS) setTimeout(cbS, 0); }   /* v2.87: salir del mapa cancela la elección */
   retorno = null; botonVolverRegistro();
   cerrarTarjeta(); cerrarPanelPuntos();
   document.body.classList.remove("vista-mapa");
@@ -2069,14 +2246,18 @@ async function crearCapaDePuntos(pm, o) {
     fc.features.push({ type: "Feature", properties: p, geometry: { type: "Point", coordinates: [q.lng, q.lat] } });
   });
   var f = new File([JSON.stringify(fc)], o.nombre + ".geojson", { type: "application/geo+json" });
-  await importarCapaLocal(f, o.mapaId);
+  await importarCapaLocal(f, o.mapaId, o.vinculo);
 }
 function guardarPuntosComoCapa() {
   var pm = puntosManuales.slice(); if (!pm.length) return;
   var ids = Object.keys(inst);
-  if (!ids.length) { LC.toast("Instala un mapa sin conexión para poder guardar la capa", 5000); return; }
   function contiene(id, q) { var a = inst[id].area; return !a || (q.lng >= a[0] && q.lng <= a[2] && q.lat >= a[1] && q.lat <= a[3]); }
-  var mid = (mapaImportId && inst[mapaImportId] && contiene(mapaImportId, pm[0])) ? mapaImportId : (ids.filter(function (i) { return contiene(i, pm[0]); })[0] || ids[0]);
+  var mid = ids.length ? ((mapaImportId && inst[mapaImportId] && contiene(mapaImportId, pm[0])) ? mapaImportId : (ids.filter(function (i) { return contiene(i, pm[0]); })[0] || "")) : "";
+  var selMapaCap = el("select", { id: "cap-mapa" });
+  selMapaCap.appendChild(el("option", { value: "", texto: "Sin mapa (capa independiente)" }));
+  ids.sort().forEach(function (id) { selMapaCap.appendChild(el("option", { value: id, texto: nombreCorto(inst[id].nombre) })); });
+  selMapaCap.value = mid;
+  var vincCap = ""; var selVincCap = selectorVinculo("", function (v) { vincCap = v; });
   if (!modalCapa) {
     modalCapa = el("div", { class: "modal-bg", id: "mp-modal-capa" });
     modalCapa.addEventListener("click", function (e) { if (e.target === modalCapa) cerrarModalCapa(); });
@@ -2098,12 +2279,14 @@ function guardarPuntosComoCapa() {
     var nombre = inpNom.value.replace(/[\\\/:*?"<>|.]+/g, " ").replace(/\s+/g, " ").trim();
     if (!nombre) { msg.textContent = "Escribe un nombre para la capa."; return; }
     btnOk.disabled = true;
-    await crearCapaDePuntos(pm, { nombre: nombre, mapaId: mid, linea: rLinea.checked, nombres: inps.map(function (x) { return x.value; }) });
+    await crearCapaDePuntos(pm, { nombre: nombre, mapaId: selMapaCap.value, vinculo: vincCap, linea: rLinea.checked, nombres: inps.map(function (x) { return x.value; }) });
     btnOk.disabled = false; cerrarModalCapa();
   } });
   var caja = el("div", { class: "modal" }, [
     el("div", { class: "mp-panel-cab mp-gestor-cab" }, [el("h2", { texto: "Guardar como capa", style: "margin:0;font-size:1.1rem;" }), el("button", { type: "button", class: "mp-panel-x", texto: "✕", "aria-label": "Cerrar", onclick: cerrarModalCapa })]),
     el("div", { class: "field" }, [el("label", { texto: "Nombre de la capa", for: "cap-nombre" }), inpNom]),
+    el("div", { class: "field" }, [el("label", { texto: "Asociar a un mapa descargado (opcional)", for: "cap-mapa" }), selMapaCap]),
+    el("div", { class: "field" }, [el("label", { texto: "Vincular a una sesión o proyecto (opcional)" }), selVincCap, el("span", { class: "campo-ayuda", texto: "Las capas vinculadas viajan en el .zip de esa sesión o proyecto." })]),
     el("div", { class: "mp-suave", texto: "Qué guardar" }),
     el("label", { class: "mp-chk" }, [rLinea, el("span", { texto: "Ruta: los puntos y la línea que los une" })]),
     el("label", { class: "mp-chk" }, [rPuntos, el("span", { texto: "Solo puntos independientes (por ejemplo, estaciones)" })]),
@@ -2137,7 +2320,7 @@ function mostrarTarjetaPuntoManual() {
   } else {
     t.appendChild(el("div", { class: "mp-suave", texto: "Activa el GPS para ver la distancia y navegar hasta aquí." }));
   }
-  t.appendChild(el("div", { class: "mp-suave", texto: eleccion ? "Toca otro lugar para mover la marca. Con «Usar esta coordenada» vuelves a Nuevo con latitud y longitud cargadas." : n > 1 ? "Marcas temporales. Mantén pulsado en otro lugar para sumar un punto; toca un punto para elegirlo." : "Es una marca temporal. Mantén pulsado en otro lugar para sumar puntos y medir una ruta." }));
+  t.appendChild(el("div", { class: "mp-suave", texto: eleccion ? "Toca otro lugar para mover la marca. Con «Usar esta coordenada» vuelves con latitud y longitud cargadas." : n > 1 ? "Marcas temporales. Mantén pulsado en otro lugar para sumar un punto; toca un punto para elegirlo." : "Es una marca temporal. Mantén pulsado en otro lugar para sumar puntos y medir una ruta." }));
   var botones = [
     el("button", { class: "primario", texto: "💾 Guardar registro aquí", onclick: function () { guardarPuntoManual(pm); } }),
     el("button", { texto: "🗂 Guardar como capa", onclick: guardarPuntosComoCapa }),
@@ -2780,7 +2963,7 @@ function renderGestor() {
     cu.appendChild(listaDesc);
     var tieneRel = relieveNombres.length > 0 || mapasOrdenados().some(function (m) { return archivoTipo(m, "relieve"); });
     var chk = function (clave, texto, habil) {
-      var inp = el("input", { type: "checkbox" }); inp.checked = clave === "topo" ? visTopo() : !!capasVis[clave]; if (!habil) inp.disabled = true;
+      var inp = el("input", { type: "checkbox" }); inp.checked = (clave === "topo" || clave === "calles") ? capasVis[clave] !== false : !!capasVis[clave]; if (!habil) inp.disabled = true;
       inp.onchange = function () {
         capasVis[clave] = inp.checked; guardarJSON(LS_CAPAS, capasVis);
         var v = inp.checked ? "visible" : "none";
@@ -2788,10 +2971,13 @@ function renderGestor() {
         if (clave === "sombra" && map.getLayer("relieve-sombra")) map.setLayoutProperty("relieve-sombra", "visibility", v);
         if (clave === "curvas") ["curvas-linea", "curvas-texto"].forEach(function (id) { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", v); });
         if (clave === "topo") aplicarVisBase();
+        if (clave === "calles") { resolverCalles(); botonesBase(); if (LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas().then(function () { refrescarPuntos(); }); }
       };
       return el("label", { class: "mp-chk" }, [inp, el("span", { texto: texto })]);
     };
     cu.appendChild(el("h3", { texto: "Visualización", style: "margin:16px 0 6px;font-size:1rem;" }));
+    cu.appendChild(chk("calles", "Calles, direcciones y lugares en línea (donde no hay mapa descargado)", true));
+    cu.appendChild(el("p", { class: "mp-suave", style: "margin:0 0 8px 28px;", texto: "Usa OpenStreetMap vía OpenFreeMap. Necesita conexión; los mapas descargados tienen prioridad y siguen funcionando sin internet." }));
     cu.appendChild(chk("sombra", "Sombreado del relieve", tieneRel));
     cu.appendChild(chk("curvas", "Curvas de nivel (calculadas en el teléfono)", tieneRel));
     var selCurv = el("select", { id: "mp-curvas-color" });
@@ -2809,19 +2995,19 @@ function renderGestor() {
     cu.appendChild(chk("topo", "Nombres de lugares (poblados, áreas protegidas, cerros y puntos de interés)", true));
     if (!tieneRel) cu.appendChild(el("p", { class: "mp-suave", texto: "Ninguno de los mapas instalados trae relieve." }));
   } else if (vistaGestor === "capas") {
-    cu.appendChild(el("p", { class: "mp-suave", texto: "Aquí están las capas del catálogo y las que creaste con «Guardar como capa» o subiste desde un archivo. La casilla las muestra u oculta en el mapa. Las creadas o subidas solo se guardan en este teléfono." }));
-    if (!Object.keys(inst).length) cu.appendChild(el("p", { class: "mp-suave", texto: "Instala un mapa (pestaña Mapas sin conexión) para ver o importar sus capas." }));
-    else {
-      if (!capasActuales.length) cu.appendChild(el("p", { class: "mp-suave", texto: "Los mapas instalados no tienen capas todavía." }));
+    cu.appendChild(el("p", { class: "mp-suave", texto: "Aquí están las capas del catálogo y las que creaste con «Guardar como capa» o subiste desde un archivo. La casilla las muestra u oculta en el mapa. Las creadas o subidas pueden asociarse a un mapa descargado o quedar sin mapa, se pueden descargar (GeoJSON, GPX o CSV) y vincular a una sesión o proyecto. Solo se guardan en este teléfono." }));
+    {
+      if (!capasActuales.length) cu.appendChild(el("p", { class: "mp-suave", texto: "Todavía no hay capas." }));
       var mapaGrupo = null;
       capasActuales.forEach(function (c) {
-        if (c.mapaId !== mapaGrupo) { mapaGrupo = c.mapaId; cu.appendChild(el("div", { class: "mp-panel-grupo", texto: inst[c.mapaId] ? inst[c.mapaId].nombre : c.mapaId })); }
+        if (c.mapaId !== mapaGrupo) { mapaGrupo = c.mapaId; cu.appendChild(el("div", { class: "mp-panel-grupo", texto: !c.mapaId ? "Capas sin mapa" : (inst[c.mapaId] ? inst[c.mapaId].nombre : c.mapaId) })); }
         var inp = el("input", { type: "checkbox" }); inp.checked = visCapa(c.clave);
         inp.onchange = function () {
           if (!capasVis.capas) capasVis.capas = {};
           capasVis.capas[c.clave] = inp.checked; guardarJSON(LS_CAPAS, capasVis); aplicarFiltrosCapas();
         };
-        var sub = resumenCuenta(c.datos.cuenta) + (c.origen === "local" ? " · creada o subida, solo en este teléfono" : " · del catálogo");
+        var enV = c.origen === "local" ? capasLoc.filter(function (x) { return x.id === c.id; })[0] : null;
+        var sub = resumenCuenta(c.datos.cuenta) + (c.origen === "local" ? " · creada o subida, solo en este teléfono" : " · del catálogo") + (enV && enV.vinculo ? " · 🔗 " + nombreVinculo(enV.vinculo) : "");
         var texto = el("span", {}, [el("b", { texto: c.nombre }), el("br"), el("span", { class: "mp-suave", texto: sub })]);
         var fila = [el("label", { class: "mp-chk", style: "flex:1;" }, [inp, texto])];
         var caja = el("div", { style: "display:flex;align-items:center;gap:8px;" }, fila);
@@ -2830,13 +3016,33 @@ function renderGestor() {
           var abierto = estiloAbierto === c.id;
           caja.insertBefore(el("button", { texto: "🎨 Estilo", style: "min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--borde);background:" + (abierto ? "var(--verde-claro, #e3eedf)" : "var(--card)") + ";color:var(--texto);font-weight:700;", onclick: function () { estiloAbierto = abierto ? null : c.id; renderGestor(); } }), caja.lastChild);
         }
+        if (c.origen === "local") caja.insertBefore(el("button", { texto: "⬇ Más", "aria-label": "Descargar o vincular la capa", style: "min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--borde);background:" + (opcionesCapaAbierta === c.id ? "var(--verde-claro, #e3eedf)" : "var(--card)") + ";color:var(--texto);font-weight:700;", onclick: function () { opcionesCapaAbierta = opcionesCapaAbierta === c.id ? null : c.id; renderGestor(); } }), caja.lastChild);
         cu.appendChild(caja);
+        if (c.origen === "local" && opcionesCapaAbierta === c.id && enV) {
+          var selMapaC = el("select", {});
+          selMapaC.appendChild(el("option", { value: "", texto: "Sin mapa" }));
+          Object.keys(inst).sort().forEach(function (id) { selMapaC.appendChild(el("option", { value: id, texto: nombreCorto(inst[id].nombre) })); });
+          selMapaC.value = enV.mapaId || "";
+          selMapaC.onchange = async function () { enV.mapaId = selMapaC.value; guardarJSON(LS_CAPAS_LOC, capasLoc); await recargarCapas(); };
+          var selVinc = selectorVinculo(enV.vinculo, function (v) { enV.vinculo = v; guardarJSON(LS_CAPAS_LOC, capasLoc); renderGestor(); });
+          cu.appendChild(el("div", { class: "mp-estilo" }, [
+            el("div", { class: "mp-suave", texto: "Descargar la capa" }),
+            el("div", { class: "mp-fila" }, [
+              el("button", { texto: "GeoJSON", onclick: function () { descargarCapaLocal(c.id, "geojson"); } }),
+              el("button", { texto: "GPX", onclick: function () { descargarCapaLocal(c.id, "gpx"); } }),
+              el("button", { texto: "CSV (solo puntos)", onclick: function () { descargarCapaLocal(c.id, "csv"); } })
+            ]),
+            el("label", {}, [el("span", { class: "mp-suave", texto: "Asociada al mapa" }), selMapaC]),
+            el("label", {}, [el("span", { class: "mp-suave", texto: "Vinculada a (viaja en el .zip de esa sesión o proyecto)" }), selVinc])
+          ]));
+        }
         if (c.origen === "local" && estiloAbierto === c.id) cu.appendChild(panelEstiloCapa(c));
       });
       var inpArch = el("input", { type: "file", accept: ".csv,.tsv,.txt,text/csv,.geojson,.json,.gpx,.zip,application/geo+json,application/json,application/gpx+xml,application/zip", style: "display:none;" });
       var idsInst = Object.keys(inst).sort();
-      if (!mapaImportId || !inst[mapaImportId]) { var sA = LC.sesionActiva(); mapaImportId = sA && sA.mapaId && inst[sA.mapaId] ? sA.mapaId : idsInst[0]; }
+      if (mapaImportId !== "__sin" && (!mapaImportId || !inst[mapaImportId])) { var sA = LC.sesionActiva(); mapaImportId = sA && sA.mapaId && inst[sA.mapaId] ? sA.mapaId : (idsInst[0] || "__sin"); }
       var selImp = el("select", { id: "mp-import-sel" });
+      selImp.appendChild(el("option", { value: "__sin", texto: "Sin mapa (capa independiente)" }));
       idsInst.forEach(function (id) { selImp.appendChild(el("option", { value: id, texto: nombreCorto(inst[id].nombre) })); });
       selImp.value = mapaImportId;
       selImp.onchange = function () { mapaImportId = selImp.value; };
@@ -2855,10 +3061,12 @@ function renderGestor() {
       ]));
       cu.appendChild(el("p", { class: "mp-suave", texto: "Asociar la capa al mapa:" }));
       cu.appendChild(el("div", { class: "field" }, [selImp]));
-      inpArch.onchange = function () { var f = inpArch.files && inpArch.files[0]; inpArch.value = ""; if (f) importarCapaLocal(f, mapaImportId); };
+      var vincImp = ""; cu.appendChild(el("p", { class: "mp-suave", texto: "Vincular a una sesión o proyecto (opcional):" }));
+      cu.appendChild(el("div", { class: "field" }, [selectorVinculo("", function (v) { vincImp = v; })]));
+      inpArch.onchange = function () { var f = inpArch.files && inpArch.files[0]; inpArch.value = ""; if (f) importarCapaLocal(f, mapaImportId === "__sin" ? "" : mapaImportId, vincImp); };
       cu.appendChild(inpArch);
       cu.appendChild(el("div", { class: "mp-fila" }, [el("button", { class: "primario", texto: "⬆️ Importar capa desde un archivo", onclick: function () { inpArch.click(); } })]));
-      cu.appendChild(el("p", { class: "mp-suave", texto: "CSV (toca el «?» para ver el formato), GeoJSON, GPX o shapefile en .zip. El nombre de la capa es el del archivo. La capa queda asociada al mapa elegido (se borra si eliminas ese mapa) y solo se guarda en este teléfono: no se publica ni se incluye en la exportación. Útil para sitios sensibles." }));
+      cu.appendChild(el("p", { class: "mp-suave", texto: "CSV (toca el «?» para ver el formato), GeoJSON, GPX o shapefile en .zip. El nombre de la capa es el del archivo. La capa puede quedar asociada a un mapa (se borra si eliminas ese mapa) o sin mapa. Solo se guarda en este teléfono y no se publica; si la vinculas a una sesión o proyecto, viaja en el .zip de esa sesión o proyecto. Útil para sitios sensibles." }));
     }
   } else {
     cu.appendChild(el("div", { class: "mp-fila", style: "margin:0 0 10px;" }, [el("button", { texto: "← Volver a Mapas sin conexión", onclick: function () { vistaGestor = "catalogo"; renderGestor(); } })]));
@@ -3099,9 +3307,9 @@ var ROT_ETIQ = { abajo: ["🏷️", "Etiq. ↓", "Etiquetas debajo del punto"], 
 var modoEtiqVis = modoEtiq !== "ocultas" ? modoEtiq : "abajo";   /* v2.92: último modo visible, para volver a él al activar */
 function botonEtiquetas() {
   var b = $("mp-pm-etiq"); if (!b) return;
-  var on = modoEtiq !== "ocultas";
+  var on = modoEtiq !== "ocultas", r = ROT_ETIQ[modoEtiq] || ROT_ETIQ.abajo;
   b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
-  b.textContent = (on ? "🏷️" : "🚫") + " Etiquetas";
+  b.textContent = r[0] + " " + r[1]; b.title = r[2];
 }
 function aplicarEtiquetas() {
   botonEtiquetas();
@@ -3112,10 +3320,11 @@ function aplicarEtiquetas() {
   Object.keys(P).forEach(function (k) { if (P[k] !== undefined) map.setLayoutProperty("puntos-texto", k, P[k]); });
 }
 function alternarEtiquetas() {
-  if (modoEtiq !== "ocultas") { modoEtiqVis = modoEtiq; modoEtiq = "ocultas"; } else modoEtiq = modoEtiqVis || "abajo";
+  var i = MODOS_ETIQ.indexOf(modoEtiq); modoEtiq = MODOS_ETIQ[(i + 1) % MODOS_ETIQ.length];
+  if (modoEtiq !== "ocultas") modoEtiqVis = modoEtiq;
   guardarJSON(LS_ETIQ, modoEtiq);
   aplicarEtiquetas();
-  LC.toast(modoEtiq === "ocultas" ? "🚫 Etiquetas desactivadas" : "🏷️ Etiquetas activadas", 2000);
+  LC.toast(ROT_ETIQ[modoEtiq][0] + " " + ROT_ETIQ[modoEtiq][2], 2200);
 }
 /* v2.74: ◎ centra en el GPS con un toque; con presión sostenida guarda un punto en la ubicación actual (antes era el botón "Guardar punto aquí") */
 function centrarEnGps() {
@@ -3172,10 +3381,11 @@ function alDesactivar() {
 
 async function init(lc) {
   LC = lc;
-  window.addEventListener("online", function () { online = true; chipMapa(); cargarCatalogo().then(refrescarUI); satRefrescar(); });
+  window.addEventListener("online", function () { online = true; resolverCalles(); chipMapa(); cargarCatalogo().then(refrescarUI); satRefrescar(); });
   window.addEventListener("offline", function () { online = false; chipMapa(); refrescarUI(); satRefrescar(); });
   if (!LISTO) return;
   construirPantalla();
+  resolverCalles();
   estiloPromesa = fetch(RUTA_MAPA + "estilo-base.json").then(function (r) { return r.json(); }).then(function (j) { ESTILO_BASE = j; }).catch(function (e) { anotarError("estilo", e); });
   await estiloPromesa;
   await reconciliar();
@@ -3192,6 +3402,7 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto, verRecorrido: verRecorrido, elegirCoordenada: elegirCoordenada,
   /* para pruebas */
-  _debug: function () { return { altitudAprox: altitudAprox, iniciarRutaManual: iniciarRutaManual, guardarPuntosComoCapa: guardarPuntosComoCapa, marcarPuntoManual: marcarPuntoManual, avanzarRuta: avanzarRuta, actualizarNavegacion: actualizarNavegacion, geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; }, csvAGeoJSON: csvAGeoJSON, normalizarFC: normalizarFC, geoCapas: geoCapas, panelEstiloCapa: panelEstiloCapa, tipoPorNombre: tipoPorNombre, omitidas: function () { return csvOmitidas; } }; }
+  capasVinculadas: capasVinculadas,
+  _debug: function () { return { listo: function () { return mapaListo; }, capasActualesRef: function () { return capasActuales; }, fcAGpx: fcAGpx, fcACsv: fcACsv, descargarCapaLocal: descargarCapaLocal, capasLocRef: function () { return capasLoc; }, importarCapaLocal: importarCapaLocal, altitudAprox: altitudAprox, iniciarRutaManual: iniciarRutaManual, guardarPuntosComoCapa: guardarPuntosComoCapa, marcarPuntoManual: marcarPuntoManual, avanzarRuta: avanzarRuta, actualizarNavegacion: actualizarNavegacion, geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; }, csvAGeoJSON: csvAGeoJSON, normalizarFC: normalizarFC, geoCapas: geoCapas, panelEstiloCapa: panelEstiloCapa, tipoPorNombre: tipoPorNombre, omitidas: function () { return csvOmitidas; } }; }
 };
 })();
