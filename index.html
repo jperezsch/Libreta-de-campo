@@ -687,6 +687,7 @@ html[data-tema="noche"] .card-nota-nar, html[data-tema="noche"] .narr-entrada.no
 html[data-tema="noche"] .card-nota-op, html[data-tema="noche"] .narr-entrada.nota-op{background:#1f2c38;}
 .tag-op{background:#d3e3f1; color:#1d4766;}
 .tag-nar{background:#f1e6bb; color:#5a4616;}
+.cita-punto{display:inline-block; background:#f3e3c4; color:#5a4616; border-radius:8px; padding:0 6px; font-weight:700; font-size:.88em; cursor:pointer;}
 .cita-foto{display:inline-block; background:#dcebe0; color:var(--verde-osc); border-radius:8px; padding:0 6px; font-weight:700; font-size:.88em; cursor:pointer;}
 .bit-entrada{background:var(--card); border:1px solid var(--borde); border-left:4px solid var(--verde); border-radius:10px; padding:10px 12px; margin-bottom:10px; cursor:pointer;}
 .bit-entrada.nota-nar{background:#fbf6e3;}
@@ -750,8 +751,9 @@ html[data-tema="noche"]{--vj-bg:#2b4a39; --vj-tx:#e8e5da;}
 .viaje-header .mini-btn.on{background:#fff; color:#1e4029; border-color:#fff;}
 html[data-tema="noche"] .viaje-header .mini-btn.on{background:var(--verde); color:#10140f; border-color:var(--verde);}
 .viaje-header .btn-menu{background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.55); color:var(--vj-tx);}
-.viaje-sin{background:var(--verde-cl); color:var(--texto-sec); box-shadow:none; border:1.5px solid var(--borde);}
-.viaje-sin .vj-titulo{font-size:1.05rem;}
+.viaje-sin{background:#6b5d3a; color:#fff; border:none; box-shadow:var(--sombra); cursor:pointer;}
+html[data-tema="noche"] .viaje-sin{background:#4a4126; color:#f1ead3;}
+.viaje-sin .vj-titulo{font-size:1.16rem; font-weight:800;}
 .viaje-sesiones{margin-left:6px; padding-left:8px; border-left:3px solid var(--vj-bg);}
 .narr-sesion-header{align-items:center; flex-wrap:wrap; margin-top:18px; padding:9px 10px 9px 12px; row-gap:6px;}
 .narr-sesion-titulo{font-size:1.06rem; padding-top:0; flex:1 1 100%;}
@@ -915,12 +917,13 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
 
     <div class="bloque" id="bloque-sesion-numeracion">
       <div class="section-title"><span class="n">🔢</span>Numeración automática</div>
-    <div class="row2">
+    <div class="switch-row" id="ss-numauto-wrap" style="margin-bottom:10px;"><div>Numerar los registros de esta sesión automáticamente<span class="campo-ayuda" style="display:block;">Si lo apagas, los registros nuevos quedan sin número ni código (puedes escribir uno a mano en el registro).</span></div><input type="checkbox" id="ss-numauto" checked></div>
+    <div id="ss-numauto-campos"><div class="row2">
       <div class="field"><label>Acrónimo / prefijo</label><input type="text" id="ss-prefijo" list="dl-ss-prefijo"><datalist id="dl-ss-prefijo"></datalist><span class="campo-ayuda" id="ss-prefijo-hint"></span></div>
       <div class="field"><label>Siguiente número</label><input type="number" id="ss-siguiente" min="0"><span class="campo-ayuda">Número del próximo registro. Cámbialo si tu libreta manuscrita va en otro número.</span></div>
     </div>
     <div class="campo-proximo">Próximo código: <b id="ss-proximo">—</b></div>
-    </div>
+    </div></div>
 
     <div class="bloque" id="bloque-sesion-otros">
       <div class="section-title"><span class="n">📋</span>Otros datos de la sesión</div>
@@ -1459,9 +1462,9 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
     <div class="switch-row"><div>📌 Operativa<span class="campo-ayuda" style="display:block;">Sin marcar, la nota es narrativa.</span></div><input type="checkbox" id="nv-operativa"></div>
     <div class="field" style="margin-top:10px;">
       <label>Texto</label>
-      <div class="notas-toolbar"><button type="button" id="nv-btn-foto">📷 Insertar foto</button></div>
+      <div class="notas-toolbar"><button type="button" id="nv-btn-foto">📷 Insertar foto</button><button type="button" id="nv-btn-punto">📍 Insertar punto</button></div>
       <textarea id="nv-texto" spellcheck="true" style="min-height:150px;" placeholder="Relato, observaciones, hechos del día..."></textarea>
-      <span class="campo-ayuda">La foto queda citada en el texto como [📷1]; al tocar la cita se abre la foto.</span>
+      <span class="campo-ayuda">La foto queda citada en el texto como [📷1]; al tocar la cita se abre la foto. «📍 Insertar punto» te lleva al mapa para tocar un lugar; el punto queda en el texto, donde estaba el cursor, con sus coordenadas, y al tocarlo se abre en el mapa.</span>
     </div>
     <div class="nv-fotos" id="nv-fotos"></div>
     <input type="file" id="nv-input-foto" accept="image/*" multiple style="display:none;">
@@ -4106,7 +4109,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-21 · v2.92";
+var APP_BUILD = "2026-11-21 · v2.93";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -4217,7 +4220,7 @@ function nuevoBorradorSesion(){
   var base = sesionActiva() || ultimaSesion();   // la numeración continúa desde la sesión activa o, si no hay, desde la última
   var nueva = sesionVacia();
   nueva.borrador = true;
-  if(base){ nueva.prefijo = base.prefijo; nueva.inicio = base.inicio; nueva.contador = base.contador; if(base.mapaId) nueva.mapaId = base.mapaId; }
+  if(base){ nueva.numAuto = base.numAuto; nueva.prefijo = base.prefijo; nueva.inicio = base.inicio; nueva.contador = base.contador; if(base.mapaId) nueva.mapaId = base.mapaId; }
   return nueva;
 }
 function guardarBorradorSesion(){
@@ -4767,10 +4770,14 @@ function numerosUsadosPrefijo(prefijo, excluirId){
 function proximoCodigo(sesion){
   var s = sesion || sesionActiva();
   if(!s) return "—";
+  if(s.numAuto === false) return "";   // v2.93: sesión sin numeración automática
   var n = parseInt(s.contador,10); if(isNaN(n)) n = 0;
   return s.prefijo + "-" + pad(n, 3);
 }
 function actualizarCamposProximo(s){
+  var auto = s.numAuto !== false;
+  document.getElementById("ss-numauto").checked = auto;
+  document.getElementById("ss-numauto-campos").style.display = auto ? "" : "none";
   document.getElementById("ss-proximo").textContent = proximoCodigo(s);
   var inp = document.getElementById("ss-siguiente");
   if(document.activeElement !== inp) inp.value = s.contador;
@@ -5084,6 +5091,7 @@ function aplicarModoEdicionSesion(){
   var s = sesionEnPantalla(); if(!s) return;
   var editando = !!state.sesionEditando || sesionEsNuevaVacia(s);
   IDS_CAMPOS_SESION.forEach(function(id){ document.getElementById(id).readOnly = !editando; });
+  document.getElementById("ss-numauto").disabled = !editando;
   document.getElementById("ss-habitat").disabled = !editando;
   document.getElementById("ss-viaje").disabled = !editando;
   document.getElementById("ss-habitat-otro").readOnly = !editando;
@@ -5211,6 +5219,14 @@ document.getElementById("ss-correlativo").addEventListener("input", function(){
   guardarSesion();
 });
 document.getElementById("ss-correlativo").addEventListener("blur", function(){ actualizarCamposNombreSesion(sesionEnPantalla()); });
+// v2.93: casilla de numeración automática por sesión
+document.getElementById("ss-numauto").addEventListener("change", function(){
+  var s = sesionEnPantalla(); if(!s) return;
+  s.numAuto = this.checked ? true : false;
+  actualizarCamposProximo(s);
+  guardarSesion();
+  if(s.id===state.sesionActivaId) sincronizarCodigoDraftConSesion();
+});
 // v2.46: un solo campo numérico. "Siguiente número" es el número del próximo registro; el código resultante se muestra debajo.
 // La propiedad s.inicio se conserva en los datos (primer número de la sesión) por compatibilidad: sigue al contador mientras la sesión no tiene registros.
 document.getElementById("ss-siguiente").addEventListener("input", function(){
@@ -6162,10 +6178,25 @@ function generarPaqueteZip(idsSesiones, idsRegistros, idsViajes){
     });
     if(viajesIncl.length) data.viajes = viajesIncl;
     if(notasFiltradas.length) data.notasViaje = notasFiltradas;
-    zip.file("respaldo.json", JSON.stringify(data, null, 2));
-    var filasEstandar = construirFilasEstandar(registrosFiltrados);
-    zip.file("planilla_estandar.json", JSON.stringify(filasEstandar, null, 2));
-    return zip.generateAsync({type:"blob", compression:"DEFLATE", compressionOptions:{level:6}});
+    // v2.93: las capas vinculadas a las sesiones o proyectos incluidos viajan en capas/ (GeoJSON)
+    var idsSesIncl = sesionesFiltradas.map(function(s){ return s.id; }), idsViaIncl = viajesIncl.map(function(v){ return v.id; });
+    var pCapas = (window.MapaPro && MapaPro.capasVinculadas) ? MapaPro.capasVinculadas(idsSesIncl, idsViaIncl).catch(function(){ return []; }) : Promise.resolve([]);
+    return pCapas.then(function(capas){
+      if(capas.length){
+        var carpetaCapas = zip.folder("capas"), usados = {};
+        data.capasVinculadas = capas.map(function(c){
+          var base = (c.nombre||"capa").replace(/[\\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim() || "capa", nom = base+".geojson", k = 2;
+          while(usados[nom]){ nom = base+"_"+k+".geojson"; k++; }
+          usados[nom] = true;
+          carpetaCapas.file(nom, JSON.stringify(c.fc));
+          return {nombre:c.nombre, archivo:"capas/"+nom, vinculo:c.vinculo};
+        });
+      }
+      zip.file("respaldo.json", JSON.stringify(data, null, 2));
+      var filasEstandar = construirFilasEstandar(registrosFiltrados);
+      zip.file("planilla_estandar.json", JSON.stringify(filasEstandar, null, 2));
+      return zip.generateAsync({type:"blob", compression:"DEFLATE", compressionOptions:{level:6}});
+    });
   });
 }
 document.getElementById("btn-descargar-zip").addEventListener("click", function(){
@@ -6571,7 +6602,10 @@ function conViajes(grupos, fnGrupo, mostrarVacios, conRutas){
     if(!gs.length && !mostrarVacios) return;
     html += htmlCabeceraViaje(v, gs.length) + (viajesColapsados.has(v.id) ? "" : '<div class="viaje-sesiones">'+(conRutas ? htmlRutasViaje(v) : "")+gs.map(fnGrupo).join("")+'</div>');
   });
-  if(sin.length) html += '<div class="viaje-header viaje-sin"><span class="vj-titulo">Sin proyecto <span class="vj-cnt">('+sin.length+(sin.length===1?' sesión':' sesiones')+')</span></span></div><div class="viaje-sesiones">'+sin.map(fnGrupo).join("")+'</div>';
+  if(sin.length){
+    var colSin = viajesColapsados.has("__sin");
+    html += '<div class="viaje-header viaje-sin" data-vj-acc="colapsar" data-id="__sin"><span class="vj-titulo">📂 Sin proyecto <span class="vj-cnt">('+sin.length+(sin.length===1?' sesión':' sesiones')+')</span></span><span class="vj-acciones"><button type="button" class="mini-btn" data-vj-acc="colapsar" data-id="__sin">'+(colSin?'▾ Expandir':'▸ Colapsar')+'</button></span></div>'+(colSin ? '' : '<div class="viaje-sesiones">'+sin.map(fnGrupo).join("")+'</div>');
+  }
   return html;
 }
 function hayFiltroRegistros(){ return !!(state.filtroTipo || (document.getElementById("buscador").value||"").trim()); }
@@ -6670,6 +6704,37 @@ function quitarFotoNotaViaje(i){
   ta.value = renumerarCitasAlQuitar(ta.value, i+1);
   renderFotosNotaViaje();
 }
+function insertarPuntoEn(ta, lat, lon, pos){
+  var c = "[📍"+lat.toFixed(6)+", "+lon.toFixed(6)+"]";
+  if(pos==null) pos = ta.selectionStart==null ? ta.value.length : ta.selectionStart;
+  ta.value = ta.value.slice(0,pos) + c + ta.value.slice(pos);
+  ta.selectionStart = ta.selectionEnd = pos + c.length;
+  try{ ta.focus(); }catch(err){}
+  ta.dispatchEvent(new Event("input", {bubbles:true}));
+}
+document.getElementById("nv-btn-punto").addEventListener("click", function(){
+  var e = notaViajeEdit; if(!e) return;
+  var ta = document.getElementById("nv-texto");
+  var pos = ta.selectionStart==null ? ta.value.length : ta.selectionStart;
+  var vistaOrigen = state.currentView;
+  function volver(lat, lon){
+    if(!notaViajeEdit) return;
+    irA(vistaOrigen || "lista");
+    document.getElementById("modal-nota-viaje").classList.add("on");
+    if(lat!=null) insertarPuntoEn(document.getElementById("nv-texto"), lat, lon, pos);
+  }
+  if(window.MapaPro && MapaPro.elegirCoordenada && mapaCfg().activo){
+    document.getElementById("modal-nota-viaje").classList.remove("on");
+    MapaPro.elegirCoordenada({alElegir:function(la, lo){ volver(la, lo); toast("📍 Punto insertado en la nota"); }, alCancelar:function(){ volver(null); }, alSalir:function(){ if(notaViajeEdit) document.getElementById("modal-nota-viaje").classList.add("on"); }});
+  } else {
+    var t = prompt("El mapa está apagado. Escribe las coordenadas en grados decimales (latitud, longitud). Ejemplo: -33.4489, -70.6693");
+    if(!t) return;
+    var mm = t.replace(/;/g,",").match(/(-?\d+(?:[.,]\d+)?)\s*[, ]\s*(-?\d+(?:[.,]\d+)?)/);
+    var la = mm && parseFloat(mm[1].replace(",",".")), lo = mm && parseFloat(mm[2].replace(",","."));
+    if(!mm || Math.abs(la)>90 || Math.abs(lo)>180){ toast("No pude leer esas coordenadas", 3500); return; }
+    insertarPuntoEn(ta, la, lo, pos);
+  }
+});
 document.getElementById("nv-btn-foto").addEventListener("click", function(){ document.getElementById("nv-input-foto").click(); });
 document.getElementById("nv-input-foto").addEventListener("change", function(){
   var files = Array.prototype.slice.call(this.files || []); this.value = "";
@@ -6729,6 +6794,9 @@ document.getElementById("nv-borrar").addEventListener("click", function(){
 
 /* ---------- Citas de fotos en el texto: [📷1] abre la foto 1 del registro o de la nota ---------- */
 function citasFoto(html, ctx){
+  html = String(html).replace(/\[📍\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\]/g, function(m, la, lo){
+    return '<span class="cita-punto" data-lat="'+la+'" data-lon="'+lo+'">📍 '+la+', '+lo+'</span>';
+  });
   return String(html).replace(/\[📷(\d+)\]/g, function(m, n){
     var at = ctx && ctx.reg ? ' data-reg="'+ctx.reg+'"' : (ctx && ctx.nv ? ' data-nv="'+ctx.nv+'"' : '');
     return '<span class="cita-foto" data-n="'+n+'"'+at+'>📷'+n+'</span>';
@@ -6743,6 +6811,15 @@ document.addEventListener("click", function(e){
   else if(c.dataset.nv){ var nv = state.notasViaje.filter(function(x){ return x.id===c.dataset.nv; })[0]; fotos = nv && nv.fotos; }
   if(!fotos || !fotos[n-1]){ toast("Esa foto ya no está en el registro", 3000); return; }
   abrirFotoNarrativa(fotos.map(function(f){ return {id:f.id, nombre:f.nombre, comentario:f.comentario, copiaLocal:f.copiaLocal}; }), n-1, null);
+}, true);
+/* v2.93: puntos geográficos citados en las notas como [📍lat, lon]; al tocarlos se abren en el mapa (o en OpenStreetMap si el módulo de mapa está apagado) */
+document.addEventListener("click", function(e){
+  var c = e.target.closest ? e.target.closest(".cita-punto") : null;
+  if(!c) return;
+  e.stopPropagation();
+  var lat = parseFloat(c.dataset.lat), lon = parseFloat(c.dataset.lon);
+  if(window.MapaPro && MapaPro.verPunto && mapaCfg().activo){ MapaPro.verPunto({lat:lat, lon:lon}); return; }
+  window.open("https://www.openstreetmap.org/?mlat="+lat+"&mlon="+lon+"#map=17/"+lat+"/"+lon, "_blank");
 }, true);
 function claseNota(r){ return (r && r.tipo==="nota") ? (r.notaSubtipo==="operativo" ? " nota-op" : " nota-nar") : ""; }
 function insigniaSubtipoNota(r){
@@ -7123,7 +7200,7 @@ function moverRegistros(ids, destino, renumerar){
   }
   registrosAMover.forEach(function(r){
     r.sesionId = sesionDestinoId;
-    if(renumerar && sesionDestino && r.tipo !== "nota"){
+    if(renumerar && sesionDestino && sesionDestino.numAuto !== false && r.tipo !== "nota"){
       var codigoNuevo = sesionDestino.prefijo + "-" + pad(sesionDestino.contador, 3);
       sesionDestino.contador = sesionDestino.contador + 1;
       r.codigo = codigoNuevo;
@@ -10613,7 +10690,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
   } else {
     state.registros.push(r);
     var sAct = sesionPorId(r.sesionId) || sesionActiva();
-    if(sAct && r.codigo){
+    if(sAct && r.codigo && sAct.numAuto !== false){
       // v2.48: la numeración la manda la persona. El contador solo avanza si el número guardado alcanza o supera al contador;
       // si se rellenó un hueco o se usó un número menor, el contador queda donde estaba.
       var nGuardado = numeroDeCodigo(r.codigo, sAct.prefijo);
@@ -10624,7 +10701,7 @@ document.getElementById("btn-guardar").addEventListener("click", function(){
     var ok = guardarRegistros();
     if(ok){
       var sigTxt = (r.codigo && sAct) ? (" · siguiente "+proximoCodigo(sAct)) : "";
-      toast(r.codigo ? ("✅ Guardado "+r.codigo+sigTxt) : "✅ Nota guardada");
+      toast(r.codigo ? ("✅ Guardado "+r.codigo+sigTxt) : (r.tipo==="nota" ? "✅ Nota guardada" : "✅ Registro guardado"));
     }
     state.draft = null; guardarDraft();
     volcarPendientesTrasGuardar();

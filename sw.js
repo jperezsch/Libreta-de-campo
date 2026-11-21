@@ -3,7 +3,7 @@
 // Así los cambios nuevos se ven de inmediato en cuanto hay internet.
 // Mapa opcional: los paquetes .pmtiles y las descargas con cache "no-store" (catálogo, mapas) NO pasan por aquí.
 // Las cachés se comparten entre todas las apps del dominio, por eso solo se borran las propias (prefijo "libreta-campo-").
-var CACHE_NAME = "libreta-campo-v56";
+var CACHE_NAME = "libreta-campo-v57";
 var ARCHIVOS = [
   "./",
   "./index.html",
@@ -33,6 +33,7 @@ self.addEventListener("fetch", function(evt){
   if(/\.pmtiles(\?|$)/.test(evt.request.url)) return;
   if(/^https:\/\/services\.arcgisonline\.com\//.test(evt.request.url)) return;   // v2.72: teselas satelitales, no se guardan en la caché de la app
   if(/^https:\/\/nominatim\.openstreetmap\.org\//.test(evt.request.url)) return;   // v2.79: búsqueda de lugares en el mapa, no se guarda
+  if(/^https:\/\/tiles\.openfreemap\.org\//.test(evt.request.url)) return;   // v2.93: calles y lugares en línea, no se guardan en la caché de la app
   evt.respondWith(
     fetch(evt.request).then(function(resp){
       if(resp && resp.status === 200){
