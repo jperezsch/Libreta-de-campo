@@ -1562,7 +1562,6 @@ function enfocarArea(a, animar) { map.fitBounds([[a[0], a[1]], [a[2], a[3]]], { 
 function verMapa(id) {
   if (!inst[id]) { LC.toast("Ese mapa no está instalado"); return; }
   if (!mapaActivo(id)) ponerMapaActivo(id, true, true);
-  cerrarPanelMapas();
   pendienteEnfoque = id;
   cerrarGestor();
   if (LC.state.currentView === "mapa") alMostrar(); else LC.irA("mapa");
@@ -1573,8 +1572,8 @@ function ponerMapaActivo(id, on, sinRender) {
   if (on) delete capasVis.mapasOff[id]; else capasVis.mapasOff[id] = true;
   guardarJSON(LS_CAPAS, capasVis);
   chipMapa(); actualizarAviso();
-  if (!sinRender) { renderGestor(); renderPanelMapas(); }
-  if (map && mapaListo && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas().then(function () { refrescarPuntos(); renderPanelMapas(); });
+  if (!sinRender) renderGestor();
+  if (map && mapaListo && LC.state.currentView === "mapa" && estiloFirma !== firmaMapas()) aplicarMapas().then(function () { refrescarPuntos(); });
 }
 function chipMapa() {
   var c = $("mp-sub"); if (!c) return;
@@ -2228,37 +2227,7 @@ function encuadrarConjunto(c) {
   else { b.extend([c.bbox[0], c.bbox[1]]); b.extend([c.bbox[2], c.bbox[3]]); }
   map.fitBounds(b, { padding: 70, maxZoom: 17, duration: 500 });
 }
-function cerrarPanelPuntos() { var pn = $("mp-panel-puntos"); if (pn) pn.style.display = "none"; var b = $("mp-puntos"); if (b) b.classList.remove("on"); cerrarPanelMapas(); }
-/* v2.89: panel "Mis mapas": los mapas descargados, cada uno con su casilla para activarlo o desactivarlo (separado del catálogo, que está en Mapas) */
-function cerrarPanelMapas() { var p = $("mp-panel-mapas"); if (p) p.style.display = "none"; var b = $("mp-todos"); if (b) b.classList.remove("on"); }
-function renderPanelMapas() {
-  var pn = $("mp-panel-mapas"); if (!pn || pn.style.display !== "block") return;
-  pn.textContent = "";
-  pn.appendChild(el("div", { class: "mp-panel-cab" }, [el("b", { texto: "Mapas descargados" }), el("button", { type: "button", class: "mp-panel-x", texto: "✕", "aria-label": "Cerrar", onclick: cerrarPanelMapas })]));
-  var ids = Object.keys(inst).sort(function (a, b) { return String(inst[a].nombre).localeCompare(String(inst[b].nombre)); });
-  if (!ids.length) pn.appendChild(el("p", { class: "mp-suave", texto: "No hay mapas descargados." }));
-  ids.forEach(function (id) {
-    var i = inst[id], act = mapaActivo(id), peso = archivosDe(i).reduce(function (t, a) { return t + (a.bytes || 0); }, 0);
-    var inp = el("input", { type: "checkbox", "aria-label": "Mostrar " + nombreCorto(i.nombre) }); inp.checked = act;
-    inp.onchange = function () { ponerMapaActivo(id, inp.checked); };
-    var ver = el("button", { type: "button", class: "mp-panel-ver", onclick: function () { verMapa(id); } }, [el("b", { texto: nombreCorto(i.nombre) }), el("span", { class: "mp-suave", texto: mb(peso) + " · " + (act ? "visible" : "desactivado") })]);
-    pn.appendChild(el("div", { class: "mp-panel-fila" + (act ? "" : " off") }, [inp, ver]));
-  });
-  var fila = [];
-  if (idsActivos().length) fila.push(el("button", { type: "button", texto: "Ver todos", onclick: function () { verTodosLosMapas(); cerrarPanelMapas(); } }));
-  fila.push(el("button", { type: "button", texto: "Catálogo: mapas disponibles", onclick: function () { cerrarPanelMapas(); abrirGestor("mapas"); } }));
-  pn.appendChild(el("div", { class: "mp-fila", style: "margin-top:8px;" }, fila));
-  if (ids.length) pn.appendChild(el("p", { class: "mp-suave", style: "margin:8px 0 0;", texto: "La casilla muestra u oculta el mapa. Toca el nombre para acercar el mapa a su zona." }));
-}
-function alternarPanelMapas() {
-  var p = $("mp-panel-mapas"); if (!p) return;
-  var abierto = p.style.display === "block";
-  cerrarPanelPuntos();
-  if (abierto) return;
-  p.style.display = "block"; $("mp-todos").classList.add("on");
-  renderPanelMapas();
-  if (idsActivos().length) verTodosLosMapas();
-}
+function cerrarPanelPuntos() { var pn = $("mp-panel-puntos"); if (pn) pn.style.display = "none"; var b = $("mp-puntos"); if (b) b.classList.remove("on"); var m = $("mp-puntos-menu"); if (m) m.style.display = "none"; }
 function textoSubSesion(c) {
   var ocultos = c.regs.filter(function (r) { return !visReg(r.id); }).length;
   return (c.n || !c.nRec ? c.n + (c.n === 1 ? " punto" : " puntos") : "") + (c.nRec ? (c.n ? " · " : "") + c.nRec + (c.nRec === 1 ? " recorrido" : " recorridos") : "") + (c.activa ? " · activa" : "") + (ocultos ? " · " + ocultos + (ocultos === 1 ? " oculto" : " ocultos") : "");
@@ -2351,7 +2320,20 @@ function renderPanelPuntos() {
 function alternarPanelPuntos() {
   var pn = $("mp-panel-puntos"); if (!pn) return;
   if (pn.style.display === "block") { cerrarPanelPuntos(); return; }
-  cerrarPanelMapas(); renderPanelPuntos(); pn.style.display = "block"; $("mp-puntos").classList.add("on");
+  renderPanelPuntos(); pn.style.display = "block"; $("mp-puntos").classList.add("on");
+}
+/* v2.92: "Puntos" abre una pestaña pequeña con dos botones: Puntos (lista de conjuntos) y Etiquetas (activar/desactivar con un toque) */
+function alternarMenuPuntos() {
+  var m = $("mp-puntos-menu"); if (!m) return;
+  var pn = $("mp-panel-puntos");
+  if (m.style.display === "flex" || (pn && pn.style.display === "block")) { cerrarPanelPuntos(); return; }
+  m.style.display = "flex"; $("mp-puntos").classList.add("on");
+}
+function abrirListaPuntos() {
+  var m = $("mp-puntos-menu"); if (m) m.style.display = "none";
+  var pn = $("mp-panel-puntos"); if (!pn) return;
+  if (pn.style.display === "block") { cerrarPanelPuntos(); return; }
+  alternarPanelPuntos();
 }
 
 /* ---------- Guardar punto aquí ---------- */
@@ -2379,7 +2361,7 @@ function guardarPuntoAqui() {
 }
 
 /* ---------- gestor "Mapas sin conexión" ---------- */
-var modal = null, modalCuerpo = null, vistaGestor = "mapas";
+var modal = null, modalCuerpo = null, vistaGestor = "catalogo";
 /* ---------- v2.70: pedir un mapa nuevo (solo administrador) ----------
    Lanza en GitHub el flujo "Nueva localidad de mapa" (nueva-localidad.yml), que corta el mapa base y el relieve,
    actualiza catalogo.json y publica. El token vive solo en este teléfono (Config, modo administrador). */
@@ -2599,7 +2581,7 @@ function crearModal() {
 }
 function abrirGestor(vista) {
   if (!modal) crearModal();
-  vistaGestor = vista || "mapas";
+  vistaGestor = vista === "mapas" || !vista ? "catalogo" : vista;   /* v2.92: "mapas" se conserva como alias de la pestaña Mapas sin conexión */
   modal.classList.add("on");
   leerAlmacenamiento().then(renderGestor);
   renderGestor();
@@ -2720,59 +2702,64 @@ function pruebaFluidez() {
   paso(); requestAnimationFrame(loop);
 }
 
+function entradasMapas() {
+  var entradas = [], vistos = {};
+  if (cat) cat.mapas.forEach(function (e) { vistos[e.id] = 1; entradas.push({ e: e, enCat: true }); });
+  Object.keys(inst).forEach(function (id) {
+    if (vistos[id]) return;
+    entradas.push({ e: { id: id, nombre: inst[id].nombre, region: inst[id].region, version: inst[id].version, archivos: inst[id].archivos.map(function (a) { return { tipo: a.tipo, bytes: a.bytes }; }) }, enCat: false });
+  });
+  return entradas;
+}
 function renderGestor() {
   if (!modal || !gestorAbierto()) return;
   var cu = modalCuerpo, sc = cu.scrollTop;
   cu.textContent = "";
-  var pestanas = el("div", { class: "mp-fila", style: "margin:0 0 10px;" }, [
-    el("button", { class: vistaGestor === "mapas" ? "primario" : "", texto: "Mapas", onclick: function () { vistaGestor = "mapas"; renderGestor(); } }),
-    el("button", { class: vistaGestor === "capas" ? "primario" : "", texto: "Capas", onclick: function () { vistaGestor = "capas"; renderGestor(); } }),
-    el("button", { class: vistaGestor === "diag" ? "primario" : "", texto: "Diagnóstico", onclick: function () { vistaGestor = "diag"; renderGestor(); } })
+  var nInst = Object.keys(inst).length;
+  var pestanas = el("div", { class: "mp-fila mp-pestanas", style: "margin:0 0 10px;" }, [
+    el("button", { class: vistaGestor === "catalogo" ? "primario" : "", texto: "Mapas sin conexión", onclick: function () { vistaGestor = "catalogo"; renderGestor(); } }),
+    el("button", { class: vistaGestor === "mis" ? "primario" : "", texto: "Mis mapas", onclick: function () { vistaGestor = "mis"; renderGestor(); } }),
+    el("button", { class: vistaGestor === "capas" ? "primario" : "", texto: "Mis capas", onclick: function () { vistaGestor = "capas"; renderGestor(); } })
   ]);
   cu.appendChild(pestanas);
-  if (vistaGestor === "mapas") {
+  if (vistaGestor === "catalogo") {
     var cajaBusca = el("div", { class: "mp-busca" });   /* v2.58: buscador destacado, fijo arriba de la lista */
     cu.appendChild(cajaBusca);
+    var entradas = entradasMapas().filter(function (x) { return !inst[x.e.id]; });
+    var nAct = entradasMapas().filter(function (x) { var i = inst[x.e.id]; return i && x.enCat && x.e.version && x.e.version !== i.version; }).length;
     cu.appendChild(el("div", { class: "mp-caja" }, [
       el("p", { class: "mp-suave", texto: "Con conexión, el mapa usa imágenes satelitales. Los mapas descargados permiten usarlo donde no hay señal." }),
       el("p", { class: "mp-suave", texto: (online ? "En línea. " : "Sin conexión. ") + catInfo }),
       el("p", { class: "mp-suave", texto: "Espacio usado por la app: " + (almEst.usado != null ? mb(almEst.usado) : "?") + " de " + (almEst.cuota != null ? mb(almEst.cuota) : "?") + ". Almacenamiento protegido: " + (almEst.protegido == null ? "sin dato" : almEst.protegido ? "sí" : "no") + "." }),
+      nAct ? el("p", { class: "mp-suave", texto: "Hay " + nAct + (nAct === 1 ? " actualización disponible" : " actualizaciones disponibles") + ". Se instalan desde la pestaña Mis mapas." }) : null,
       el("div", { class: "mp-fila" }, [
         el("button", { texto: "Actualizar catálogo", disabled: online ? null : "disabled", onclick: async function () { await cargarCatalogo(); await leerAlmacenamiento(); refrescarUI(); } }),
         almEst.protegido === false ? el("button", { texto: "Pedir protección", onclick: async function () { try { await navigator.storage.persist(); } catch (e) {} await leerAlmacenamiento(); renderGestor(); } }) : null,
-        adminMapas() ? el("button", { class: "primario", texto: "➕ Pedir mapa nuevo", disabled: (online && !(pedido && !pedido.fin)) ? null : "disabled", onclick: abrirPedir }) : null
+        adminMapas() ? el("button", { class: "primario", texto: "➕ Pedir mapa nuevo", disabled: (online && !(pedido && !pedido.fin)) ? null : "disabled", onclick: abrirPedir }) : null,
+        el("button", { texto: "🛠 Diagnóstico", onclick: function () { vistaGestor = "diag"; renderGestor(); } })
       ])
     ]));
     if (adminMapas() && pedido) cu.appendChild(cajaPedido());
     if (!online) cu.appendChild(el("p", { class: "mp-suave", texto: "Sin conexión solo puedes usar o eliminar los mapas instalados." }));
     /* Buscador: filtra por nombre, región, versión o nombre de capa, sin tildes ni mayúsculas.
        Solo se vuelve a dibujar la lista (no la caja), para no perder el foco del teclado al escribir. */
-    var entradas = [], vistos = {};
-    if (cat) cat.mapas.forEach(function (e) { vistos[e.id] = 1; entradas.push({ e: e, enCat: true }); });
-    Object.keys(inst).forEach(function (id) {
-      if (vistos[id]) return;
-      entradas.push({ e: { id: id, nombre: inst[id].nombre, region: inst[id].region, version: inst[id].version, archivos: inst[id].archivos.map(function (a) { return { tipo: a.tipo, bytes: a.bytes }; }) }, enCat: false });
-    });
-    var listaDesc = el("div", { class: "mp-bloque mp-bloque-desc" }), listaCat = el("div", { class: "mp-bloque mp-bloque-cat" });   /* v2.89: mapas descargados primero y, aparte, el catálogo sin descargar */
+    var listaCat = el("div", { class: "mp-bloque mp-bloque-cat" });
     var cuenta = el("p", { class: "mp-suave", style: "margin:6px 0 0;" });
     var pintarLista = function () {
-      var q = normBusqueda(busquedaMapas), nD = 0, nC = 0, tD = 0, tC = 0;
-      listaDesc.textContent = ""; listaCat.textContent = "";
-      var hD = el("h3", { class: "mp-bloque-tit" }), hC = el("h3", { class: "mp-bloque-tit" });
-      listaDesc.appendChild(hD); listaDesc.appendChild(el("p", { class: "mp-bloque-sub", texto: "Guardados en este teléfono. Funcionan sin conexión." })); listaCat.appendChild(hC); listaCat.appendChild(el("p", { class: "mp-bloque-sub", texto: "Todavía no están en este teléfono. Se descargan con internet." }));
+      var q = normBusqueda(busquedaMapas), nC = 0;
+      listaCat.textContent = "";
+      var hC = el("h3", { class: "mp-bloque-tit" });
+      listaCat.appendChild(hC); listaCat.appendChild(el("p", { class: "mp-bloque-sub", texto: "Todavía no están en este teléfono. Se descargan con internet." }));
       entradas.forEach(function (x) {
-        var esDesc = !!inst[x.e.id]; if (esDesc) tD++; else tC++;
         if (q) {
           var pajar = normBusqueda([x.e.nombre, x.e.region, x.e.version, x.e.id].concat(capasDe(x.e).map(function (c) { return c.nombre || c.id; })).join(" "));
           if (q.split(" ").some(function (t) { return t && pajar.indexOf(t) < 0; })) return;
         }
-        if (esDesc) { nD++; listaDesc.appendChild(tarjetaMapa(x.e, x.enCat)); } else { nC++; listaCat.appendChild(tarjetaMapa(x.e, x.enCat)); }
+        nC++; listaCat.appendChild(tarjetaMapa(x.e, x.enCat));
       });
-      hD.textContent = "Mapas descargados (" + (q ? nD + " de " + tD : tD) + ")";
-      hC.textContent = "Catálogo: mapas disponibles (" + (q ? nC + " de " + tC : tC) + ")";
-      if (!nD) listaDesc.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa descargado coincide con «" + busquedaMapas.trim() + "»." : "No hay mapas descargados." }));
+      hC.textContent = "Catálogo: mapas disponibles (" + (q ? nC + " de " + entradas.length : entradas.length) + ")";
       if (!nC) listaCat.appendChild(el("p", { class: "mp-suave", texto: q ? "Ningún mapa del catálogo coincide con «" + busquedaMapas.trim() + "»." : (cat ? "Todos los mapas disponibles ya están descargados." : "Sin catálogo. Conéctate para verlo.") }));
-      cuenta.textContent = q ? (nD + nC) + " de " + entradas.length + " mapas" : entradas.length + " mapas";
+      cuenta.textContent = q ? nC + " de " + entradas.length + " mapas" : entradas.length + " mapas";
     };
     var buscador = el("input", { type: "search", placeholder: "Nombre, región, versión o capa…", autocomplete: "off", autocapitalize: "off", spellcheck: "false", class: "mp-busca-input" });
     buscador.value = busquedaMapas;
@@ -2780,9 +2767,17 @@ function renderGestor() {
     cajaBusca.appendChild(el("label", { class: "mp-busca-rot", texto: "🔍 Buscar en el catálogo de mapas" }));
     cajaBusca.appendChild(buscador);
     cajaBusca.appendChild(cuenta);
-    cu.appendChild(listaDesc); cu.appendChild(listaCat);
+    cu.appendChild(listaCat);
     pintarLista();
-  } else if (vistaGestor === "capas") {
+  } else if (vistaGestor === "mis") {
+    var misE = entradasMapas().filter(function (x) { return !!inst[x.e.id]; }).sort(function (a, b) { return String(a.e.nombre).localeCompare(String(b.e.nombre)); });
+    var listaDesc = el("div", { class: "mp-bloque mp-bloque-desc" });
+    listaDesc.appendChild(el("h3", { class: "mp-bloque-tit", texto: "Mapas descargados (" + misE.length + ")" }));
+    listaDesc.appendChild(el("p", { class: "mp-bloque-sub", texto: "Guardados en este teléfono. Funcionan sin conexión. La casilla muestra u oculta cada mapa." }));
+    if (!misE.length) listaDesc.appendChild(el("p", { class: "mp-suave", texto: "No hay mapas descargados. Descárgalos en la pestaña Mapas sin conexión." }));
+    misE.forEach(function (x) { listaDesc.appendChild(tarjetaMapa(x.e, x.enCat)); });
+    if (idsActivos().length) listaDesc.appendChild(el("div", { class: "mp-fila", style: "margin:10px;" }, [el("button", { texto: "🗺️ Ver todos en el mapa", onclick: function () { verTodosLosMapas(); cerrarGestor(); if (LC.state.currentView !== "mapa") LC.irA("mapa"); } })]));
+    cu.appendChild(listaDesc);
     var tieneRel = relieveNombres.length > 0 || mapasOrdenados().some(function (m) { return archivoTipo(m, "relieve"); });
     var chk = function (clave, texto, habil) {
       var inp = el("input", { type: "checkbox" }); inp.checked = clave === "topo" ? visTopo() : !!capasVis[clave]; if (!habil) inp.disabled = true;
@@ -2796,6 +2791,7 @@ function renderGestor() {
       };
       return el("label", { class: "mp-chk" }, [inp, el("span", { texto: texto })]);
     };
+    cu.appendChild(el("h3", { texto: "Visualización", style: "margin:16px 0 6px;font-size:1rem;" }));
     cu.appendChild(chk("sombra", "Sombreado del relieve", tieneRel));
     cu.appendChild(chk("curvas", "Curvas de nivel (calculadas en el teléfono)", tieneRel));
     var selCurv = el("select", { id: "mp-curvas-color" });
@@ -2812,8 +2808,9 @@ function renderGestor() {
     cu.appendChild(el("div", { class: "field" }, [el("label", { texto: "Color de las curvas de nivel", for: "mp-curvas-color" }), selCurv]));
     cu.appendChild(chk("topo", "Nombres de lugares (poblados, áreas protegidas, cerros y puntos de interés)", true));
     if (!tieneRel) cu.appendChild(el("p", { class: "mp-suave", texto: "Ninguno de los mapas instalados trae relieve." }));
-    cu.appendChild(el("h3", { texto: "Capas de los mapas", style: "margin:16px 0 6px;font-size:1rem;" }));
-    if (!Object.keys(inst).length) cu.appendChild(el("p", { class: "mp-suave", texto: "Instala un mapa para ver o importar sus capas." }));
+  } else if (vistaGestor === "capas") {
+    cu.appendChild(el("p", { class: "mp-suave", texto: "Aquí están las capas del catálogo y las que creaste con «Guardar como capa» o subiste desde un archivo. La casilla las muestra u oculta en el mapa. Las creadas o subidas solo se guardan en este teléfono." }));
+    if (!Object.keys(inst).length) cu.appendChild(el("p", { class: "mp-suave", texto: "Instala un mapa (pestaña Mapas sin conexión) para ver o importar sus capas." }));
     else {
       if (!capasActuales.length) cu.appendChild(el("p", { class: "mp-suave", texto: "Los mapas instalados no tienen capas todavía." }));
       var mapaGrupo = null;
@@ -2824,7 +2821,7 @@ function renderGestor() {
           if (!capasVis.capas) capasVis.capas = {};
           capasVis.capas[c.clave] = inp.checked; guardarJSON(LS_CAPAS, capasVis); aplicarFiltrosCapas();
         };
-        var sub = resumenCuenta(c.datos.cuenta) + (c.origen === "local" ? " · importada, solo en este teléfono" : " · del catálogo");
+        var sub = resumenCuenta(c.datos.cuenta) + (c.origen === "local" ? " · creada o subida, solo en este teléfono" : " · del catálogo");
         var texto = el("span", {}, [el("b", { texto: c.nombre }), el("br"), el("span", { class: "mp-suave", texto: sub })]);
         var fila = [el("label", { class: "mp-chk", style: "flex:1;" }, [inp, texto])];
         var caja = el("div", { style: "display:flex;align-items:center;gap:8px;" }, fila);
@@ -2864,6 +2861,7 @@ function renderGestor() {
       cu.appendChild(el("p", { class: "mp-suave", texto: "CSV (toca el «?» para ver el formato), GeoJSON, GPX o shapefile en .zip. El nombre de la capa es el del archivo. La capa queda asociada al mapa elegido (se borra si eliminas ese mapa) y solo se guarda en este teléfono: no se publica ni se incluye en la exportación. Útil para sitios sensibles." }));
     }
   } else {
+    cu.appendChild(el("div", { class: "mp-fila", style: "margin:0 0 10px;" }, [el("button", { texto: "← Volver a Mapas sin conexión", onclick: function () { vistaGestor = "catalogo"; renderGestor(); } })]));
     cu.appendChild(el("pre", { class: "mp-pre", texto: infoDiag() }));
     cu.appendChild(el("div", { class: "mp-fila" }, [
       el("button", { texto: "Copiar informe", onclick: function () {
@@ -3032,7 +3030,7 @@ function construirPantalla() {
     '<div id="mp-lienzo">' +
     '<div id="mp-mapa"></div>' +
     '<div id="mp-barra"><button type="button" class="mp-chip mp-chip-btn" id="mp-chip-gps">GPS activar</button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-rec" style="display:none"></button><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-chip-grab" style="display:none"></button><span class="mp-chip" id="mp-chip-red" style="display:none">Sin conexión</span><button type="button" class="mp-chip mp-chip-btn rojo" id="mp-cancelar-elec" style="display:none">✕ Cancelar elección de coordenada</button><button type="button" class="mp-chip mp-chip-btn ok" id="mp-volver-reg" style="display:none">↩ Volver al registro</button></div>' +
-    '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-etiq", "🏷️", "Etiq. ↓") + btnTb("mp-mapas", "🗺️", "Mapas") + btnTb("mp-todos", "🌐", "Mis mapas") + '</div>' +
+    '<div id="mp-fila-sup">' + btnTb("mp-puntos", "📍", "Puntos") + btnTb("mp-mapas", "🗺️", "Mapas") + '</div>' +
     '<div id="mp-ctrl">' +
       btnTb("mp-sat", "🛰️", "Satélite") + btnTb("mp-nombres", "🔤", "Topónimos") + btnTb("mp-rutas", "🛣️", "Rutas") + btnTb("mp-buscar", "🔎", "Buscar") +
     '</div>' +
@@ -3047,7 +3045,7 @@ function construirPantalla() {
     '<div id="mp-leyenda" role="group" aria-label="Tipos de punto: toca para mostrar u ocultar"></div>' +
     '<div id="mp-aviso"></div>' +
     '<div id="mp-bsq"><div class="mp-bsq-fila"><input type="search" id="mp-bsq-q" placeholder="Lugar o coordenadas (-38,6575 -72,5929)" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"><button type="button" class="mp-btn chico" id="mp-bsq-ir">Ir</button><button type="button" class="mp-panel-x" id="mp-bsq-x" aria-label="Cerrar la búsqueda">✕</button></div><div id="mp-bsq-res"></div></div>' +
-    '<div id="mp-panel-puntos"></div><div id="mp-panel-mapas"></div>' +
+    '<div id="mp-puntos-menu" role="group" aria-label="Puntos y etiquetas"><button type="button" class="mp-btn mp-pm" id="mp-pm-puntos">📍 Puntos</button><button type="button" class="mp-btn mp-pm" id="mp-pm-etiq" aria-pressed="true">🏷️ Etiquetas</button></div><div id="mp-panel-puntos"></div>' +
     '<div id="mp-nav"><div class="mp-nav-cab"><b id="mp-nav-nombre">Hacia</b><button type="button" class="mp-panel-x" id="mp-nav-cerrar" aria-label="Terminar navegación">✕</button></div>' +
       '<div class="mp-nav-cuerpo">' + dibujarRosa() + '<div class="mp-nav-datos"><div id="mp-nav-rumbo" class="mp-nav-grande">—</div><div id="mp-nav-dist" class="mp-nav-med"></div></div></div>' +
       '<div id="mp-nav-eta" class="mp-suave"></div>' +
@@ -3057,15 +3055,14 @@ function construirPantalla() {
     '</div>';
   $("mp-chip-gps").onclick = function () { if (gps.watch == null) gpsEncender(); else gpsApagarManual(); };
   instalarCentrar();
-  $("mp-puntos").onclick = alternarPanelPuntos;
+  $("mp-puntos").onclick = alternarMenuPuntos; $("mp-pm-puntos").onclick = abrirListaPuntos; $("mp-pm-etiq").onclick = alternarEtiquetas;
   $("mp-buscar").onclick = function () { panelBusqueda(); };
   $("mp-bsq-x").onclick = function () { panelBusqueda(false); };
   $("mp-bsq-ir").onclick = function () { buscarAhora(); };
   $("mp-bsq-q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); buscarAhora(); } });
   $("mp-bsq-q").addEventListener("input", function () { sugerirCoordenadas(); });
-  $("mp-mapas").onclick = function () { abrirGestor("mapas"); };
+  $("mp-mapas").onclick = function () { abrirGestor(Object.keys(inst).length ? "mis" : "catalogo"); };
   $("mp-sat").onclick = alternarSatelite; botonSatelite();
-  $("mp-todos").onclick = alternarPanelMapas;
   $("mp-rutas").onclick = alternarRutas; $("mp-nombres").onclick = alternarNombres; botonesBase();
   instalarBrujula(); actualizarModoNav();
   var navEl = $("mp-nav"); navEl.insertBefore(crearAsaTarjeta(navEl, navDesp), navEl.firstChild);
@@ -3076,7 +3073,7 @@ function construirPantalla() {
   $("mp-cancelar-elec").onclick = cancelarEleccion;
   $("mp-grabar").onclick = function () { panelTracks(false); if (grab.rc) detenerGrabacion(false); else iniciarGrabacion(); };
   $("mp-tracks").onclick = function () { panelTracks(); };
-  $("mp-etiq").onclick = alternarEtiquetas; botonEtiquetas();
+  botonEtiquetas();
   $("mp-chip-grab").onclick = function () { detenerGrabacion(false); };
   $("mp-pantalla").onclick = alternarPantalla; botonPantalla();
   $("mp-bloqueo").onclick = function () { panelTracks(false); bloquear(); };
@@ -3099,9 +3096,12 @@ function btnTb(id, icono, texto, extra) { return '<button type="button" class="m
 function rotuloTb(id, icono, texto) { var b = $(id); if (!b) return; var i = b.querySelector(".i"), t = b.querySelector(".t"); if (i) i.textContent = icono; if (t) t.textContent = texto; }
 var ROT_ETIQ = { abajo: ["🏷️", "Etiq. ↓", "Etiquetas debajo del punto"], derecha: ["🏷️", "Etiq. →", "Etiquetas a la derecha del punto"], izquierda: ["🏷️", "Etiq. ←", "Etiquetas a la izquierda del punto"],
   arriba: ["🏷️", "Etiq. ↑", "Etiquetas sobre el punto"], auto: ["🏷️", "Etiq. auto", "Etiquetas automáticas: se acomodan y no se superponen (si no caben, se ocultan)"], ocultas: ["🚫", "Sin etiq.", "Etiquetas ocultas"] };
+var modoEtiqVis = modoEtiq !== "ocultas" ? modoEtiq : "abajo";   /* v2.92: último modo visible, para volver a él al activar */
 function botonEtiquetas() {
-  var r = ROT_ETIQ[modoEtiq]; rotuloTb("mp-etiq", r[0], r[1]);
-  var b = $("mp-etiq"); if (b) b.classList.toggle("on", modoEtiq !== "ocultas");
+  var b = $("mp-pm-etiq"); if (!b) return;
+  var on = modoEtiq !== "ocultas";
+  b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.textContent = (on ? "🏷️" : "🚫") + " Etiquetas";
 }
 function aplicarEtiquetas() {
   botonEtiquetas();
@@ -3112,10 +3112,10 @@ function aplicarEtiquetas() {
   Object.keys(P).forEach(function (k) { if (P[k] !== undefined) map.setLayoutProperty("puntos-texto", k, P[k]); });
 }
 function alternarEtiquetas() {
-  modoEtiq = MODOS_ETIQ[(MODOS_ETIQ.indexOf(modoEtiq) + 1) % MODOS_ETIQ.length];
+  if (modoEtiq !== "ocultas") { modoEtiqVis = modoEtiq; modoEtiq = "ocultas"; } else modoEtiq = modoEtiqVis || "abajo";
   guardarJSON(LS_ETIQ, modoEtiq);
   aplicarEtiquetas();
-  LC.toast("🏷️ " + ROT_ETIQ[modoEtiq][2], 2600);
+  LC.toast(modoEtiq === "ocultas" ? "🚫 Etiquetas desactivadas" : "🏷️ Etiquetas activadas", 2000);
 }
 /* v2.74: ◎ centra en el GPS con un toque; con presión sostenida guarda un punto en la ubicación actual (antes era el botón "Guardar punto aquí") */
 function centrarEnGps() {

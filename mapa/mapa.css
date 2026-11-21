@@ -204,7 +204,6 @@
 .mp-cap-co{flex:0 0 100%; margin:-4px 0 0 34px;}
 
 /* v2.89: panel Mis mapas, bloques del gestor, ventana de navegación móvil, puntos de la ruta y botones Rutas/Nombres */
-#mp-panel-mapas{position:absolute; top:68px; right:66px; width:min(290px, calc(100% - 78px)); max-height:calc(100% - 160px); overflow:auto; background:var(--card); color:var(--texto); border:1px solid var(--borde); border-radius:var(--radio); padding:10px 12px; box-shadow:0 3px 12px rgba(0,0,0,.4); display:none; z-index:4;}
 .mp-panel-fila.off{opacity:.55;}
 .mp-bloque-tit{margin:14px 0 6px; font-size:1rem; padding-bottom:4px; border-bottom:1.5px solid var(--borde);}
 .mp-caja.inactivo{opacity:.72;}
@@ -230,7 +229,7 @@
 .mp-nav-modo button{flex:1; min-height:38px; border:0; background:var(--card); color:var(--verde); font-weight:700; font-size:.78rem; cursor:pointer; padding:0 4px;}
 .mp-nav-modo button + button{border-left:1.5px solid var(--verde);}
 .mp-nav-modo button[aria-pressed="true"]{background:var(--verde); color:#fff;}
-#mp-barra{right:244px;}
+#mp-barra{right:124px;}
 #mp-barra .mp-chip{white-space:normal; line-height:1.15; border-radius:14px; text-align:left;}
 #mp-aviso{top:68px; right:72px;}
 #mp-nav{top:68px;}
@@ -251,3 +250,9 @@
 #mp-nav-eta{margin:6px 0 0;}
 .mp-nav-modo-txt{margin:4px 0 0; font-size:.74rem; line-height:1.25;}
 #mp-rosa, #mp-rosa:focus{outline:none;}
+
+/* v2.92: menú Puntos/Etiquetas y pestañas del gestor */
+#mp-puntos-menu{position:absolute; top:68px; right:66px; display:none; gap:4px; padding:4px; background:var(--card); border:1px solid var(--borde); border-radius:var(--radio); box-shadow:0 3px 12px rgba(0,0,0,.4); z-index:5;}
+#mp-puntos-menu .mp-pm{min-height:44px; padding:0 12px; font-size:.82rem; font-weight:700; white-space:nowrap;}
+#mp-puntos-menu .mp-pm.on{background:var(--verde); color:#fff; border-color:var(--verde);}
+.mp-pestanas button{flex:1; min-width:0; padding:0 6px; font-size:.82rem;}
