@@ -4122,7 +4122,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-22 · v2.94";
+var APP_BUILD = "2026-11-22 · v2.95";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -4306,29 +4306,37 @@ function sufijoSesionesDe(registros){
 }
 /* Nombre de la subcarpeta de la sesión en la carpeta local: el mismo que usan Fotos/ y Videos/, para que todo lo de una sesión se llame igual */
 function carpetaDeSesion(ses){ return sanitizarNombreArchivo(ses ? nombreSesionMostrar(ses) : "sesion"); }
-/* v2.57: estructura de la carpeta local por sesión.
-   <carpeta>/<AAAA-MM-DD_Sesión>/ { _sesion.json, Fotos/, Videos/, Respaldos/, DarwinCore/, Mediciones/, Libreta/ }
-   <carpeta>/_Varias_sesiones/<tipo>/ para lo que cruza varias sesiones.
-   El nombre de la carpeta de cada sesión se fija la primera vez que se usa (ses.carpetaLocal) y no cambia aunque se renombre la sesión. */
-var CARPETA_VARIAS = "_Varias_sesiones", CARPETA_SIN_SESION = "_Sin_sesion";   // estructura v2.57 (se conservan para reconocer y mover lo antiguo)
-/* v2.82: la carpeta local se ordena por PROYECTO.
-   <carpeta>/<Proyecto>/ { Respaldos/, DarwinCore/, Mediciones/, Bitacora/, _proyecto.json, <AAAA-MM-DD_Sesión>/ { _sesion.json, Fotos/, Videos/ } }
-   <carpeta>/Sin_proyecto/ (sesiones sin proyecto), <carpeta>/Varios_proyectos/ (exportaciones que mezclan proyectos).
-   El nombre de la carpeta de cada proyecto se fija la primera vez que se usa (viaje.carpetaLocal). */
+/* Estructuras antiguas de la carpeta local (se conservan los nombres para reconocerlas y moverlas con «Ordenar carpeta local»):
+   v2.52 Respaldos/ DarwinCore/ Mediciones/ Libreta/ Fotos/ Videos/ en la raíz; v2.57 <AAAA-MM-DD_Sesión>/ y _Varias_sesiones/ _Sin_sesion/; v2.82 <Proyecto>/ Sin_proyecto/ Varios_proyectos/ */
+var CARPETA_VARIAS = "_Varias_sesiones", CARPETA_SIN_SESION = "_Sin_sesion";
 var CARPETA_SIN_PROYECTO = "Sin_proyecto", CARPETA_VARIOS_PROYECTOS = "Varios_proyectos";
+/* v2.95: estructura vigente. Dentro de la carpeta que elige la persona, la app crea y usa SIEMPRE una sola subcarpeta «Libreta de Campo».
+   En la raíz no hay archivos sueltos: solo una carpeta por tipo de contenido.
+   Libreta de Campo/
+     01_Proyectos/<AAAA>_<Proyecto>/ { _proyecto.json, Bitacora/, Capas/, Recorridos_de_ruta/, Exportaciones/<AAAA-MM-DD_hhmm>/,
+         Sesiones/<AAAA-MM-DD>_<Sesión>/ { _sesion.json, Registros/<código>/ {fotos, videos, track}, Recorridos/, Capas/, Exportaciones/<AAAA-MM-DD_hhmm>/ } }
+     02_Sin_proyecto/ (misma forma que un proyecto)   03_Exportaciones_generales/<AAAA-MM-DD_hhmm>/   04_Capas_independientes/
+   Los nombres de proyecto y sesión se fijan la primera vez que se usan (viaje.carpetaLocal, ses.carpetaLocal); la fecha de la sesión es la de su CREACIÓN. */
+var RAIZ_CARPETA = "Libreta de Campo";
+var C_PROYECTOS = RAIZ_CARPETA + "/01_Proyectos", C_SIN_PROYECTO = RAIZ_CARPETA + "/02_Sin_proyecto",
+    C_GENERALES = RAIZ_CARPETA + "/03_Exportaciones_generales", C_CAPAS_IND = RAIZ_CARPETA + "/04_Capas_independientes";
 function carpetaDeViaje(v){
-  if(!v) return CARPETA_SIN_PROYECTO;
+  if(!v) return null;
   if(v.carpetaLocal) return v.carpetaLocal;
   var nombre = limpiarParaNombre(v.nombre, 50) || "Proyecto_sin_nombre";
-  var cand = nombre, n = 2, usados = {};
-  usados[CARPETA_SIN_PROYECTO.toLowerCase()] = 1; usados[CARPETA_VARIOS_PROYECTOS.toLowerCase()] = 1;
+  var anio = v.creado ? new Date(v.creado).getFullYear() : new Date().getFullYear();
+  if(!anio || isNaN(anio)) anio = new Date().getFullYear();
+  var base = anio + "_" + nombre, cand = base, n = 2, usados = {};
   state.viajes.forEach(function(x){ if(x.id !== v.id && x.carpetaLocal) usados[x.carpetaLocal.toLowerCase()] = 1; });
-  while(usados[cand.toLowerCase()]){ cand = nombre + "-" + n; n++; }
+  while(usados[cand.toLowerCase()]){ cand = base + "-" + n; n++; }
   if(v.nombre){ v.carpetaLocal = cand; if(state.viajes.indexOf(v) >= 0) guardarViajes(); }
   return cand;
 }
-function carpetaProyectoDeSesion(ses){ return ses && ses.viajeId && viajePorId(ses.viajeId) ? carpetaDeViaje(viajePorId(ses.viajeId)) : CARPETA_SIN_PROYECTO; }
-function rutaDeSesion(ses){ return ses ? carpetaProyectoDeSesion(ses) + "/" + carpetaLocalDeSesion(ses) : CARPETA_SIN_PROYECTO + "/" + CARPETA_SIN_SESION; }
+/* Ruta (desde la carpeta elegida) del proyecto; sin proyecto va a 02_Sin_proyecto */
+function rutaProyecto(v){ return v ? C_PROYECTOS + "/" + carpetaDeViaje(v) : C_SIN_PROYECTO; }
+function carpetaProyectoDeSesion(ses){ return rutaProyecto(ses && ses.viajeId ? viajePorId(ses.viajeId) : null); }
+function rutaDeSesion(ses){ return ses ? carpetaProyectoDeSesion(ses) + "/Sesiones/" + carpetaLocalDeSesion(ses) : C_SIN_PROYECTO + "/Sesiones/" + CARPETA_SIN_SESION; }
+function rutaDeRegistro(r, ses){ return rutaDeSesion(ses) + "/Registros/" + baseNombreRegistro(r); }
 function carpetaLocalDeSesion(ses){
   if(!ses) return CARPETA_SIN_SESION;
   if(ses.carpetaLocal) return ses.carpetaLocal;
@@ -4342,13 +4350,15 @@ function carpetaLocalDeSesion(ses){
   if(state.sesiones.indexOf(ses) >= 0) guardarListaSesiones();
   return cand;
 }
+/* Dónde van las exportaciones de un conjunto de sesiones: una sola sesión, su carpeta; varias del mismo proyecto, la del proyecto; si no, 03_Exportaciones_generales */
 function destinoRespaldos(idsSesion){
   var ids = [];
   (idsSesion||[]).forEach(function(i){ if(i && ids.indexOf(i) < 0) ids.push(i); });
+  if(!ids.length) return C_GENERALES;
+  if(ids.length === 1 && sesionPorId(ids[0])) return rutaDeSesion(sesionPorId(ids[0]));
   var carpetas = [];
   ids.forEach(function(i){ var c = carpetaProyectoDeSesion(sesionPorId(i)); if(carpetas.indexOf(c) < 0) carpetas.push(c); });
-  if(carpetas.length === 1) return carpetas[0];
-  return carpetas.length ? CARPETA_VARIOS_PROYECTOS : CARPETA_SIN_PROYECTO;
+  return carpetas.length === 1 ? carpetas[0] : C_GENERALES;
 }
 function viajeDeCarpetaLocal(nombre){
   for(var i=0;i<state.viajes.length;i++) if(state.viajes[i].carpetaLocal === nombre) return state.viajes[i];
@@ -4358,7 +4368,7 @@ function sesionDeCarpetaLocal(nombre){
   for(var i=0;i<state.sesiones.length;i++) if(state.sesiones[i].carpetaLocal === nombre) return state.sesiones[i];
   return null;
 }
-// Marcador dentro de la carpeta de la sesión: permite reconocerla aunque se mueva o se renombre
+// Marcadores dentro de la carpeta de la sesión y del proyecto: permiten reconocerlas aunque se muevan o se renombre la sesión
 function escribirMarcadorSesion(dir, ses){
   if(!dir || !ses || !ses.carpetaLocal) return Promise.resolve();
   var info = {app:"Libreta de Campo", sesionId:ses.id, nombre:ses.proyecto||"", prefijo:ses.prefijo||"", creada:ses.creada||"", carpeta:ses.carpetaLocal, proyectoId:ses.viajeId||"", actualizado:new Date().toISOString()};
@@ -4367,7 +4377,14 @@ function escribirMarcadorSesion(dir, ses){
 function escribirMarcadorProyecto(dir, v){
   if(!dir || !v || !v.carpetaLocal) return Promise.resolve();
   var info = {app:"Libreta de Campo", proyectoId:v.id, nombre:v.nombre||"", carpeta:v.carpetaLocal, creado:v.creado||"", actualizado:new Date().toISOString()};
-  return escribirEnCarpeta(dir, v.carpetaLocal, "_proyecto.json", new Blob([JSON.stringify(info, null, 2)], {type:"application/json"})).catch(function(){});
+  return escribirEnCarpeta(dir, rutaProyecto(v), "_proyecto.json", new Blob([JSON.stringify(info, null, 2)], {type:"application/json"})).catch(function(){});
+}
+/* Sello de una exportación (AAAA-MM-DD_hhmm). Lo que se exporta en una misma acción (zip, Darwin Core, mediciones) comparte carpeta: el sello se reutiliza durante 3 minutos. */
+var selloExport = {t:0, txt:""};
+function selloDeExportacion(){
+  var ahora = Date.now();
+  if(!selloExport.txt || ahora - selloExport.t > 180000){ selloExport.txt = marcaFechaHora(new Date(ahora)); selloExport.t = ahora; }
+  return selloExport.txt;
 }
 function nombreDescarga(sufijoSesion, tipo, ext){
   return sufijoSesion+"_"+tipo+"_"+marcaFechaHora()+"."+ext;
@@ -6982,7 +6999,7 @@ function exportarBitacoraHTML(v){
     var blob = new Blob([html], {type:"text/html"});
     var nom = nombreDescarga(nombreCortoViaje(v), "bitacora", "html");
     descargarBlobArchivo(blob, nom);
-    copiarARespaldos("Bitacora", nom, blob, carpetaDeViaje(v));
+    copiarARespaldos("Bitacora", nom, blob, rutaProyecto(v));
     toast("✅ Bitácora exportada");
   });
 }
@@ -9398,35 +9415,41 @@ function carpetaConPermiso(){
 function textoEstructuraCarpeta(){
   return '<pre style="white-space:pre-wrap; font-size:12px; line-height:1.35; margin:0 0 8px; font-family:ui-monospace,Menlo,Consolas,monospace;">'+escapeHtml(
 'Carpeta elegida/\n'+
-'├─ Atacama_2026/            ← un proyecto\n'+
-'│  ├─ Respaldos/            .zip y respaldo .json\n'+
-'│  ├─ DarwinCore/           .xlsx y .csv\n'+
-'│  ├─ Mediciones/           planillas .xlsx\n'+
-'│  ├─ Bitacora/             bitácora .html\n'+
-'│  ├─ _proyecto.json        marcador\n'+
-'│  ├─ 2026-03-02_Quebrada/  ← una sesión\n'+
-'│  │  ├─ _sesion.json\n'+
-'│  │  ├─ Fotos/\n'+
-'│  │  └─ Videos/\n'+
-'│  └─ 2026-03-04_Salar/\n'+
-'├─ Sin_proyecto/            sesiones sin proyecto\n'+
-'│  ├─ Respaldos/ DarwinCore/ ...\n'+
-'│  └─ 2026-05-10_Salida/\n'+
-'└─ Varios_proyectos/        exportaciones que\n'+
-'   └─ Respaldos/ ...        mezclan proyectos')+'</pre>'+
+'└─ Libreta de Campo/\n'+
+'   ├─ 01_Proyectos/\n'+
+'   │  └─ 2026_Atacama/            ← un proyecto\n'+
+'   │     ├─ _proyecto.json\n'+
+'   │     ├─ Bitacora/\n'+
+'   │     ├─ Capas/\n'+
+'   │     ├─ Recorridos_de_ruta/\n'+
+'   │     ├─ Exportaciones/\n'+
+'   │     │  └─ 2026-03-10_1530/   zip, Darwin Core,\n'+
+'   │     │                        mediciones\n'+
+'   │     └─ Sesiones/\n'+
+'   │        └─ 2026-03-02_Quebrada/  ← una sesión\n'+
+'   │           ├─ _sesion.json\n'+
+'   │           ├─ Exportaciones/\n'+
+'   │           ├─ Recorridos/    GPX grabados\n'+
+'   │           ├─ Capas/\n'+
+'   │           └─ Registros/\n'+
+'   │              └─ JPS-047/    ← un registro\n'+
+'   │                 fotos HD, reducidas, videos, track\n'+
+'   ├─ 02_Sin_proyecto/           misma forma\n'+
+'   ├─ 03_Exportaciones_generales/ lo que mezcla proyectos\n'+
+'   └─ 04_Capas_independientes/')+'</pre>'+
   '<b>Reglas</b><br>'+
-  '1. Un proyecto, una carpeta. Todo lo que se exporta de sus sesiones (respaldos, Darwin Core, mediciones, bitácora) queda junto en esa carpeta, aunque la exportación sea de una sola sesión.<br>'+
-  '2. Las fotos y los videos originales van dentro de la carpeta de su sesión, que cuelga del proyecto.<br>'+
-  '3. Una exportación que mezcla sesiones de varios proyectos va a Varios_proyectos; las sesiones que no pertenecen a ningún proyecto, a Sin_proyecto.<br>'+
-  '4. Los nombres de las carpetas se fijan la primera vez que se usan. Si después renombras un proyecto o una sesión, la carpeta no cambia y los archivos no se pierden.<br>'+
-  '5. Si mueves una sesión a otro proyecto, lo nuevo se guarda en la carpeta del proyecto nuevo; lo ya guardado se traslada con «Reorganizar la carpeta».<br>'+
-  '6. Los marcadores _proyecto.json y _sesion.json permiten reconocer cada carpeta aunque la muevas.<br>'+
-  '7. Los archivos se nombran con el código del registro (por ejemplo JPS-047_foto1.jpg) y las exportaciones con la sesión o el proyecto, la fecha y la hora.';
+  '1. En la raíz nunca hay archivos sueltos: cada tipo de contenido tiene su carpeta. Orden natural: los registros viven dentro de su sesión y las sesiones dentro de su proyecto.<br>'+
+  '2. Las fotos y los videos originales (HD), las copias reducidas y el track de cada registro quedan juntos en la carpeta del registro, nombrados con su código (por ejemplo JPS-047_foto1.jpg y JPS-047_foto1_reducida.jpg).<br>'+
+  '3. Una exportación de una sola sesión va a la carpeta de esa sesión; la de varias sesiones del mismo proyecto, a la del proyecto; la que mezcla proyectos, a 03_Exportaciones_generales. Lo exportado en una misma acción (zip, Darwin Core, mediciones) queda junto en una carpeta con la fecha y la hora.<br>'+
+  '4. Las carpetas de proyecto y sesión llevan la fecha de creación y su nombre se fija la primera vez que se usan. Si después renombras un proyecto o una sesión, la carpeta no cambia y los archivos no se pierden.<br>'+
+  '5. «Ordenar carpeta local» deja todo en esta forma en cualquier momento: mueve lo antiguo, completa copias reducidas, tracks, recorridos y capas, y no toca lo que no reconoce.';
 }
 function elegirCarpetaCopia(){
   if(!soportaCarpeta()){ toast("Este navegador no permite elegir una carpeta: se usará Descargas", 4200); return Promise.resolve(false); }
   return window.showDirectoryPicker({mode:"readwrite", id:"libretacampo"}).then(function(h){
-    return guardarOriginal("__carpeta__", null, {handle:h}).then(function(){ return true; });
+    return guardarOriginal("__carpeta__", null, {handle:h}).then(function(){
+      return Promise.all([C_PROYECTOS, C_SIN_PROYECTO, C_GENERALES, C_CAPAS_IND].map(function(r){ return asegurarCarpeta(h, r).catch(function(){}); }));
+    }).then(function(){ return true; });
   }).catch(function(){ return false; });
 }
 // subcarpeta admite varios niveles separados por "/" (por ejemplo "Fotos/Rucamanque_01"); se crean si no existen.
@@ -9445,13 +9468,18 @@ function escribirEnCarpeta(dir, subcarpeta, nombre, blob){
    Mediciones/ (planilla .xlsx) y Libreta/ (narrativa .html). La descarga normal sigue ocurriendo; esto es una copia adicional. */
 var SUBCARPETAS_RESPALDO = ["Fotos","Videos","Respaldos","DarwinCore","Mediciones","Bitacora"];
 function copiarARespaldos(tipo, nombre, blob, destino){
-  // v2.82: <carpeta del proyecto>/<tipo>/ (o Sin_proyecto / Varios_proyectos)
-  var subcarpeta = (destino || CARPETA_VARIOS_PROYECTOS) + "/" + tipo;
+  // v2.95: <proyecto o sesión>/Exportaciones/<AAAA-MM-DD_hhmm>/ ; la bitácora va a <proyecto>/Bitacora/ ; lo que mezcla proyectos, a 03_Exportaciones_generales/<sello>/
+  destino = destino || C_GENERALES;
+  var subcarpeta = tipo === "Bitacora" ? destino + "/Bitacora" : destino + (destino === C_GENERALES ? "" : "/Exportaciones") + "/" + selloDeExportacion();
   if(copiaCfg().modo !== "carpeta" || !soportaCarpeta()) return Promise.resolve(false);
   return carpetaConPermiso().then(function(dir){
     if(!dir){ setTimeout(function(){ toast("⚠️ No se pudo copiar el respaldo a la carpeta: elígela de nuevo en Config", 5000); }, 1500); return false; }
     return escribirEnCarpeta(dir, subcarpeta, nombre, blob).then(function(){
-      return escribirMarcadorProyecto(dir, viajeDeCarpetaLocal(destino));
+      var v = null, ses = null;
+      state.viajes.forEach(function(x){ if(x.carpetaLocal && rutaProyecto(x) === destino) v = x; });
+      state.sesiones.forEach(function(x){ if(x.carpetaLocal && rutaDeSesion(x) === destino) ses = x; });
+      if(!v && ses && ses.viajeId) v = viajePorId(ses.viajeId);
+      return escribirMarcadorProyecto(dir, v).then(function(){ return escribirMarcadorSesion(dir, ses); });
     }).then(function(){
       setTimeout(function(){ toast("📁 Copia guardada en "+subcarpeta+"/"+nombre, 4200); }, 1500);
       return true;
@@ -9485,8 +9513,7 @@ function volcarOriginalesPendientes(){
       regs.forEach(function(r){
         var ses = sesionPorId(r.sesionId);
         var carpetaSes = carpetaDeSesion(ses);
-        var raizSes = rutaDeSesion(ses);   // v2.82: <proyecto>/<sesión>/Fotos y /Videos
-        var carpetaFoto = raizSes + "/Fotos", carpetaVideo = raizSes + "/Videos";
+        var carpetaFoto = rutaDeRegistro(r, ses), carpetaVideo = carpetaFoto;   // v2.95: <proyecto>/Sesiones/<sesión>/Registros/<código>/
         var base = baseNombreRegistro(r), kVideo = 0;
         elementosArchivables(r).forEach(function(e){
           if(e.tipo === "video") kVideo++;
@@ -9511,6 +9538,84 @@ function volcarOriginalesPendientes(){
     });
   }).catch(function(){ res.fallo++; return res; });
 }
+/* v2.95: además de los originales, la carpeta recibe las copias reducidas de las fotos (las de la app, con sus comentarios), el track de cada registro,
+   los recorridos grabados (GPX) y las capas del mapa. Todo va dentro de la carpeta de su registro, sesión o proyecto. Es repetible: lo que ya está no se vuelve a escribir. */
+function dataURLaBlob(u){
+  var m = /^data:([^;,]+)?(;base64)?,(.*)$/.exec(u || "") || [], bin = atob(m[3] || ""), a = new Uint8Array(bin.length);
+  for(var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return new Blob([a], {type: m[1] || "image/jpeg"});
+}
+function sinProblemasDeRuta(t){ return String(t||"").replace(/[\\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim(); }
+function sincronizarComplementos(dir, op){
+  op = op || {};
+  var res = {fotos:0, tracks:0, recorridos:0, capas:0, fallos:0}, seq = Promise.resolve(), cambio = false, cambioRec = false;
+  function asegurar(carpeta, nombre, crear, marcar){
+    return archivoDeCarpeta(dir, carpeta + "/" + nombre).then(function(f){ return f && f.size > 0; }).catch(function(){ return false; }).then(function(hay){
+      if(hay){ marcar(carpeta + "/" + nombre); return false; }
+      return Promise.resolve(crear()).then(function(blob){
+        if(!blob) return false;
+        return escribirEnCarpeta(dir, carpeta, nombre, blob).then(function(){ marcar(carpeta + "/" + nombre); return true; });
+      });
+    });
+  }
+  state.registros.forEach(function(r){
+    if(op.sesionId && r.sesionId !== op.sesionId) return;
+    var ses = sesionPorId(r.sesionId), carp = null, base = baseNombreRegistro(r);
+    function carpeta(){ return carp || (carp = rutaDeRegistro(r, ses)); }
+    (r.fotos||[]).forEach(function(f){
+      if(!f || !f.id || (f.copiaRed && !op.verificar)) return;
+      var nom = base + "_" + sanitizarNombreFoto(f.nombre || "foto") + "_reducida.jpg";
+      seq = seq.then(function(){
+        return asegurar(carpeta(), nom, function(){
+          return leerFotoDB(f.id).then(function(u){
+            if(!u) return null;
+            return dataURLaBlob(incrustarExif(u, comentarioConEnlaceHD(f), r.lat, r.lon, r.altitud));
+          });
+        }, function(ruta){ if(f.copiaRed !== ruta){ f.copiaRed = ruta; cambio = true; } }).then(function(esc){ if(esc) res.fotos++; })
+          .catch(function(){ res.fallos++; });
+      });
+    });
+    if((r.trackPuntos||[]).length >= 2 && (!r.gpxLocal || op.verificar)){
+      seq = seq.then(function(){
+        return asegurar(carpeta(), base + "_track.gpx", function(){ var g = generarGPX(r); return g ? new Blob([g], {type:"application/gpx+xml"}) : null; },
+          function(ruta){ if(r.gpxLocal !== ruta){ r.gpxLocal = ruta; cambio = true; } }).then(function(esc){ if(esc) res.tracks++; }).catch(function(){ res.fallos++; });
+      });
+    }
+  });
+  var usadosRec = {};
+  (state.recorridos||[]).forEach(function(rc){
+    if(rc.enCurso || !rc.puntos || rc.puntos.length < 2) return;
+    if(op.sesionId && rc.sesionId !== op.sesionId) return;
+    if(rc.gpxLocal && !op.verificar) return;
+    var ses = sesionPorId(rc.sesionId), vj = viajePorId(rc.viajeId);
+    var carp = ses ? rutaDeSesion(ses) + "/Recorridos" : (vj ? rutaProyecto(vj) : C_SIN_PROYECTO) + "/Recorridos_de_ruta";
+    var nom = nombreArchivoRecorrido(rc, ses), k = 2;
+    while(usadosRec[carp + "/" + nom]){ nom = nombreArchivoRecorrido(rc, ses).replace(/\.gpx$/, "") + "_" + k + ".gpx"; k++; }
+    usadosRec[carp + "/" + nom] = 1;
+    seq = seq.then(function(){
+      return asegurar(carp, nom, function(){ var g = generarGPXRecorrido(rc, ses); return g ? new Blob([g], {type:"application/gpx+xml"}) : null; },
+        function(ruta){ if(rc.gpxLocal !== ruta){ rc.gpxLocal = ruta; cambioRec = true; } }).then(function(esc){ if(esc) res.recorridos++; }).catch(function(){ res.fallos++; });
+    });
+  });
+  if(op.capas && window.MapaPro && MapaPro.capasTodas){
+    seq = seq.then(function(){ return MapaPro.capasTodas().catch(function(){ return []; }); }).then(function(capas){
+      var q = Promise.resolve(), usadas = {};
+      capas.forEach(function(c){
+        var v = c.vinculo || "", carp = C_CAPAS_IND;
+        if(v.indexOf("sesion:") === 0 && sesionPorId(v.slice(7))) carp = rutaDeSesion(sesionPorId(v.slice(7))) + "/Capas";
+        else if(v.indexOf("viaje:") === 0 && viajePorId(v.slice(6))) carp = rutaProyecto(viajePorId(v.slice(6))) + "/Capas";
+        var base = sinProblemasDeRuta(c.nombre) || "capa", nom = base + ".geojson", k = 2;
+        while(usadas[carp + "/" + nom]){ nom = base + "_" + k + ".geojson"; k++; }
+        usadas[carp + "/" + nom] = 1;
+        q = q.then(function(){
+          return asegurar(carp, nom, function(){ return new Blob([JSON.stringify(c.fc)], {type:"application/geo+json"}); }, function(){}).then(function(esc){ if(esc) res.capas++; }).catch(function(){ res.fallos++; });
+        });
+      });
+      return q;
+    });
+  }
+  return seq.then(function(){ if(cambio) guardarRegistros(); if(cambioRec) guardarRecorridos(); return res; }).catch(function(){ res.fallos++; return res; });
+}
 function volcarPendientesTrasGuardar(){
   if(copiaCfg().modo === "off") return;
   volcarOriginalesPendientes().then(function(r){
@@ -9518,7 +9623,8 @@ function volcarPendientesTrasGuardar(){
     if(r.ok) msg += "📁 "+r.ok+(r.ok===1?" archivo copiado":" archivos copiados")+" a la carpeta del teléfono";
     if(r.pend || r.fallo) msg += (msg?" · ":"")+"⚠️ "+(r.pend+r.fallo)+" pendiente(s): ábrelos en Config, «Copia original»";
     if(msg) setTimeout(function(){ toast(msg, 5200); }, 1800);
-  });
+    if(copiaCfg().modo === "carpeta") return carpetaHandleGuardado().then(function(h){ return h ? carpetaConPermiso() : null; }).then(function(dir){ if(dir) return sincronizarComplementos(dir, {}); });
+  }).catch(function(){});
 }
 function textoMB(b){ return b >= 1048576 ? (b/1048576).toFixed(b >= 10485760 ? 0 : 1)+" MB" : Math.max(1, Math.round(b/1024))+" KB"; }
 function renderVideosTemp(){
@@ -9588,10 +9694,10 @@ function renderConfigCopia(){
         cajaAyuda("ay-cc-ruta",'El navegador solo informa el nombre de la carpeta, no su ruta completa. Escríbela aquí como referencia para encontrarla desde el administrador de archivos.')+
         '<input type="text" id="cc-ruta" placeholder="Ej.: Almacenamiento interno/Documents/LibretaCampo" autocomplete="off" autocapitalize="off"></div>'+
       '<div class="field" style="margin-top:6px;"><label>Cómo se ordena la carpeta'+ayuda("ay-cc-estr","cómo se ordena la carpeta")+'</label>'+
-        cajaAyuda("ay-cc-estr",'<p>Cada proyecto tiene su carpeta con todos sus respaldos juntos y una subcarpeta por sesión con sus fotos y videos. Cada descarga se guarda además en Descargas.</p>'+textoEstructuraCarpeta())+'</div>'+
+        cajaAyuda("ay-cc-estr",'<p>La app crea dentro de la carpeta elegida una carpeta «Libreta de Campo»: Proyectos, dentro sus Sesiones y dentro los Registros con sus fotos y videos. Cada descarga se guarda además en Descargas.</p>'+textoEstructuraCarpeta())+'</div>'+
       '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
-      '<div style="display:flex; align-items:center; gap:6px;"><button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="flex:1;">🗂 Reorganizar la carpeta por proyecto…</button>'+ayuda("ay-cc-reorg","reorganizar la carpeta")+'</div>'+
-      cajaAyuda("ay-cc-reorg",'Ordena los archivos que ya están en la carpeta elegida según la estructura por proyecto. Antes de aplicar cambios muestra un resumen para confirmar. Conviene probarlo primero con una carpeta con pocos archivos.')+
+      '<div style="display:flex; align-items:center; gap:6px;"><button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="flex:1;">🗂 Ordenar carpeta local…</button>'+ayuda("ay-cc-reorg","ordenar la carpeta local")+'</div>'+
+      cajaAyuda("ay-cc-reorg",'<p>Botón de seguridad: se puede usar en cualquier momento para asegurar que todo esté en orden. Revisa la carpeta «Libreta de Campo», mueve a su lugar lo guardado con estructuras antiguas, completa las copias reducidas de las fotos, los tracks, los recorridos y las capas que falten, y quita las carpetas antiguas vacías.</p><p>Antes de cambiar algo muestra un resumen para confirmar. Cada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Lo que la app no reconoce no se toca. Al terminar deja un informe aquí abajo.</p>')+'<div class="campo-ayuda" id="cc-informe" style="display:none; margin-top:6px;"></div>' +
     '</div>';
   boxImg.innerHTML =
     '<div class="field"><label>Tamaño de la copia de las fotos'+ayuda("ay-cc-tam","tamaño de la copia")+'</label>'+
@@ -9608,7 +9714,7 @@ function renderConfigCopia(){
       var h = v[0], ids = v[1], set = {}; ids.forEach(function(i){ set[i] = 1; });
       var nPend = 0;
       state.registros.forEach(function(r){ elementosArchivables(r).forEach(function(e){ if(set[e.it.id]) nPend++; }); });
-      var t = c.modo === "off" ? "La copia original está desactivada." : c.modo === "descargas" ? "Las copias se descargarán a la carpeta Descargas." : (h ? "Carpeta elegida: "+h.name+(c.ruta ? " · Ruta: "+c.ruta : "") : "Aún no hay carpeta elegida.");
+      var t = c.modo === "off" ? "La copia original está desactivada." : c.modo === "descargas" ? "Las copias se descargarán a la carpeta Descargas." : (h ? "Carpeta elegida: "+h.name+" (la app trabaja en «"+h.name+"/"+RAIZ_CARPETA+"»)"+(c.ruta ? " · Ruta: "+c.ruta : "") : "Aún no hay carpeta elegida.");
       if(nPend) t += " Pendientes de copiar: "+nPend+".";
       document.getElementById("cc-estado").textContent = t;
       document.getElementById("cc-elegir").textContent = h ? "📁 Cambiar carpeta…" : "📁 Elegir carpeta…";
@@ -9624,10 +9730,13 @@ function renderConfigCopia(){
   document.getElementById("cc-ruta").addEventListener("change", function(){ var c = copiaCfg(); c.ruta = this.value.trim(); guardarCopiaCfg(c); estado(); });
   document.getElementById("cc-elegir").addEventListener("click", function(){ elegirCarpetaCopia().then(estado); });
   document.getElementById("cc-reorganizar").addEventListener("click", function(){ reorganizarCarpeta(); });
+  var infOrd = document.getElementById("cc-informe");
+  if(infOrd && informeOrden){ infOrd.textContent = informeOrden; infOrd.style.display = "block"; }
   document.getElementById("cc-pendientes").addEventListener("click", function(){
     volcarOriginalesPendientes().then(function(r){
       toast(r.ok ? ("📁 "+r.ok+" archivo(s) copiado(s)"+((r.pend||r.fallo)?(" · quedan "+(r.pend+r.fallo)):"")) : "No se pudo copiar ahora: revisa la carpeta elegida", 4200);
       estado();
+      return carpetaHandleGuardado().then(function(h){ return h ? carpetaConPermiso() : null; }).then(function(dir){ if(dir) return sincronizarComplementos(dir, {}); });
     });
   });
   estado();
@@ -10769,10 +10878,11 @@ function borradorVacio(d){
    Devuelve {borrados, noEncontrados, fallidos, sinPermiso}. Las copias en "Descargas/" no se pueden borrar desde la app. */
 function archivosLocalesDeRegistros(regs){
   var rutas = [], vistas = {};
-  regs.forEach(function(r){ (r.fotos||[]).concat(r.videos||[]).forEach(function(f){
-    var c = f && f.copiaLocal ? String(f.copiaLocal) : "";
-    if(c && !/^Descargas\//.test(c) && !vistas[c]){ vistas[c] = 1; rutas.push(c); }
-  }); });
+  function sumar(c){ c = c ? String(c) : ""; if(c && !/^Descargas\//.test(c) && !vistas[c]){ vistas[c] = 1; rutas.push(c); } }
+  regs.forEach(function(r){
+    (r.fotos||[]).concat(r.videos||[]).forEach(function(f){ if(f){ sumar(f.copiaLocal); sumar(f.copiaRed); } });
+    sumar(r.gpxLocal);
+  });
   return rutas;
 }
 function borrarArchivosDeCarpeta(dir, rutas){
@@ -10878,181 +10988,235 @@ function moverArchivoEnCarpeta(dir, origen, destCarpeta){
     });
   });
 }
-function tipoCarpetaNuevo(tipo){ return tipo === "Libreta" ? "Bitacora" : tipo; }
+/* ===== v2.95 · Ordenar carpeta local =====
+   Lleva a la estructura vigente («Libreta de Campo/01_Proyectos/…») todo lo que la app guardó antes (v2.52, v2.57, v2.82 y la propia estructura nueva si algo quedó mal ubicado).
+   Cada archivo se copia, se verifica el tamaño y recién entonces se borra el original. Lo que la app no reconoce no se toca y se informa. Se puede repetir cuando se quiera. */
+var TIPOS_EXPORT_ANTIGUOS = ["Respaldos","DarwinCore","Mediciones","Libreta","Bitacora"];
+function estampaDeNombre(n){ var m = /(\d{4}-\d{2}-\d{2}_\d{4})/.exec(String(n||"")); return m ? m[1] : "Sin_fecha"; }
+/* contenedor = {exp: carpeta que recibe /Exportaciones/<sello>, proy: carpeta del proyecto (para Bitacora)} */
+function contenedorDeSesion(ses){ return ses ? {exp:rutaDeSesion(ses), proy:carpetaProyectoDeSesion(ses)} : {exp:C_SIN_PROYECTO, proy:C_SIN_PROYECTO}; }
+function contenedorDeProyecto(v){ var r = rutaProyecto(v); return {exp:r, proy:r}; }
+var CONTENEDOR_GENERAL = {exp:C_GENERALES, proy:C_SIN_PROYECTO};
+function destinoDeExportacion(cont, tipo, nombre){
+  if(tipo === "Bitacora" || tipo === "Libreta") return cont.proy + "/Bitacora";
+  return cont.exp + (cont.exp === C_GENERALES ? "" : "/Exportaciones") + "/" + estampaDeNombre(nombre);
+}
+function carpetaSinAsignar(ses){ return (ses ? rutaDeSesion(ses) : C_SIN_PROYECTO + "/Sesiones/" + CARPETA_SIN_SESION) + "/Registros/_Sin_asignar"; }
+function asegurarCarpeta(dir, ruta){
+  var p = Promise.resolve(dir);
+  String(ruta).split("/").filter(function(x){ return x; }).forEach(function(n){ p = p.then(function(d){ return d.getDirectoryHandle(n, {create:true}); }); });
+  return p;
+}
+function quitarVaciasRec(padre, nombre){
+  return padre.getDirectoryHandle(nombre).then(function(h){
+    return listarEntradas(h).then(function(ents){
+      var q = Promise.resolve(), otros = 0;
+      ents.forEach(function(e){
+        if(e.kind === "directory") q = q.then(function(){ return quitarVaciasRec(h, e.name); });
+        else if(e.name !== "_sesion.json" && e.name !== "_proyecto.json") otros++;
+      });
+      return q.then(function(){ return listarEntradas(h); }).then(function(rest){
+        var quedan = rest.filter(function(e){ return !(e.kind === "file" && (e.name === "_sesion.json" || e.name === "_proyecto.json")); }).length;
+        if(quedan === 0) return padre.removeEntry(nombre, {recursive:true}).then(function(){ return true; });
+        return false;
+      });
+    });
+  }).catch(function(){ return false; });
+}
 function planReorganizacion(dir){
-  var items = [], usadas = {};
-  function agregar(origen, dest, ses, ref){
+  var items = [], usadas = {}, sinReconocer = [];
+  function agregar(origen, dest, ses, fijar, esRegistro){
     if(usadas[origen]) return;
     var carpOrigen = origen.split("/").slice(0, -1).join("/");
     if(carpOrigen === dest) return;   // ya está donde corresponde
     usadas[origen] = 1;
-    items.push({origen:origen, destCarpeta:dest, ses:ses, ref:ref||null});
+    items.push({origen:origen, destCarpeta:dest, ses:ses, fijar:fijar||null, registro:!!esRegistro});
   }
-  // (a) fotos y videos con registro: <proyecto>/<sesión>/Fotos|Videos
+  // (a) lo que los registros dicen tener en la carpeta: original, copia reducida y track
   state.registros.forEach(function(r){
+    var ses = sesionPorId(r.sesionId), dest = null;
+    function ver(ruta, fijar){
+      if(!ruta || /^Descargas\//.test(ruta)) return;
+      if(!dest) dest = rutaDeRegistro(r, ses);
+      agregar(ruta, dest, ses, fijar, true);
+    }
     (r.fotos || []).concat(r.videos || []).forEach(function(f){
-      var partes = f && f.copiaLocal ? f.copiaLocal.split("/") : null;
-      if(!partes || partes.length < 2) return;
-      var k = -1;
-      for(var q = 0; q < partes.length - 1; q++){ if(partes[q] === "Fotos" || partes[q] === "Videos"){ k = q; break; } }
-      if(k < 0) return;
-      var ses = sesionPorId(r.sesionId);
-      if(!ses) return;
-      agregar(f.copiaLocal, rutaDeSesion(ses) + "/" + partes[k], ses, f);
+      if(!f) return;
+      ver(f.copiaLocal, function(n){ f.copiaLocal = n; });
+      ver(f.copiaRed, function(n){ f.copiaRed = n; });
     });
+    ver(r.gpxLocal, function(n){ r.gpxLocal = n; });
   });
-  var p = Promise.resolve();
-  function destinoTipo(ses, tipo){ return (ses ? carpetaProyectoDeSesion(ses) : CARPETA_VARIOS_PROYECTOS) + "/" + tipoCarpetaNuevo(tipo); }
-  // (b) estructura v2.52: Respaldos/, DarwinCore/, Mediciones/, Libreta/ en la raíz, con archivos sueltos o en subcarpetas por sesión
-  TIPOS_RESPALDO_ANTIGUOS.forEach(function(tipo){
-    p = p.then(function(){
-      return dir.getDirectoryHandle(tipo).then(function(th){
-        return listarEntradas(th).then(function(ents){
-          var q = Promise.resolve();
-          ents.forEach(function(e){
-            if(e.kind === "file"){
-              var ses = sesionPorNombreAntiguo(e.name, true);
-              agregar(tipo + "/" + e.name, destinoTipo(ses, tipo), ses, null);
-            } else {
-              var sesD = sesionPorNombreAntiguo(e.name, false);
-              q = q.then(function(){
-                return listarEntradas(e).then(function(sub){
-                  sub.forEach(function(g){
-                    if(g.kind !== "file") return;
-                    agregar(tipo + "/" + e.name + "/" + g.name, destinoTipo(sesD, tipo), sesD, null);
-                  });
-                });
-              });
-            }
-          });
-          return q;
-        });
-      }).catch(function(){});
-    });
+  (state.recorridos || []).forEach(function(rc){
+    if(!rc.gpxLocal) return;
+    var ses = sesionPorId(rc.sesionId), vj = viajePorId(rc.viajeId);
+    agregar(rc.gpxLocal, ses ? rutaDeSesion(ses) + "/Recorridos" : (vj ? rutaProyecto(vj) : C_SIN_PROYECTO) + "/Recorridos_de_ruta", ses, function(n){ rc.gpxLocal = n; }, false);
   });
-  // (c) estructura v2.57: <AAAA-MM-DD_Sesión>/, _Varias_sesiones/ y _Sin_sesion/ en la raíz
-  var SUBS = ["Fotos","Videos"].concat(TIPOS_RESPALDO_ANTIGUOS);
-  function archivosDeSubcarpetas(dirH, rutaBase, fn){
+  // (b) estructuras antiguas
+  function archivosDe(h, fn){
+    return listarEntradas(h).then(function(ents){ ents.forEach(function(e){ if(e.kind === "file") fn(e.name); }); });
+  }
+  function recorrerTipos(dirH, base, cont, ses){
     var q = Promise.resolve();
-    SUBS.forEach(function(sub){
+    TIPOS_EXPORT_ANTIGUOS.forEach(function(tipo){
+      q = q.then(function(){
+        return dirH.getDirectoryHandle(tipo).then(function(th){
+          return archivosDe(th, function(n){ agregar(base + "/" + tipo + "/" + n, destinoDeExportacion(cont, tipo, n), ses, null, false); });
+        }).catch(function(){});
+      });
+    });
+    return q;
+  }
+  function recorrerMedios(dirH, base, ses){
+    var q = Promise.resolve();
+    ["Fotos","Videos"].forEach(function(sub){
       q = q.then(function(){
         return dirH.getDirectoryHandle(sub).then(function(sh){
           return listarEntradas(sh).then(function(ents){
-            ents.forEach(function(e){ if(e.kind === "file") fn(rutaBase + "/" + sub + "/" + e.name, sub); });
+            var q2 = Promise.resolve();
+            ents.forEach(function(e){
+              if(e.kind === "file") agregar(base + "/" + sub + "/" + e.name, carpetaSinAsignar(ses), ses, null, false);
+              else {   // Fotos/<sesión>/archivo (v2.52)
+                var sesE = ses || sesionPorNombreAntiguo(e.name, false);
+                q2 = q2.then(function(){ return archivosDe(e, function(n){ agregar(base + "/" + sub + "/" + e.name + "/" + n, carpetaSinAsignar(sesE), sesE, null, false); }); });
+              }
+            });
+            return q2;
           });
         }).catch(function(){});
       });
     });
     return q;
   }
-  p = p.then(function(){
-    return listarEntradas(dir).then(function(raiz){
-      var q = Promise.resolve();
-      raiz.forEach(function(e){
-        if(e.kind !== "directory") return;
-        if(e.name === CARPETA_VARIAS){
-          q = q.then(function(){ return archivosDeSubcarpetas(e, e.name, function(origen, sub){ agregar(origen, CARPETA_VARIOS_PROYECTOS + "/" + tipoCarpetaNuevo(sub), null, null); }); });
-        } else if(e.name === CARPETA_SIN_SESION){
-          q = q.then(function(){ return archivosDeSubcarpetas(e, e.name, function(origen, sub){
-            agregar(origen, sub === "Fotos" || sub === "Videos" ? CARPETA_SIN_PROYECTO + "/" + CARPETA_SIN_SESION + "/" + sub : CARPETA_SIN_PROYECTO + "/" + tipoCarpetaNuevo(sub), null, null);
-          }); });
-        } else {
-          var ses = sesionDeCarpetaLocal(e.name);
-          if(!ses) return;
+  var p = listarEntradas(dir).then(function(raiz){
+    var q = Promise.resolve();
+    raiz.forEach(function(e){
+      if(e.kind !== "directory" || e.name === RAIZ_CARPETA) return;
+      var nom = e.name;
+      if(TIPOS_EXPORT_ANTIGUOS.indexOf(nom) >= 0){            // v2.52: Respaldos/, DarwinCore/… en la raíz
+        q = q.then(function(){
+          return archivosDe(e, function(n){ var ses = sesionPorNombreAntiguo(n, true); agregar(nom + "/" + n, destinoDeExportacion(ses ? contenedorDeSesion(ses) : CONTENEDOR_GENERAL, nom, n), ses, null, false); })
+            .then(function(){ return listarEntradas(e); }).then(function(ents){
+              var q2 = Promise.resolve();
+              ents.forEach(function(sd){ if(sd.kind === "directory"){ var ses = sesionPorNombreAntiguo(sd.name, false); q2 = q2.then(function(){ return archivosDe(sd, function(n){ agregar(nom + "/" + sd.name + "/" + n, destinoDeExportacion(ses ? contenedorDeSesion(ses) : CONTENEDOR_GENERAL, nom, n), ses, null, false); }); }); } });
+              return q2;
+            });
+        });
+      } else if(nom === "Fotos" || nom === "Videos"){
+        q = q.then(function(){ var tmp = {getDirectoryHandle:function(sub){ return sub === nom ? Promise.resolve(e) : Promise.reject(); }}; return recorrerMedios(tmp, "", null); });
+      } else if(nom === CARPETA_VARIAS || nom === CARPETA_VARIOS_PROYECTOS){
+        q = q.then(function(){ return recorrerTipos(e, nom, CONTENEDOR_GENERAL, null); });
+      } else if(nom === CARPETA_SIN_SESION){
+        q = q.then(function(){ return recorrerTipos(e, nom, contenedorDeSesion(null), null).then(function(){ return recorrerMedios(e, nom, null); }); });
+      } else if(nom === CARPETA_SIN_PROYECTO){
+        q = q.then(function(){
+          return recorrerTipos(e, nom, contenedorDeSesion(null), null).then(function(){ return listarEntradas(e); }).then(function(ents){
+            var q2 = Promise.resolve();
+            ents.forEach(function(sd){ if(sd.kind !== "directory") return; var ses = sesionDeCarpetaLocal(sd.name); if(ses) q2 = q2.then(function(){ return recorrerMedios(sd, nom + "/" + sd.name, ses); }); });
+            return q2;
+          });
+        });
+      } else {
+        var v = viajeDeCarpetaLocal(nom), sesV = sesionDeCarpetaLocal(nom);
+        if(v){                                                // v2.82: <Proyecto>/…
           q = q.then(function(){
-            return archivosDeSubcarpetas(e, e.name, function(origen, sub){
-              agregar(origen, sub === "Fotos" || sub === "Videos" ? rutaDeSesion(ses) + "/" + sub : carpetaProyectoDeSesion(ses) + "/" + tipoCarpetaNuevo(sub), ses, null);
+            return recorrerTipos(e, nom, contenedorDeProyecto(v), null).then(function(){ return listarEntradas(e); }).then(function(ents){
+              var q2 = Promise.resolve();
+              ents.forEach(function(sd){ if(sd.kind !== "directory") return; var ses = sesionDeCarpetaLocal(sd.name); if(ses) q2 = q2.then(function(){ return recorrerMedios(sd, nom + "/" + sd.name, ses); }); });
+              return q2;
             });
           });
-        }
-      });
-      return q;
+        } else if(sesV){                                      // v2.57: <AAAA-MM-DD_Sesión>/…
+          q = q.then(function(){ return recorrerTipos(e, nom, contenedorDeSesion(sesV), sesV).then(function(){ return recorrerMedios(e, nom, sesV); }); });
+        } else sinReconocer.push(nom);
+      }
     });
+    return q;
   }).catch(function(){});
-  return p.then(function(){ return items; });
+  return p.then(function(){ return {items:items, sinReconocer:sinReconocer}; });
 }
-var reorganizando = false;
+var reorganizando = false, informeOrden = "";
 function reorganizarCarpeta(){
   if(reorganizando) return;
   if(!soportaCarpeta()){ toast("Este navegador no permite trabajar con la carpeta", 4000); return; }
   carpetaConPermiso().then(function(dir){
     if(!dir){ toast("⚠️ No hay acceso a la carpeta: elígela de nuevo en Config", 5000); return; }
     toast("🔎 Revisando la carpeta…", 2500);
-    return planReorganizacion(dir).then(function(items){
-      if(!items.length){ toast("La carpeta ya está ordenada: no hay nada que mover", 4500); return; }
-      var nMed = items.filter(function(i){ return i.ref; }).length, nRes = items.length - nMed;
-      var nVarias = items.filter(function(i){ return !i.ses && !i.ref; }).length;
-      var msg = "Se moverán " + items.length + " archivos a la estructura por proyecto (Proyecto/Respaldos, Proyecto/AAAA-MM-DD_Sesión/Fotos, etc.):\n\n" +
-        "• " + nMed + " fotos y videos originales\n" +
-        "• " + nRes + " respaldos y planillas" + (nVarias ? " (" + nVarias + " sin sesión identificable irán a " + CARPETA_VARIOS_PROYECTOS + ")" : "") + "\n\n" +
-        "Cada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Las rutas de los registros se actualizan. Los archivos que la app no reconoce no se tocan.\n\n" +
-        "Conviene no cerrar la app mientras dura. ¿Continuar?";
+    return planReorganizacion(dir).then(function(plan){
+      var items = plan.items;
+      var nReg = items.filter(function(i){ return i.registro; }).length, nExp = items.length - nReg;
+      var msg = "ORDENAR CARPETA LOCAL\n\nSe revisará «" + dir.name + "/" + RAIZ_CARPETA + "» y se dejará con esta forma: Proyectos > Sesiones > Registros, con las exportaciones, bitácoras, recorridos y capas en su lugar.\n\n" +
+        (items.length ? "• Se moverán " + items.length + " archivo(s): " + nReg + " de registros (fotos, videos, tracks) y " + nExp + " respaldos, planillas o bitácoras.\n" : "• No hay archivos por mover.\n") +
+        "• Se completarán las copias reducidas de las fotos, los tracks, los recorridos grabados y las capas que falten.\n" +
+        (plan.sinReconocer.length ? "• No se tocarán " + plan.sinReconocer.length + " carpeta(s) que la app no reconoce: " + plan.sinReconocer.slice(0, 5).join(", ") + (plan.sinReconocer.length > 5 ? "…" : "") + ".\n" : "") +
+        "\nCada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Se puede repetir las veces que quieras. No cierres la app mientras dura. ¿Continuar?";
       if(!confirm(msg)) return;
       reorganizando = true;
-      var res = {movidos:0, fallidos:0, ausentes:0}, tocadas = {}, hechos = 0;
-      var seq = Promise.resolve();
+      var res = {movidos:0, fallidos:0, ausentes:0}, tocadas = {}, hechos = 0, seq = Promise.resolve();
       items.forEach(function(it){
         seq = seq.then(function(){
           return moverArchivoEnCarpeta(dir, it.origen, it.destCarpeta).then(function(nueva){
             if(nueva === null){ res.ausentes++; }
-            else { res.movidos++; if(it.ref) it.ref.copiaLocal = nueva; if(it.ses) tocadas[it.ses.id] = it.ses; }
+            else {
+              res.movidos++;
+              var ruta = typeof nueva === "string" ? nueva : it.destCarpeta + "/" + nueva.nom;
+              if(it.fijar) it.fijar(ruta);
+              if(it.ses) tocadas[it.ses.id] = it.ses;
+            }
           }).catch(function(){ res.fallidos++; }).then(function(){
             hechos++;
-            if(hechos % 20 === 0){ guardarRegistros(); toast("🗂 Moviendo… " + hechos + " de " + items.length, 1500); }
+            if(hechos % 20 === 0){ guardarRegistros(); guardarRecorridos(); toast("🗂 Moviendo… " + hechos + " de " + items.length, 1500); }
           });
         });
       });
       return seq.then(function(){
-        guardarRegistros();
-        var m = Promise.resolve();
-        var vistosV = {};
+        guardarRegistros(); guardarRecorridos();
+        // esqueleto de la raíz: solo carpetas por tipo, ningún archivo suelto
+        return Promise.all([C_PROYECTOS, C_SIN_PROYECTO, C_GENERALES, C_CAPAS_IND].map(function(r){ return asegurarCarpeta(dir, r).catch(function(){}); }));
+      }).then(function(){
+        // marcadores de todas las sesiones con registros y de sus proyectos
+        var m = Promise.resolve(), vistosV = {};
+        state.sesiones.forEach(function(ses){
+          if(!tocadas[ses.id] && ses.carpetaLocal && state.registros.some(function(r){ return r.sesionId === ses.id; })) tocadas[ses.id] = ses;
+        });
         Object.keys(tocadas).forEach(function(id){
           m = m.then(function(){ return escribirMarcadorSesion(dir, tocadas[id]); }).then(function(){
             var v = viajePorId(tocadas[id].viajeId);
             if(v && !vistosV[v.id]){ vistosV[v.id] = 1; return escribirMarcadorProyecto(dir, v); }
           });
         });
-        // carpetas de sesión de la estructura v2.57 y carpetas especiales antiguas: se quitan si quedaron vacías
-        m = m.then(function(){
-          return listarEntradas(dir).then(function(raiz){
-            var q = Promise.resolve();
-            raiz.forEach(function(e){
-              if(e.kind !== "directory") return;
-              if(e.name !== CARPETA_VARIAS && e.name !== CARPETA_SIN_SESION && !sesionDeCarpetaLocal(e.name)) return;
-              q = q.then(function(){
-                return listarEntradas(e).then(function(subs){
-                  var r2 = Promise.resolve();
-                  subs.forEach(function(x){ if(x.kind === "directory") r2 = r2.then(function(){ return quitarCarpetaSiVacia(e, x.name, false); }); });
-                  return r2;
-                }).then(function(){ return quitarCarpetaSiVacia(dir, e.name, true); });
-              });
-            });
-            return q;
-          });
-        }).catch(function(){});
-        // quitar carpetas antiguas que quedaron vacías
-        TIPOS_RESPALDO_ANTIGUOS.concat(["Fotos","Videos"]).forEach(function(tipo){
-          m = m.then(function(){
-            return dir.getDirectoryHandle(tipo).then(function(th){
-              return listarEntradas(th).then(function(ents){
-                var q = Promise.resolve();
-                ents.forEach(function(e){ if(e.kind === "directory") q = q.then(function(){ return quitarCarpetaSiVacia(th, e.name, false); }); });
-                return q;
-              });
-            }).then(function(){ return quitarCarpetaSiVacia(dir, tipo, false); }).catch(function(){});
-          });
-        });
         return m;
       }).then(function(){
+        toast("🗂 Completando copias reducidas, tracks, recorridos y capas…", 3000);
+        return sincronizarComplementos(dir, {verificar:true, capas:true});
+      }).then(function(comp){
+        // quitar las carpetas antiguas que quedaron vacías
+        return listarEntradas(dir).then(function(raiz){
+          var q = Promise.resolve();
+          raiz.forEach(function(e){
+            if(e.kind !== "directory" || e.name === RAIZ_CARPETA) return;
+            var reconocida = TIPOS_EXPORT_ANTIGUOS.concat(["Fotos","Videos",CARPETA_VARIAS,CARPETA_SIN_SESION,CARPETA_SIN_PROYECTO,CARPETA_VARIOS_PROYECTOS]).indexOf(e.name) >= 0 || viajeDeCarpetaLocal(e.name) || sesionDeCarpetaLocal(e.name);
+            if(reconocida) q = q.then(function(){ return quitarVaciasRec(dir, e.name); });
+          });
+          return q;
+        }).then(function(){ return comp; });
+      }).then(function(comp){
         reorganizando = false;
-        var t = "✅ Carpeta reorganizada: " + res.movidos + " archivos movidos";
-        if(res.ausentes) t += ", " + res.ausentes + " no se encontraron";
-        if(res.fallidos) t += ", " + res.fallidos + " con error (se pueden reintentar)";
-        toast(t, 7000);
+        var t = "Último orden (" + new Date().toLocaleString("es-CL") + "): " + res.movidos + " archivo(s) movido(s)";
+        if(comp.fotos) t += ", " + comp.fotos + " copia(s) reducida(s)";
+        if(comp.tracks) t += ", " + comp.tracks + " track(s)";
+        if(comp.recorridos) t += ", " + comp.recorridos + " recorrido(s)";
+        if(comp.capas) t += ", " + comp.capas + " capa(s)";
+        if(res.ausentes) t += ". " + res.ausentes + " no se encontraron (la ruta anotada ya no existe)";
+        if(res.fallidos || comp.fallos) t += ". " + (res.fallidos + comp.fallos) + " con error: vuelve a ordenar para reintentar";
+        if(plan.sinReconocer.length) t += ". Sin tocar (no reconocidas): " + plan.sinReconocer.join(", ");
+        t += ".";
+        informeOrden = t;
+        toast("✅ Carpeta ordenada: " + res.movidos + " archivos movidos", 6000);
         try{ renderConfigCopia(); }catch(e){}
       });
     });
-  }).catch(function(){ reorganizando = false; toast("⚠️ No se pudo reorganizar la carpeta", 5000); });
+  }).catch(function(){ reorganizando = false; toast("⚠️ No se pudo ordenar la carpeta", 5000); });
 }
 function eliminarSesionConRegistros(id){
   var s = sesionPorId(id);
@@ -12146,7 +12310,7 @@ document.getElementById("btn-descargar-unificado").addEventListener("click", fun
   var nomUni = nombreDescarga("todas_las_sesiones", "respaldo_unificado", "json");
   a.href=url; a.download=nomUni;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  copiarARespaldos("Respaldos", nomUni, blob, CARPETA_VARIOS_PROYECTOS);
+  copiarARespaldos("Respaldos", nomUni, blob, C_GENERALES);
   toast("Respaldo unificado descargado");
 });
 
