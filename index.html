@@ -323,9 +323,15 @@ html[data-tema="noche"] .campo-proximo b{color:var(--verde);}
 .codigo-inline:focus{outline:none; border-bottom-style:solid; border-bottom-color:var(--rojo);}
 
 /* ---- Sección secundaria colapsable: datos generales del registro ---- */
-.dg-box{background:#eeece4; border:1.5px solid var(--borde); border-radius:14px; overflow:hidden; box-shadow:inset 6px 0 0 var(--verde), 0 2px 7px rgba(0,0,0,.12);}
+.dg-box{margin-bottom:18px; background:#eeece4; border:1.5px solid var(--borde); border-radius:14px; overflow:hidden; box-shadow:inset 6px 0 0 var(--verde), 0 2px 7px rgba(0,0,0,.12);}
 html[data-tema="noche"] .dg-box{background:#1c1a14;}
 .dg-header{width:100%; background:var(--verde-cl); border:none; padding:18px 16px; display:flex; justify-content:space-between; align-items:center; font-size:1.05rem; font-weight:800; color:var(--texto); cursor:pointer;}
+.dg-header{text-align:left;}
+#dg-resumen{display:flex; flex-direction:column; gap:5px; min-width:0; flex:1;}
+#dg-resumen .dgr-fila{display:flex; align-items:center; gap:9px;}
+#dg-resumen .dgr-ic{width:30px; height:30px; border-radius:50%; background:var(--verde); color:#fff; font-size:1rem; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+#dg-resumen .dgr-tipo{font-size:.95rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--verde-osc);}
+#dg-resumen .dgr-col{margin-left:39px; font-size:.88rem; font-weight:600; color:var(--texto-sec); overflow-wrap:anywhere;}
 .dg-chev{transition:transform .2s; font-size:1.6rem; color:var(--verde); flex-shrink:0; margin-left:10px;}
 .dg-box.abierto .dg-chev{transform:rotate(180deg);}
 .dg-body{display:none; padding:4px 14px 16px;}
@@ -636,7 +642,11 @@ details.mas-opciones[open] > summary{opacity:1; margin-bottom:8px;}
 .muestra-tab.on{background:var(--verde); color:#fff;}
 /* campo bloqueado (N° individuos en muestra mixta) */
 input.campo-bloqueado, input.campo-bloqueado:read-only{background:var(--borde); color:var(--texto-sec); border-style:dashed; cursor:not-allowed; opacity:.8; pointer-events:none; -webkit-user-select:none; user-select:none;}
-.comp-fila{border:1.5px solid var(--borde); border-radius:10px; padding:6px 4px 4px 6px; margin:6px 0; background:var(--card);}
+.comp-fila{border:1.5px solid var(--borde); border-left:5px solid var(--verde); border-radius:10px; padding:6px 4px 4px 6px; margin:10px 0; background:var(--card);}
+.comp-n{flex:none; width:26px; height:26px; border-radius:50%; background:var(--verde); color:#fff; font-size:.8rem; font-weight:800; display:flex; align-items:center; justify-content:center;}
+html[data-tema="noche"] .comp-n{color:#0f1a13;}
+.narr-especies-lista.comp-lista-num{list-style:none; padding-left:0;}
+.narr-especies-lista.comp-lista-num .comp-n{display:inline-flex; width:22px; height:22px; font-size:.72rem; margin-right:7px; vertical-align:middle;}
 .comp-linea{display:flex; align-items:center; gap:6px;}
 .comp-linea .field{margin:0;}
 .comp-linea .field.f-tax{flex:1; min-width:0; margin:0;}
@@ -758,6 +768,7 @@ html[data-tema="noche"] .viaje-sin{background:#4a4126; color:#f1ead3;}
 .narr-sesion-header{align-items:center; flex-wrap:wrap; margin-top:18px; padding:9px 10px 9px 12px; row-gap:6px;}
 .narr-sesion-titulo{font-size:1.06rem; padding-top:0; flex:1 1 100%;}
 .narr-sesion-titulo .cnt{font-weight:400; color:var(--texto-sec); font-size:.9rem;}
+.rango-ses{display:inline-block; vertical-align:middle; margin-left:4px; padding:1px 8px; border-radius:10px; border:1px solid var(--borde); background:var(--card); color:var(--verde-osc); font-family:ui-monospace,monospace; font-size:.7rem; font-weight:700; letter-spacing:0; line-height:1.5; white-space:nowrap;}
 .narr-sesion-acciones{flex-direction:row; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px; flex:1 1 auto; max-width:100%;}
 .narr-sesion-acciones .sa-izq, .narr-sesion-acciones .sa-der{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
 .narr-sesion-acciones .sa-der{margin-left:auto; justify-content:flex-end;}
@@ -871,7 +882,9 @@ body.modo-visor .rc-b[data-rc-acc="mover"], body.modo-visor .rc-b[data-rc-acc="b
 #det-proyectos textarea{width:100%; box-sizing:border-box;}
 /* v2.69 · Consultando: código siempre visible en la barra superior, etiquetas sobre la sesión */
 .topbar-cons{flex-wrap:wrap; row-gap:8px;}
-.cons-codigo-top{background:var(--verde-cl); color:var(--verde-osc); border:1.5px solid var(--verde); border-radius:10px 10px 0 0; border-bottom:0; padding:6px 12px; margin:10px 0 0; font-family:ui-monospace,monospace; font-weight:800; font-size:1.55rem; line-height:1.2; letter-spacing:.02em; overflow-wrap:anywhere; text-align:center;}
+.cons-codigo-top{position:sticky; top:var(--cons-top,64px); z-index:15; box-shadow:0 3px 6px rgba(0,0,0,.18); background:var(--verde-cl); color:var(--verde-osc); border:1.5px solid var(--verde); border-radius:10px 10px 0 0; border-bottom:0; padding:6px 12px; margin:10px 0 0; font-family:ui-monospace,monospace; font-weight:800; font-size:1.55rem; line-height:1.2; letter-spacing:.02em; overflow-wrap:anywhere; text-align:center;}
+.cons-codigo-top{display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden;}
+.cons-codigo-top.larga{font-size:1.1rem; line-height:1.25;}
 .cons-codigo-top + .narr-entrada{margin-top:0; border-top-left-radius:0; border-top-right-radius:0;}
 .cons-chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; justify-content:flex-start;}
 html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; border-color:#4a6b57;}
@@ -4109,7 +4122,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-21 · v2.93";
+var APP_BUILD = "2026-11-22 · v2.94";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -5447,7 +5460,7 @@ function nombreRegistroLista(r){
 function htmlComponentesRegistro(r){
   var comps = componentesDeRegistro(r);
   if(!comps.length) return "";
-  var items = comps.map(function(c){
+  var items = comps.map(function(c, ci){
     var det = [];
     if(c.condicion) det.push(etiquetaConservacion(c.condicion));
     if(c.referencia) det.push("microhábitat: " + c.referencia);
@@ -5455,10 +5468,10 @@ function htmlComponentesRegistro(r){
     if(c.metodo) det.push("método: " + c.metodo);
     if(c.tejido) det.push("🧬 tejido");
     var n = parseInt(c.nind, 10);
-    return '<li>' + escapeHtml(c.taxon || "(sin nombre)") + (n > 0 ? (' <b>— ' + n + (n==1 ? ' ejemplar' : ' ejemplares') + '</b>') : '') +
+    return '<li><span class="comp-n" aria-label="Taxón '+(ci+1)+'">'+(ci+1)+'</span>' + escapeHtml(c.taxon || "(sin nombre)") + (n > 0 ? (' <b>— ' + n + (n==1 ? ' ejemplar' : ' ejemplares') + '</b>') : '') +
       (det.length ? (' <span class="comp-det">· ' + escapeHtml(det.join(" · ")) + '</span>') : '') + '</li>';
   }).join("");
-  return '<div class="narr-linea"><b>Muestra mixta:</b> ' + comps.length + (comps.length===1 ? ' taxón' : ' taxones') + '</div><ul class="narr-especies-lista">' + items + '</ul>';
+  return '<div class="narr-linea"><b>Muestra mixta:</b> ' + comps.length + (comps.length===1 ? ' taxón' : ' taxones') + '</div><ul class="narr-especies-lista comp-lista-num">' + items + '</ul>';
 }
 // Texto que acompaña a cada fila exportada de una muestra mixta (columna observaciones y occurrenceRemarks)
 function textoMuestraMixta(r){
@@ -5609,6 +5622,24 @@ function renderLista(justSavedId){
 }
 var modoReordenarRegistros = false;
 var listaSesionesColapsadas = new Set(); // ids de sesión colapsadas en la vista Lista (no persiste entre recargas)
+/* v2.94: rango de números de campo de una sesión (los de todos sus registros), para la etiqueta pequeña del encabezado */
+function rangoNumerosSesion(sesionId){
+  var grupos = {}, orden = [];
+  state.registros.forEach(function(r){
+    if(r.sesionId !== sesionId || !r.codigo) return;
+    var m = /^(.*?)(\d+)$/.exec(String(r.codigo).trim());
+    if(!m) return;
+    var k = m[1], n = parseInt(m[2],10), w = m[2].length;
+    if(!grupos[k]){ grupos[k] = {min:n, max:n, w:w}; orden.push(k); }
+    else { if(n < grupos[k].min) grupos[k].min = n; if(n > grupos[k].max) grupos[k].max = n; if(w > grupos[k].w) grupos[k].w = w; }
+  });
+  var partes = orden.map(function(k){
+    var g = grupos[k];
+    return g.min === g.max ? (k + pad(g.min, g.w)) : (k + pad(g.min, g.w) + " – " + k + pad(g.max, g.w));
+  });
+  if(partes.length > 2) partes = partes.slice(0,2).concat(["+" + (partes.length-2)]);
+  return partes.join(" · ");
+}
 function toggleColapsoSesionLista(sesionId){
   if(listaSesionesColapsadas.has(sesionId)) listaSesionesColapsadas.delete(sesionId); else listaSesionesColapsadas.add(sesionId);
   renderLista();
@@ -5661,7 +5692,7 @@ function renderListaTarjetas(lista, justSavedId){
         ? ('<span class="sa-izq">'+(g.registros.length ? '<button type="button" class="btn-colapsar-sesion" data-sel-todos="'+escapeHtml(g.sesionId)+'">☑ Todos</button>' : '')+'</span><span class="sa-der">'+btnColapsar+'</span>')
         : ('<span class="sa-izq">'+botonFinalizarInlineHtml(g.sesionId)+restaurarHtml+'</span><span class="sa-der">'+btnColapsar+'</span>');
       var headerHtml = '<div class="narr-sesion-header">' +
-        '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span class="cnt">('+g.registros.length+')</span></span>' +
+        '<span class="narr-sesion-titulo">'+escapeHtml(etiquetaSesionCorta(g.sesionId))+' <span class="cnt">('+g.registros.length+')</span>'+(function(){ var rg = rangoNumerosSesion(g.sesionId); return rg ? ' <span class="rango-ses" title="Números de campo de esta sesión">'+escapeHtml(rg)+'</span>' : ''; })()+'</span>' +
         '<span class="narr-sesion-acciones">'+accHtml+'</span>' +
       '</div>';
       if(colapsada) return headerHtml;
@@ -7514,7 +7545,7 @@ function htmlComponente(c, i){
   var abierto = (c.condicion || c.referencia || c.interacciones || c.metodo) ? ' open' : '';
   var metOtro = !!c.metodo && METODOS_COLECCION.indexOf(c.metodo) < 0;
   return '<div class="comp-fila" data-cid="'+escapeHtml(c.id || "")+'">'+
-    '<div class="comp-linea"><div class="field f-tax"><input type="text" class="comp-taxon" spellcheck="true" list="dl-taxon" placeholder="Nombre del taxón" value="'+escapeHtml(c.taxon || "")+'"></div>'+
+    '<div class="comp-linea"><span class="comp-n" title="Taxón '+(i+1)+' de la muestra: así puedes citarlo en los comentarios de las fotos" aria-label="Taxón '+(i+1)+'">'+(i+1)+'</span><div class="field f-tax"><input type="text" class="comp-taxon" spellcheck="true" list="dl-taxon" placeholder="Nombre del taxón" value="'+escapeHtml(c.taxon || "")+'"></div>'+
     '<div class="field f-n"><input type="number" class="comp-nind" min="0" inputmode="numeric" placeholder="N°" aria-label="N° individuos" value="'+escapeHtml(c.nind != null ? String(c.nind) : "")+'"></div>'+
     '<button type="button" class="comp-x" aria-label="Quitar este taxón">✕</button></div>'+
     '<details class="comp-detalle"'+abierto+'><summary>Detalle: tejido, conservación y más</summary>'+
@@ -7564,7 +7595,7 @@ function renderComponentes(){
   aplicarModoCompuesta();
 }
 function renumerarComponentes(){
-  Array.prototype.forEach.call(document.querySelectorAll("#comp-lista .comp-num"), function(b, i){ b.textContent = "Taxón " + (i+1); });
+  Array.prototype.forEach.call(document.querySelectorAll("#comp-lista .comp-n"), function(b, i){ b.textContent = String(i+1); b.title = "Taxón " + (i+1) + " de la muestra: así puedes citarlo en los comentarios de las fotos"; b.setAttribute("aria-label", "Taxón " + (i+1)); });
 }
 document.getElementById("f-compuesta").addEventListener("change", function(){
   var d = state.draft; if(!d) return;
@@ -7735,7 +7766,7 @@ function actualizarResumenDg(){
   var tipo = document.getElementById("f-tipo").value;
   var ti = TIPOS[tipo]||TIPOS.nota;
   var colectorTxt = obtenerColectorSeleccionado() || "sin colector";
-  document.getElementById("dg-resumen").textContent = ti.ic+" "+ti.label+" · "+colectorTxt;
+  document.getElementById("dg-resumen").innerHTML = '<span class="dgr-fila"><span class="dgr-ic" aria-hidden="true">'+ti.ic+'</span><span class="dgr-tipo">'+escapeHtml(ti.label)+'</span></span><span class="dgr-col">'+escapeHtml(colectorTxt)+'</span>';
   var etiquetas = {coleccion:"Colector", observacion:"Observador", medicion:"Observador", nota:"Observador"};
   document.getElementById("label-colector").textContent = "👥 " + (etiquetas[tipo] || "Colector / observador") + " (marca quién participó)";
 }
@@ -8217,6 +8248,13 @@ function sincronizarOpcionesConsulta(r){
     chkP.checked = !!state.pantallaActiva; chkP.disabled = false; op.classList.remove("desactivada");
   }
 }
+/* v2.94: el número de campo o el título de la nota queda fijo bajo la barra superior mientras se baja por el registro */
+function fijarAlturaBarraConsulta(){
+  var tb = document.querySelector("#s-consulta .topbar-cons");
+  var h = tb ? tb.offsetHeight : 0;
+  if(h) document.getElementById("s-consulta").style.setProperty("--cons-top", (h - 1) + "px");
+}
+window.addEventListener("resize", function(){ if(document.getElementById("s-consulta").classList.contains("on")) fijarAlturaBarraConsulta(); });
 function renderConsulta(id){
   var r = state.registros.filter(function(x){return x.id===id;})[0];
   var cont = document.getElementById("consulta-tarjeta");
@@ -8228,6 +8266,8 @@ function renderConsulta(id){
   cont.className = "narr-entrada" + claseNota(r);
   var elCod = document.getElementById("consulta-codigo"), identCons = r.codigo || r.notaTitulo || "";
   elCod.textContent = identCons; elCod.style.display = identCons ? "" : "none";
+  elCod.classList.toggle("larga", identCons.length > 28); elCod.title = identCons;
+  fijarAlturaBarraConsulta();
   var listaNav = listaNavegacionConsulta();
   var idxNav = listaNav.findIndex(function(x){ return x.id===id; });
   posEl.textContent = (idxNav>=0 ? ("Registro "+(idxNav+1)+" de "+listaNav.length+(state.consultaFiltro.pendientes ? " por transcribir" : "")+" — ") : "") + "desliza a los lados para cambiar";
