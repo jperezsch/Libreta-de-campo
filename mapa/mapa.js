@@ -636,6 +636,15 @@ async function capasVinculadas(idsSesiones, idsViajes) {
   }
   return res;
 }
+/* v2.95: todas las capas locales (vinculadas o no), para copiarlas a la carpeta del teléfono */
+async function capasTodas() {
+  var res = [];
+  for (var i = 0; i < capasLoc.length; i++) {
+    var en = capasLoc[i];
+    try { res.push({ id: en.id, nombre: en.nombre, vinculo: en.vinculo || "", fc: await leerCapaFC(en) }); } catch (e) { anotarError("capa " + en.nombre, e); }
+  }
+  return res;
+}
 async function eliminarCapaLocal(id) {
   var c = capasLoc.filter(function (x) { return x.id === id; })[0]; if (!c) return;
   await Alm.borrar(c.archivo); delete capasCache[c.archivo];
@@ -3402,7 +3411,7 @@ window.MapaPro = {
   init: init, alMostrar: alMostrar, alOcultar: alOcultar, renderAsociado: renderAsociado,
   abrirGestor: abrirGestor, alDesactivar: alDesactivar, verPunto: verPunto, verRecorrido: verRecorrido, elegirCoordenada: elegirCoordenada,
   /* para pruebas */
-  capasVinculadas: capasVinculadas,
+  capasVinculadas: capasVinculadas, capasTodas: capasTodas,
   _debug: function () { return { listo: function () { return mapaListo; }, capasActualesRef: function () { return capasActuales; }, fcAGpx: fcAGpx, fcACsv: fcACsv, descargarCapaLocal: descargarCapaLocal, capasLocRef: function () { return capasLoc; }, importarCapaLocal: importarCapaLocal, altitudAprox: altitudAprox, iniciarRutaManual: iniciarRutaManual, guardarPuntosComoCapa: guardarPuntosComoCapa, marcarPuntoManual: marcarPuntoManual, avanzarRuta: avanzarRuta, actualizarNavegacion: actualizarNavegacion, geoNav: geoNav, nav: nav, capas: capasActuales, capasLoc: capasLoc, map: map, inst: inst, Alm: Alm, metricas: metricas, errores: errores, estiloFirma: estiloFirma, relieveNombres: relieveNombres, construirEstilo: construirEstilo, verMapa: verMapa, aplicarMapas: aplicarMapas, gps: gps, rumbo: rumbo, geoPuntos: geoPuntos, geoTracks: geoTracks, geoVivo: geoVivo, conjuntosPuntos: conjuntosPuntos, rumboDispositivo: rumboDispositivo, alOrientacion: alOrientacion, encenderRumbo: encenderRumbo, apagarRumbo: apagarRumbo, refrescarVivo: refrescarVivo, renderPanelPuntos: renderPanelPuntos, grab: grab, iniciarGrabacion: iniciarGrabacion, detenerGrabacion: detenerGrabacion, geoRecorridos: geoRecorridos, grabPunto: grabPunto, refrescarRecorridos: refrescarRecorridos, borrarRecorrido: borrarRecorrido, chipGrab: chipGrab, marcarPuntoManual: marcarPuntoManual, quitarPuntoManual: quitarPuntoManual, quitarTodosManuales: quitarTodosManuales, seleccionarPuntoManual: seleccionarPuntoManual, puntosManuales: function () { return puntosManuales; }, csvAGeoJSON: csvAGeoJSON, normalizarFC: normalizarFC, geoCapas: geoCapas, panelEstiloCapa: panelEstiloCapa, tipoPorNombre: tipoPorNombre, omitidas: function () { return csvOmitidas; } }; }
 };
 })();
