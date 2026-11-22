@@ -4126,7 +4126,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-22 · v2.96";
+var APP_BUILD = "2026-11-22 · v2.98";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -11036,21 +11036,32 @@ function asegurarCarpeta(dir, ruta){
   String(ruta).split("/").filter(function(x){ return x; }).forEach(function(n){ p = p.then(function(d){ return d.getDirectoryHandle(n, {create:true}); }); });
   return p;
 }
-function quitarVaciasRec(padre, nombre){
-  return padre.getDirectoryHandle(nombre).then(function(h){
-    return listarEntradas(h).then(function(ents){
-      var q = Promise.resolve(), otros = 0;
-      ents.forEach(function(e){
-        if(e.kind === "directory") q = q.then(function(){ return quitarVaciasRec(h, e.name); });
-        else if(e.name !== "_sesion.json" && e.name !== "_proyecto.json") otros++;
-      });
-      return q.then(function(){ return listarEntradas(h); }).then(function(rest){
-        var quedan = rest.filter(function(e){ return !(e.kind === "file" && (e.name === "_sesion.json" || e.name === "_proyecto.json")); }).length;
-        if(quedan === 0) return padre.removeEntry(nombre, {recursive:true}).then(function(){ return true; });
-        return false;
+function esMarcadorAntiguo(n){ return n === "_sesion.json" || n === "_proyecto.json"; }
+function borrarArbolManual(h){
+  return listarEntradas(h).then(function(ents){
+    var q = Promise.resolve();
+    ents.forEach(function(e){
+      q = q.then(function(){
+        if(e.kind === "directory") return borrarArbolManual(e).then(function(){ return h.removeEntry(e.name); });
+        return h.removeEntry(e.name);
       });
     });
-  }).catch(function(){ return false; });
+    return q;
+  });
+}
+/* v2.97: quita la carpeta si no contiene nada más que marcadores (_sesion.json, _proyecto.json) y subcarpetas vacías.
+   Si el borrado recursivo falla (Android), borra archivo por archivo. Los errores se anotan en errs para el informe. */
+function quitarVaciasRec(padre, nombre, errs){
+  function anotar(x, donde){ if(errs) errs.push(donde + ": " + ((x && x.name) || "error") + ((x && x.message) ? " (" + String(x.message).slice(0, 70) + ")" : "")); }
+  return padre.getDirectoryHandle(nombre).then(function(h){
+    var out = [];
+    return listarArchivosRec(h, "", out).then(function(){
+      if(out.some(function(r){ return !esMarcadorAntiguo(r.split("/").pop()); })) return false;   // hay archivos de verdad: no se toca
+      return padre.removeEntry(nombre, {recursive:true}).then(function(){ return true; }).catch(function(){
+        return borrarArbolManual(h).then(function(){ return padre.removeEntry(nombre); }).then(function(){ return true; }).catch(function(y){ anotar(y, nombre); return false; });
+      });
+    });
+  }).catch(function(x){ if(!(x && x.name === "NotFoundError")) anotar(x, nombre); return false; });
 }
 function planReorganizacion(dir){
   var items = [], usadas = {}, sinReconocer = [], huerfanas = [], errores = [];
@@ -11270,6 +11281,25 @@ function moverItemsOrden(dir, items, res, tocadas, progreso){
   });
   return seq.then(function(){ guardarRegistros(); guardarRecorridos(); });
 }
+/* v2.98: ¿hay en la estructura nueva un archivo con el mismo nombre y tamaño? Entonces el de la carpeta antigua ya está respaldado. */
+function mapaDeNuevaEstructura(dir){
+  var mapa = {};
+  return dir.getDirectoryHandle(RAIZ_CARPETA).then(function(rh){
+    var out = [];
+    return listarArchivosRec(rh, RAIZ_CARPETA + "/", out).then(function(){ out.forEach(function(r){ var n = r.split("/").pop(); (mapa[n] = mapa[n] || []).push(r); }); });
+  }).catch(function(){}).then(function(){ return mapa; });
+}
+function copiaIdenticaEnNueva(dir, origen, mapa){
+  var nombre = origen.split("/").pop(), cands = (mapa[nombre] || []).filter(function(r){ return r !== origen; });
+  if(!cands.length) return Promise.resolve(false);
+  return archivoDeCarpeta(dir, origen).then(function(fo){
+    var q = Promise.resolve(false);
+    cands.slice(0, 20).forEach(function(c){
+      q = q.then(function(ya){ if(ya) return true; return archivoDeCarpeta(dir, c).then(function(fc){ return fc.size === fo.size; }).catch(function(){ return false; }); });
+    });
+    return q;
+  }).catch(function(){ return false; });
+}
 /* Lo que quede dentro de carpetas antiguas y no tenga lugar conocido se traslada (copiar, verificar, borrar) a 02_Sin_proyecto/Sin_clasificar/<ruta antigua>.
    También los archivos sueltos en la raíz «Libreta de Campo». Así nada se pierde y la carpeta antigua puede quitarse. */
 function barrerRestosAntiguos(dir, res, progreso){
@@ -11291,13 +11321,19 @@ function barrerRestosAntiguos(dir, res, progreso){
         ents.forEach(function(x){ if(x.kind === "file") lista.push({origen:RAIZ_CARPETA + "/" + x.name, dest:C_SIN_CLASIFICAR + "/_raiz"}); });
       });
     }).catch(function(){});
-  }).then(function(){
+  }).then(function(){ return mapaDeNuevaEstructura(dir); }).then(function(mapa){
     var q = Promise.resolve(), h = 0;
+    function fallo(it, motivo){ res.fallidos++; if(res.nombresFallidos.length < 5) res.nombresFallidos.push(it.origen + (motivo ? " (" + motivo + ")" : "")); }
     lista.forEach(function(it){
       q = q.then(function(){
         if(cancelarOrden) return;
-        return moverArchivoEnCarpeta(dir, it.origen, it.dest).then(function(n){ if(n) res.restos++; }).catch(function(){ res.fallidos++; if(res.nombresFallidos.length < 5) res.nombresFallidos.push(it.origen); })
-          .then(function(){ h++; progreso(h, lista.length, it.origen); });
+        return copiaIdenticaEnNueva(dir, it.origen, mapa).then(function(dup){
+          var partes = it.origen.split("/"), nombre = partes.pop();
+          if(dup){   // ya está respaldado en la estructura nueva: se quita el sobrante
+            return subDirDe(dir, partes).then(function(d){ return d.removeEntry(nombre); }).then(function(){ res.duplicados++; });
+          }
+          return moverArchivoEnCarpeta(dir, it.origen, it.dest).then(function(n){ if(n) res.restos++; else fallo(it, "no se pudo abrir"); });
+        }).catch(function(x){ fallo(it, x && x.name); }).then(function(){ h++; progreso(h, lista.length, it.origen); });
       });
     });
     return q;
@@ -11309,7 +11345,7 @@ function limpiarAntiguasVacias(dir, res, progreso){
     antiguas.forEach(function(e){
       q = q.then(function(){
         if(cancelarOrden) return;
-        return quitarVaciasRec(dir, e.name).then(function(ok){ if(ok) res.carpetasQuitadas++; }).then(function(){ h++; progreso(h, antiguas.length, e.name); });
+        return quitarVaciasRec(dir, e.name, res.errRem).then(function(ok){ if(ok) res.carpetasQuitadas++; }).then(function(){ h++; progreso(h, antiguas.length, e.name); });
       });
     });
     return q;
@@ -11337,7 +11373,7 @@ function reorganizarCarpeta(){
         "\nCada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Verás una barra de progreso y la pantalla se mantendrá encendida. Se puede detener y repetir. ¿Continuar?";
       if(!confirm(msg)){ progOrden = null; pintarProgresoOrden(); return; }
       reorganizando = true; actualizarWakeLock(); pintarProgresoOrden();
-      var res = {movidos:0, fallidos:0, ausentes:0, restos:0, carpetasQuitadas:0, nombresFallidos:[]}, tocadas = {}, errores = [], comp = {fotos:0, tracks:0, recorridos:0, capas:0, fallos:0};
+      var res = {movidos:0, fallidos:0, ausentes:0, restos:0, carpetasQuitadas:0, nombresFallidos:[], errRem:[], duplicados:0}, tocadas = {}, errores = [], comp = {fotos:0, tracks:0, recorridos:0, capas:0, fallos:0};
       var vistaFinal = {pend:0, antiguas:[], raizSueltos:0, plan:null};
       function etapa(nombre, fn){
         return function(){
@@ -11392,11 +11428,15 @@ function reorganizarCarpeta(){
             .then(function(){ return planReorganizacion(dir); }).then(function(p3){ vistaFinal.plan = p3; });
         }).then(function(){
           progOrdenSet("verificar", 2, 3, "Revisando carpetas antiguas…");
-          return carpetasAntiguasDeRaiz(dir).then(function(ant){
+          return mapaDeNuevaEstructura(dir).then(function(mapa){ return carpetasAntiguasDeRaiz(dir).then(function(ant){
             var q = Promise.resolve();
-            ant.forEach(function(e){ q = q.then(function(){ var out = []; return listarArchivosRec(e, "", out).then(function(){ vistaFinal.antiguas.push(e.name + " (" + out.length + " archivo(s))"); }); }); });
+            ant.forEach(function(e){ q = q.then(function(){ var out = []; return listarArchivosRec(e, "", out).then(function(){
+              var reales = out.filter(function(r){ return !esMarcadorAntiguo(r.split("/").pop()); }), marc = out.length - reales.length, det = Promise.resolve([]);
+              reales.slice(0, 3).forEach(function(r){ det = det.then(function(a){ return copiaIdenticaEnNueva(dir, e.name + "/" + r, mapa).then(function(si){ a.push(r + (si ? " (respaldado)" : " (SIN copia en la carpeta nueva)")); return a; }); }); });
+              return det.then(function(a){ vistaFinal.antiguas.push(e.name + " [" + (reales.length ? a.join(", ") + (reales.length > 3 ? "…" : "") : "solo " + marc + " marcador(es) interno(s)") + "]"); });
+            }); }); });
             return q;
-          });
+          }); });
         }).then(function(){
           return dir.getDirectoryHandle(RAIZ_CARPETA).then(function(rh){ return listarEntradas(rh); }).then(function(ents){
             vistaFinal.raizSueltos = ents.filter(function(x){ return x.kind === "file"; }).length;
@@ -11410,7 +11450,7 @@ function reorganizarCarpeta(){
         var okTodo = !detenido && !errores.length && !pend && !vistaFinal.antiguas.length && !vistaFinal.raizSueltos && !res.fallidos && !comp.fallos;
         var L = [];
         L.push("Último orden (" + new Date().toLocaleString("es-CL") + ")" + (detenido ? ", DETENIDO antes de terminar" : "") + ":");
-        L.push("• " + res.movidos + " archivo(s) movido(s)" + (res.restos ? ", " + res.restos + " resto(s) recogido(s) en Sin_clasificar" : "") + (res.carpetasQuitadas ? ", " + res.carpetasQuitadas + " carpeta(s) antigua(s) quitada(s)" : "") + ".");
+        L.push("• " + res.movidos + " archivo(s) movido(s)" + (res.restos ? ", " + res.restos + " resto(s) recogido(s) en Sin_clasificar" : "") + (res.duplicados ? ", " + res.duplicados + " archivo(s) repetido(s) quitado(s) (ya estaban respaldados en la carpeta nueva)" : "") + (res.carpetasQuitadas ? ", " + res.carpetasQuitadas + " carpeta(s) antigua(s) quitada(s)" : "") + ".");
         var cp = [];
         if(comp.fotos) cp.push(comp.fotos + " copia(s) reducida(s)");
         if(comp.tracks) cp.push(comp.tracks + " track(s)");
@@ -11423,9 +11463,10 @@ function reorganizarCarpeta(){
         else {
           L.push("• Verificación final con avisos:");
           if(pend) L.push("   - " + pend + " archivo(s) siguen fuera de lugar.");
-          if(vistaFinal.antiguas.length) L.push("   - Quedan carpetas antiguas: " + vistaFinal.antiguas.join(", ") + ".");
+          if(vistaFinal.antiguas.length) L.push("   - Quedan carpetas antiguas: " + vistaFinal.antiguas.join(" | ") + ".");
           if(vistaFinal.raizSueltos) L.push("   - Hay " + vistaFinal.raizSueltos + " archivo(s) suelto(s) en la raíz «" + RAIZ_CARPETA + "».");
           if(res.fallidos || comp.fallos) L.push("   - " + (res.fallidos + comp.fallos) + " operación(es) con error" + (res.nombresFallidos.length ? " (por ejemplo: " + res.nombresFallidos.slice(0, 3).join("; ") + ")" : "") + ".");
+          if(res.errRem.length) L.push("   - No se pudo quitar: " + res.errRem.slice(0, 6).join("; ") + ".");
           if(errores.length) L.push("   - Pasos con error: " + errores.join("; ") + ".");
           L.push("   Vuelve a ordenar para reintentar; si persiste, copia este informe y envíalo para revisarlo.");
         }
