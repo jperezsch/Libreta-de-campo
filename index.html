@@ -661,6 +661,8 @@ html[data-tema="noche"] .comp-n{color:#0f1a13;}
 .comp-fila .row2{align-items:end;}
 .comp-tejido-lab{display:flex; align-items:center; gap:8px; padding:12px 0; font-size:.9rem;}
 .comp-tejido-lab input{width:22px; height:22px; flex:none;}
+.det-discreto>summary{font-size:.82rem; color:var(--texto-sec); cursor:pointer; padding:6px 0; margin-bottom:4px;}
+.det-discreto.simple>summary{display:none;}
 .comp-detalle summary{font-size:.82rem; color:var(--texto-sec); cursor:pointer; padding:6px 0;}
 .comp-det{color:var(--texto-sec); font-size:.82rem;}
 .comp-resumen{margin:6px 0 8px; font-size:.82rem; color:var(--texto-sec);}
@@ -1244,6 +1246,7 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
     <input type="checkbox" id="f-compuesta" style="display:none" tabindex="-1" aria-hidden="true">
 <div class="field"><label id="label-taxon-libre">Taxón / descripción</label><input type="text" id="f-taxon-libre" spellcheck="true" list="dl-taxon"><datalist id="dl-taxon"></datalist></div>
     <div class="field" id="campo-nind"><label id="label-nind">N° individuos</label><input type="number" id="f-nind" min="0"></div>
+    <details id="det-met-cond" class="det-discreto simple" open><summary>Método de recolección y conservación de la muestra</summary>
     <div id="metodo-principal" class="field" style="margin-top:0;"><label>Método de recolección</label>
       <select id="f-metodo">
         <option value="">—</option>
@@ -1270,6 +1273,7 @@ html[data-tema="noche"] .cons-codigo-top{background:#2b4a39; color:#e8e5da; bord
       </select>
     </div>
     <div class="switch-row" id="tejido-switch-row"><div>Submuestra de tejido</div><input type="checkbox" id="f-tejido"></div>
+    </details>
       <div id="habitat-microhabitat-principal">
     <div class="field"><label>Microhábitat <button type="button" class="ayuda-q" style="margin-left:6px; vertical-align:middle;" data-ayuda="ayuda-microhabitat" aria-label="Ayuda sobre Microhábitat" aria-expanded="false">?</button></label>
       <div class="ayuda-txt" id="ayuda-microhabitat">Lugar preciso dentro del hábitat donde vive o se refugia el organismo. Ej: hojarasca, bajo piedras, bajo cortezas, etc.</div>
@@ -4122,7 +4126,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </script>
 <script>
 "use strict";
-var APP_BUILD = "2026-11-22 · v2.95";
+var APP_BUILD = "2026-11-22 · v2.96";
 (function(){
 
 var LSK = {sesiones:"libretacampo_sesiones_lista_v1", act:"libretacampo_sesionActiva_v1", sesBorr:"libretacampo_sesion_borrador_v1", sesOld:"libretacampo_sesiones_v1", reg:"libretacampo_registros_v1", cfg:"libretacampo_config_v1", fab:"libretacampo_fabpos_v1", draft:"libretacampo_draft_v1", hist:"libretacampo_historial_v1", rec:"libretacampo_recorridos_v1", viajes:"libretacampo_viajes_v1", notasViaje:"libretacampo_notasviaje_v1", viajeAct:"libretacampo_viajeActivo_v1"};
@@ -7601,6 +7605,17 @@ function aplicarModoCompuesta(){
   document.getElementById("label-taxon-libre").textContent = on ? "Nombre de la muestra (taxón más inclusivo)" : "Taxón / descripción";
   document.getElementById("f-taxon-libre").placeholder = on ? "Ej.: Isopoda, Coleoptera… (distinto del primer taxón de la lista)" : "";
   document.getElementById("label-condicion").textContent = on ? "Conservación de la muestra" : "Condición / conservación";
+  // v2.96: en muestra mixta, Método de recolección y Conservación pasan a un desplegable discreto debajo de Microhábitat e Interacciones
+  var det = document.getElementById("det-met-cond"), hab = document.getElementById("habitat-microhabitat-principal");
+  if(det && hab && hab.parentNode){
+    var modo = on ? "mixta" : "simple";
+    if(det.getAttribute("data-modo") !== modo){
+      det.setAttribute("data-modo", modo);
+      det.classList.toggle("simple", !on);
+      if(on){ hab.parentNode.insertBefore(det, document.getElementById("comp-wrap")); det.open = !!(document.getElementById("f-metodo").value || document.getElementById("f-condicion").value); }
+      else { hab.parentNode.insertBefore(det, hab); det.open = true; }
+    }
+  }
   if(on) actualizarResumenComp();
 }
 // Dibuja las filas a partir de state.draft.componentes (la fuente en memoria) y ajusta el resto del bloque
@@ -8203,7 +8218,7 @@ function seguimientoObsCorriendo(){
 function quiereWakeLock(){
   var consulta = !!state.pantallaActiva && state.currentView==="consulta";
   var grabando = seguimientoObsCorriendo() && pantallaSiempreGrabacion();
-  return (consulta || grabando) && document.visibilityState!=="hidden" && soportaWakeLock();
+  return (consulta || grabando || reorganizando) && document.visibilityState!=="hidden" && soportaWakeLock();
 }
 function actualizarWakeLock(){
   var quiere = quiereWakeLock();
@@ -9548,8 +9563,10 @@ function dataURLaBlob(u){
 function sinProblemasDeRuta(t){ return String(t||"").replace(/[\\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim(); }
 function sincronizarComplementos(dir, op){
   op = op || {};
-  var res = {fotos:0, tracks:0, recorridos:0, capas:0, fallos:0}, seq = Promise.resolve(), cambio = false, cambioRec = false;
+  var res = {fotos:0, tracks:0, recorridos:0, capas:0, fallos:0}, seq = Promise.resolve(), cambio = false, cambioRec = false, total = 0, hechos = 0;
+  function avance(det){ hechos++; if(op.progreso) op.progreso(hechos, total, det); }
   function asegurar(carpeta, nombre, crear, marcar){
+    if(op.parar && op.parar()) return Promise.resolve(false);
     return archivoDeCarpeta(dir, carpeta + "/" + nombre).then(function(f){ return f && f.size > 0; }).catch(function(){ return false; }).then(function(hay){
       if(hay){ marcar(carpeta + "/" + nombre); return false; }
       return Promise.resolve(crear()).then(function(blob){
@@ -9565,6 +9582,7 @@ function sincronizarComplementos(dir, op){
     (r.fotos||[]).forEach(function(f){
       if(!f || !f.id || (f.copiaRed && !op.verificar)) return;
       var nom = base + "_" + sanitizarNombreFoto(f.nombre || "foto") + "_reducida.jpg";
+      total++;
       seq = seq.then(function(){
         return asegurar(carpeta(), nom, function(){
           return leerFotoDB(f.id).then(function(u){
@@ -9572,13 +9590,14 @@ function sincronizarComplementos(dir, op){
             return dataURLaBlob(incrustarExif(u, comentarioConEnlaceHD(f), r.lat, r.lon, r.altitud));
           });
         }, function(ruta){ if(f.copiaRed !== ruta){ f.copiaRed = ruta; cambio = true; } }).then(function(esc){ if(esc) res.fotos++; })
-          .catch(function(){ res.fallos++; });
+          .catch(function(){ res.fallos++; }).then(function(){ avance(nom); });
       });
     });
     if((r.trackPuntos||[]).length >= 2 && (!r.gpxLocal || op.verificar)){
+      total++;
       seq = seq.then(function(){
         return asegurar(carpeta(), base + "_track.gpx", function(){ var g = generarGPX(r); return g ? new Blob([g], {type:"application/gpx+xml"}) : null; },
-          function(ruta){ if(r.gpxLocal !== ruta){ r.gpxLocal = ruta; cambio = true; } }).then(function(esc){ if(esc) res.tracks++; }).catch(function(){ res.fallos++; });
+          function(ruta){ if(r.gpxLocal !== ruta){ r.gpxLocal = ruta; cambio = true; } }).then(function(esc){ if(esc) res.tracks++; }).catch(function(){ res.fallos++; }).then(function(){ avance(base + "_track.gpx"); });
       });
     }
   });
@@ -9592,14 +9611,16 @@ function sincronizarComplementos(dir, op){
     var nom = nombreArchivoRecorrido(rc, ses), k = 2;
     while(usadosRec[carp + "/" + nom]){ nom = nombreArchivoRecorrido(rc, ses).replace(/\.gpx$/, "") + "_" + k + ".gpx"; k++; }
     usadosRec[carp + "/" + nom] = 1;
+    total++;
     seq = seq.then(function(){
       return asegurar(carp, nom, function(){ var g = generarGPXRecorrido(rc, ses); return g ? new Blob([g], {type:"application/gpx+xml"}) : null; },
-        function(ruta){ if(rc.gpxLocal !== ruta){ rc.gpxLocal = ruta; cambioRec = true; } }).then(function(esc){ if(esc) res.recorridos++; }).catch(function(){ res.fallos++; });
+        function(ruta){ if(rc.gpxLocal !== ruta){ rc.gpxLocal = ruta; cambioRec = true; } }).then(function(esc){ if(esc) res.recorridos++; }).catch(function(){ res.fallos++; }).then(function(){ avance(nom); });
     });
   });
   if(op.capas && window.MapaPro && MapaPro.capasTodas){
     seq = seq.then(function(){ return MapaPro.capasTodas().catch(function(){ return []; }); }).then(function(capas){
       var q = Promise.resolve(), usadas = {};
+      total += capas.length;
       capas.forEach(function(c){
         var v = c.vinculo || "", carp = C_CAPAS_IND;
         if(v.indexOf("sesion:") === 0 && sesionPorId(v.slice(7))) carp = rutaDeSesion(sesionPorId(v.slice(7))) + "/Capas";
@@ -9608,7 +9629,7 @@ function sincronizarComplementos(dir, op){
         while(usadas[carp + "/" + nom]){ nom = base + "_" + k + ".geojson"; k++; }
         usadas[carp + "/" + nom] = 1;
         q = q.then(function(){
-          return asegurar(carp, nom, function(){ return new Blob([JSON.stringify(c.fc)], {type:"application/geo+json"}); }, function(){}).then(function(esc){ if(esc) res.capas++; }).catch(function(){ res.fallos++; });
+          return asegurar(carp, nom, function(){ return new Blob([JSON.stringify(c.fc)], {type:"application/geo+json"}); }, function(){}).then(function(esc){ if(esc) res.capas++; }).catch(function(){ res.fallos++; }).then(function(){ avance(nom); });
         });
       });
       return q;
@@ -9697,7 +9718,13 @@ function renderConfigCopia(){
         cajaAyuda("ay-cc-estr",'<p>La app crea dentro de la carpeta elegida una carpeta «Libreta de Campo»: Proyectos, dentro sus Sesiones y dentro los Registros con sus fotos y videos. Cada descarga se guarda además en Descargas.</p>'+textoEstructuraCarpeta())+'</div>'+
       '<button type="button" class="btnfull btn-secondary" id="cc-pendientes" style="display:none;">⬇️ Guardar copias pendientes ahora</button>'+
       '<div style="display:flex; align-items:center; gap:6px;"><button type="button" class="btnfull btn-secondary" id="cc-reorganizar" style="flex:1;">🗂 Ordenar carpeta local…</button>'+ayuda("ay-cc-reorg","ordenar la carpeta local")+'</div>'+
-      cajaAyuda("ay-cc-reorg",'<p>Botón de seguridad: se puede usar en cualquier momento para asegurar que todo esté en orden. Revisa la carpeta «Libreta de Campo», mueve a su lugar lo guardado con estructuras antiguas, completa las copias reducidas de las fotos, los tracks, los recorridos y las capas que falten, y quita las carpetas antiguas vacías.</p><p>Antes de cambiar algo muestra un resumen para confirmar. Cada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Lo que la app no reconoce no se toca. Al terminar deja un informe aquí abajo.</p>')+'<div class="campo-ayuda" id="cc-informe" style="display:none; margin-top:6px;"></div>' +
+      cajaAyuda("ay-cc-reorg",'<p>Botón de seguridad: se puede usar en cualquier momento para asegurar que todo esté en orden. Revisa la carpeta «Libreta de Campo», mueve a su lugar lo guardado con estructuras antiguas, completa las copias reducidas de las fotos, los tracks, los recorridos y las capas que falten, recoge los restos que queden en carpetas antiguas (los deja en «02_Sin_proyecto/Sin_clasificar») y quita las carpetas antiguas vacías. Termina con una verificación final.</p><p>Mientras trabaja muestra una barra con el paso, el avance y el tiempo estimado, y mantiene la pantalla encendida. Se puede detener y continuar después: lo ya ordenado no se repite.</p><p>Antes de cambiar algo muestra un resumen para confirmar. Cada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Lo que la app no reconoce no se toca. Al terminar deja un informe aquí abajo.</p>')+'<div id="cc-progreso" role="status" aria-live="polite" style="display:none; margin:10px 0 6px; padding:10px; border:1px solid var(--borde); border-radius:10px; background:var(--card);">'+
+        '<div id="cc-prog-etapa" style="font-weight:600; font-size:.9rem;"></div>'+
+        '<div id="cc-prog-pista" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="height:14px; margin:8px 0; border-radius:7px; background:var(--borde); overflow:hidden;"><div id="cc-prog-barra" style="height:100%; width:0%; background:var(--verde); transition:width .25s;"></div></div>'+
+        '<div id="cc-prog-texto" class="campo-ayuda"></div>'+
+        '<div id="cc-prog-detalle" class="campo-ayuda" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>'+
+        '<button type="button" class="btnfull btn-secondary" id="cc-prog-detener" style="margin-top:8px;">⏹ Detener (se puede continuar después)</button></div>'+
+      '<div class="campo-ayuda" id="cc-informe" style="display:none; margin-top:6px; white-space:pre-line;"></div>' +
     '</div>';
   boxImg.innerHTML =
     '<div class="field"><label>Tamaño de la copia de las fotos'+ayuda("ay-cc-tam","tamaño de la copia")+'</label>'+
@@ -9730,6 +9757,8 @@ function renderConfigCopia(){
   document.getElementById("cc-ruta").addEventListener("change", function(){ var c = copiaCfg(); c.ruta = this.value.trim(); guardarCopiaCfg(c); estado(); });
   document.getElementById("cc-elegir").addEventListener("click", function(){ elegirCarpetaCopia().then(estado); });
   document.getElementById("cc-reorganizar").addEventListener("click", function(){ reorganizarCarpeta(); });
+  document.getElementById("cc-prog-detener").addEventListener("click", function(){ if(reorganizando){ cancelarOrden = true; this.disabled = true; this.textContent = "Deteniendo… termina el archivo en curso"; } });
+  pintarProgresoOrden();
   var infOrd = document.getElementById("cc-informe");
   if(infOrd && informeOrden){ infOrd.textContent = informeOrden; infOrd.style.display = "block"; }
   document.getElementById("cc-pendientes").addEventListener("click", function(){
@@ -11024,7 +11053,7 @@ function quitarVaciasRec(padre, nombre){
   }).catch(function(){ return false; });
 }
 function planReorganizacion(dir){
-  var items = [], usadas = {}, sinReconocer = [];
+  var items = [], usadas = {}, sinReconocer = [], huerfanas = [], errores = [];
   function agregar(origen, dest, ses, fijar, esRegistro){
     if(usadas[origen]) return;
     var carpOrigen = origen.split("/").slice(0, -1).join("/");
@@ -11090,11 +11119,12 @@ function planReorganizacion(dir){
   }
   var p = listarEntradas(dir).then(function(raiz){
     var q = Promise.resolve();
+    function enc(nom, fn){ return q.then(fn).catch(function(){ errores.push(nom); }); }
     raiz.forEach(function(e){
       if(e.kind !== "directory" || e.name === RAIZ_CARPETA) return;
       var nom = e.name;
       if(TIPOS_EXPORT_ANTIGUOS.indexOf(nom) >= 0){            // v2.52: Respaldos/, DarwinCore/… en la raíz
-        q = q.then(function(){
+        q = enc(nom, function(){
           return archivosDe(e, function(n){ var ses = sesionPorNombreAntiguo(n, true); agregar(nom + "/" + n, destinoDeExportacion(ses ? contenedorDeSesion(ses) : CONTENEDOR_GENERAL, nom, n), ses, null, false); })
             .then(function(){ return listarEntradas(e); }).then(function(ents){
               var q2 = Promise.resolve();
@@ -11103,13 +11133,13 @@ function planReorganizacion(dir){
             });
         });
       } else if(nom === "Fotos" || nom === "Videos"){
-        q = q.then(function(){ var tmp = {getDirectoryHandle:function(sub){ return sub === nom ? Promise.resolve(e) : Promise.reject(); }}; return recorrerMedios(tmp, "", null); });
+        q = enc(nom, function(){ var tmp = {getDirectoryHandle:function(sub){ return sub === nom ? Promise.resolve(e) : Promise.reject(); }}; return recorrerMedios(tmp, "", null); });
       } else if(nom === CARPETA_VARIAS || nom === CARPETA_VARIOS_PROYECTOS){
-        q = q.then(function(){ return recorrerTipos(e, nom, CONTENEDOR_GENERAL, null); });
+        q = enc(nom, function(){ return recorrerTipos(e, nom, CONTENEDOR_GENERAL, null); });
       } else if(nom === CARPETA_SIN_SESION){
-        q = q.then(function(){ return recorrerTipos(e, nom, contenedorDeSesion(null), null).then(function(){ return recorrerMedios(e, nom, null); }); });
+        q = enc(nom, function(){ return recorrerTipos(e, nom, contenedorDeSesion(null), null).then(function(){ return recorrerMedios(e, nom, null); }); });
       } else if(nom === CARPETA_SIN_PROYECTO){
-        q = q.then(function(){
+        q = enc(nom, function(){
           return recorrerTipos(e, nom, contenedorDeSesion(null), null).then(function(){ return listarEntradas(e); }).then(function(ents){
             var q2 = Promise.resolve();
             ents.forEach(function(sd){ if(sd.kind !== "directory") return; var ses = sesionDeCarpetaLocal(sd.name); if(ses) q2 = q2.then(function(){ return recorrerMedios(sd, nom + "/" + sd.name, ses); }); });
@@ -11119,7 +11149,7 @@ function planReorganizacion(dir){
       } else {
         var v = viajeDeCarpetaLocal(nom), sesV = sesionDeCarpetaLocal(nom);
         if(v){                                                // v2.82: <Proyecto>/…
-          q = q.then(function(){
+          q = enc(nom, function(){
             return recorrerTipos(e, nom, contenedorDeProyecto(v), null).then(function(){ return listarEntradas(e); }).then(function(ents){
               var q2 = Promise.resolve();
               ents.forEach(function(sd){ if(sd.kind !== "directory") return; var ses = sesionDeCarpetaLocal(sd.name); if(ses) q2 = q2.then(function(){ return recorrerMedios(sd, nom + "/" + sd.name, ses); }); });
@@ -11127,96 +11157,290 @@ function planReorganizacion(dir){
             });
           });
         } else if(sesV){                                      // v2.57: <AAAA-MM-DD_Sesión>/…
-          q = q.then(function(){ return recorrerTipos(e, nom, contenedorDeSesion(sesV), sesV).then(function(){ return recorrerMedios(e, nom, sesV); }); });
-        } else sinReconocer.push(nom);
+          q = enc(nom, function(){ return recorrerTipos(e, nom, contenedorDeSesion(sesV), sesV).then(function(){ return recorrerMedios(e, nom, sesV); }); });
+        } else { q = enc(nom, function(){ return esCarpetaAntigua(e).then(function(si){ (si ? huerfanas : sinReconocer).push(nom); }); }); }
       }
     });
     return q;
   }).catch(function(){});
-  return p.then(function(){ return {items:items, sinReconocer:sinReconocer}; });
+  return p.then(function(){ return {items:items, sinReconocer:sinReconocer, huerfanas:huerfanas, errores:errores}; });
 }
-var reorganizando = false, informeOrden = "";
+var reorganizando = false, informeOrden = "", progOrden = null, cancelarOrden = false;
+var C_SIN_CLASIFICAR = C_SIN_PROYECTO + "/Sin_clasificar";
+var ETAPAS_ORDEN = [
+  {k:"revisar", t:"Revisando la carpeta", w:5},
+  {k:"mover", t:"Moviendo archivos a su lugar", w:40},
+  {k:"marcas", t:"Escribiendo marcadores de sesiones y proyectos", w:3},
+  {k:"compl", t:"Completando copias reducidas, tracks, recorridos y capas", w:30},
+  {k:"barrido", t:"Recogiendo restos de carpetas antiguas", w:10},
+  {k:"limpiar", t:"Quitando carpetas antiguas vacías", w:6},
+  {k:"verificar", t:"Verificación final", w:6}
+];
+/* v2.96: barra de progreso del botón «Ordenar carpeta local» (paso, avance, archivo en curso y tiempo estimado) */
+function progOrdenSet(k, hecho, total, detalle){
+  if(!progOrden) return;
+  var i = 0, antes = 0, suma = 0;
+  ETAPAS_ORDEN.forEach(function(e, j){ suma += e.w; if(e.k === k) i = j; });
+  for(var j = 0; j < i; j++) antes += ETAPAS_ORDEN[j].w;
+  var frac = total > 0 ? Math.min(1, hecho / total) : 0;
+  var p = Math.round((antes + ETAPAS_ORDEN[i].w * frac) / suma * 100);
+  progOrden.pct = Math.min(99, Math.max(progOrden.pct, p));
+  progOrden.i = i; progOrden.hecho = hecho; progOrden.total = total; progOrden.detalle = detalle || "";
+  pintarProgresoOrden();
+}
+function progOrdenFin(titulo){
+  if(!progOrden) return;
+  progOrden.fin = titulo; progOrden.pct = 100; progOrden.detalle = "";
+  pintarProgresoOrden();
+}
+function pintarProgresoOrden(){
+  var box = document.getElementById("cc-progreso");
+  if(!box) return;
+  var btn = document.getElementById("cc-reorganizar");
+  if(btn) btn.disabled = !!reorganizando;
+  if(!progOrden){ box.style.display = "none"; return; }
+  box.style.display = "block";
+  var e = ETAPAS_ORDEN[progOrden.i] || ETAPAS_ORDEN[0], pct = progOrden.pct;
+  document.getElementById("cc-prog-etapa").textContent = progOrden.fin ? progOrden.fin : ("Paso " + (progOrden.i + 1) + " de " + ETAPAS_ORDEN.length + ": " + e.t + "…");
+  document.getElementById("cc-prog-barra").style.width = pct + "%";
+  document.getElementById("cc-prog-pista").setAttribute("aria-valuenow", String(pct));
+  var t = pct + " %";
+  if(!progOrden.fin){
+    if(progOrden.total) t = progOrden.hecho + " de " + progOrden.total + " en este paso · " + t;
+    var seg = (Date.now() - progOrden.t0) / 1000;
+    if(pct >= 8 && pct < 100){ var rest = seg * (100 - pct) / pct; t += " · faltan " + (rest < 60 ? "menos de 1 min" : "unos " + Math.ceil(rest / 60) + " min"); }
+  }
+  document.getElementById("cc-prog-texto").textContent = t;
+  document.getElementById("cc-prog-detalle").textContent = progOrden.detalle || "";
+  var det = document.getElementById("cc-prog-detener");
+  if(det){ det.style.display = (reorganizando && !progOrden.fin) ? "block" : "none"; }
+}
+function esCarpetaAntigua(e){
+  var n = e.name;
+  if(n === RAIZ_CARPETA) return Promise.resolve(false);
+  var conocidas = TIPOS_EXPORT_ANTIGUOS.concat(["Fotos","Videos",CARPETA_VARIAS,CARPETA_SIN_SESION,CARPETA_SIN_PROYECTO,CARPETA_VARIOS_PROYECTOS]);
+  if(conocidas.indexOf(n) >= 0 || viajeDeCarpetaLocal(n) || sesionDeCarpetaLocal(n)) return Promise.resolve(true);
+  var conFecha = /^\d{4}-\d{2}-\d{2}_/.test(n);
+  return listarEntradas(e).then(function(ents){
+    return ents.some(function(x){
+      if(x.kind === "file") return x.name === "_sesion.json" || x.name === "_proyecto.json";
+      return conFecha && (TIPOS_EXPORT_ANTIGUOS.indexOf(x.name) >= 0 || x.name === "Fotos" || x.name === "Videos");
+    });
+  }).catch(function(){ return false; });
+}
+function listarArchivosRec(h, prefijo, out){
+  return listarEntradas(h).then(function(ents){
+    var q = Promise.resolve();
+    ents.forEach(function(x){
+      if(x.kind === "directory") q = q.then(function(){ return listarArchivosRec(x, prefijo + x.name + "/", out); });
+      else out.push(prefijo + x.name);
+    });
+    return q;
+  }).then(function(){ return out; });
+}
+function carpetasAntiguasDeRaiz(dir){
+  return listarEntradas(dir).then(function(raiz){
+    var out = [], q = Promise.resolve();
+    raiz.forEach(function(e){
+      if(e.kind !== "directory" || e.name === RAIZ_CARPETA) return;
+      q = q.then(function(){ return esCarpetaAntigua(e).then(function(si){ if(si) out.push(e); }); });
+    });
+    return q.then(function(){ return out; });
+  });
+}
+function moverItemsOrden(dir, items, res, tocadas, progreso){
+  var seq = Promise.resolve(), hechos = 0;
+  items.forEach(function(it){
+    seq = seq.then(function(){
+      if(cancelarOrden) return;
+      return moverArchivoEnCarpeta(dir, it.origen, it.destCarpeta).then(function(nueva){
+        if(nueva === null){ res.ausentes++; }
+        else {
+          res.movidos++;
+          var ruta = typeof nueva === "string" ? nueva : it.destCarpeta + "/" + nueva.nom;
+          if(it.fijar) it.fijar(ruta);
+          if(it.ses) tocadas[it.ses.id] = it.ses;
+        }
+      }).catch(function(){ res.fallidos++; if(res.nombresFallidos.length < 5) res.nombresFallidos.push(it.origen); }).then(function(){
+        hechos++;
+        if(hechos % 20 === 0){ guardarRegistros(); guardarRecorridos(); }
+        progreso(hechos, items.length, it.origen);
+      });
+    });
+  });
+  return seq.then(function(){ guardarRegistros(); guardarRecorridos(); });
+}
+/* Lo que quede dentro de carpetas antiguas y no tenga lugar conocido se traslada (copiar, verificar, borrar) a 02_Sin_proyecto/Sin_clasificar/<ruta antigua>.
+   También los archivos sueltos en la raíz «Libreta de Campo». Así nada se pierde y la carpeta antigua puede quitarse. */
+function barrerRestosAntiguos(dir, res, progreso){
+  var lista = [];
+  return carpetasAntiguasDeRaiz(dir).then(function(antiguas){
+    var q = Promise.resolve();
+    antiguas.forEach(function(e){
+      q = q.then(function(){
+        var out = [];
+        return listarArchivosRec(e, e.name + "/", out).then(function(){
+          out.forEach(function(r){ var n = r.split("/").pop(); if(n !== "_sesion.json" && n !== "_proyecto.json") lista.push({origen:r, dest:C_SIN_CLASIFICAR + "/" + r.split("/").slice(0, -1).join("/")}); });
+        });
+      });
+    });
+    return q;
+  }).then(function(){
+    return dir.getDirectoryHandle(RAIZ_CARPETA).then(function(rh){
+      return listarEntradas(rh).then(function(ents){
+        ents.forEach(function(x){ if(x.kind === "file") lista.push({origen:RAIZ_CARPETA + "/" + x.name, dest:C_SIN_CLASIFICAR + "/_raiz"}); });
+      });
+    }).catch(function(){});
+  }).then(function(){
+    var q = Promise.resolve(), h = 0;
+    lista.forEach(function(it){
+      q = q.then(function(){
+        if(cancelarOrden) return;
+        return moverArchivoEnCarpeta(dir, it.origen, it.dest).then(function(n){ if(n) res.restos++; }).catch(function(){ res.fallidos++; if(res.nombresFallidos.length < 5) res.nombresFallidos.push(it.origen); })
+          .then(function(){ h++; progreso(h, lista.length, it.origen); });
+      });
+    });
+    return q;
+  });
+}
+function limpiarAntiguasVacias(dir, res, progreso){
+  return carpetasAntiguasDeRaiz(dir).then(function(antiguas){
+    var q = Promise.resolve(), h = 0;
+    antiguas.forEach(function(e){
+      q = q.then(function(){
+        if(cancelarOrden) return;
+        return quitarVaciasRec(dir, e.name).then(function(ok){ if(ok) res.carpetasQuitadas++; }).then(function(){ h++; progreso(h, antiguas.length, e.name); });
+      });
+    });
+    return q;
+  });
+}
 function reorganizarCarpeta(){
   if(reorganizando) return;
   if(!soportaCarpeta()){ toast("Este navegador no permite trabajar con la carpeta", 4000); return; }
   carpetaConPermiso().then(function(dir){
     if(!dir){ toast("⚠️ No hay acceso a la carpeta: elígela de nuevo en Config", 5000); return; }
-    toast("🔎 Revisando la carpeta…", 2500);
+    cancelarOrden = false;
+    progOrden = {t0:Date.now(), pct:0, i:0, hecho:0, total:0, detalle:"Leyendo las carpetas…", fin:null};
+    pintarProgresoOrden();
+    try{ document.getElementById("cc-progreso").scrollIntoView({block:"nearest"}); }catch(e){}
     return planReorganizacion(dir).then(function(plan){
       var items = plan.items;
       var nReg = items.filter(function(i){ return i.registro; }).length, nExp = items.length - nReg;
       var msg = "ORDENAR CARPETA LOCAL\n\nSe revisará «" + dir.name + "/" + RAIZ_CARPETA + "» y se dejará con esta forma: Proyectos > Sesiones > Registros, con las exportaciones, bitácoras, recorridos y capas en su lugar.\n\n" +
         (items.length ? "• Se moverán " + items.length + " archivo(s): " + nReg + " de registros (fotos, videos, tracks) y " + nExp + " respaldos, planillas o bitácoras.\n" : "• No hay archivos por mover.\n") +
         "• Se completarán las copias reducidas de las fotos, los tracks, los recorridos grabados y las capas que falten.\n" +
+        "• Lo que quede en carpetas antiguas sin lugar conocido irá a «02_Sin_proyecto/Sin_clasificar» y las carpetas antiguas vacías se quitarán.\n" +
+        (plan.huerfanas.length ? "• Carpetas antiguas sin sesión o proyecto en la app que se vaciarán: " + plan.huerfanas.slice(0, 5).join(", ") + (plan.huerfanas.length > 5 ? "…" : "") + ".\n" : "") +
         (plan.sinReconocer.length ? "• No se tocarán " + plan.sinReconocer.length + " carpeta(s) que la app no reconoce: " + plan.sinReconocer.slice(0, 5).join(", ") + (plan.sinReconocer.length > 5 ? "…" : "") + ".\n" : "") +
-        "\nCada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Se puede repetir las veces que quieras. No cierres la app mientras dura. ¿Continuar?";
-      if(!confirm(msg)) return;
-      reorganizando = true;
-      var res = {movidos:0, fallidos:0, ausentes:0}, tocadas = {}, hechos = 0, seq = Promise.resolve();
-      items.forEach(function(it){
-        seq = seq.then(function(){
-          return moverArchivoEnCarpeta(dir, it.origen, it.destCarpeta).then(function(nueva){
-            if(nueva === null){ res.ausentes++; }
-            else {
-              res.movidos++;
-              var ruta = typeof nueva === "string" ? nueva : it.destCarpeta + "/" + nueva.nom;
-              if(it.fijar) it.fijar(ruta);
-              if(it.ses) tocadas[it.ses.id] = it.ses;
-            }
-          }).catch(function(){ res.fallidos++; }).then(function(){
-            hechos++;
-            if(hechos % 20 === 0){ guardarRegistros(); guardarRecorridos(); toast("🗂 Moviendo… " + hechos + " de " + items.length, 1500); }
-          });
-        });
-      });
-      return seq.then(function(){
-        guardarRegistros(); guardarRecorridos();
-        // esqueleto de la raíz: solo carpetas por tipo, ningún archivo suelto
+        (plan.errores.length ? "• ⚠️ No se pudo leer: " + plan.errores.slice(0, 5).join(", ") + " (se reintentará al final).\n" : "") +
+        "\nCada archivo se copia, se verifica y recién entonces se borra del lugar antiguo. Verás una barra de progreso y la pantalla se mantendrá encendida. Se puede detener y repetir. ¿Continuar?";
+      if(!confirm(msg)){ progOrden = null; pintarProgresoOrden(); return; }
+      reorganizando = true; actualizarWakeLock(); pintarProgresoOrden();
+      var res = {movidos:0, fallidos:0, ausentes:0, restos:0, carpetasQuitadas:0, nombresFallidos:[]}, tocadas = {}, errores = [], comp = {fotos:0, tracks:0, recorridos:0, capas:0, fallos:0};
+      var vistaFinal = {pend:0, antiguas:[], raizSueltos:0, plan:null};
+      function etapa(nombre, fn){
+        return function(){
+          if(cancelarOrden) return;
+          return Promise.resolve().then(fn).catch(function(e){ errores.push(nombre + (e && e.message ? " (" + e.message + ")" : "")); });
+        };
+      }
+      return Promise.resolve()
+      .then(etapa("movimiento de archivos", function(){
+        progOrdenSet("mover", 0, items.length, "");
+        return moverItemsOrden(dir, items, res, tocadas, function(h, t, d){ progOrdenSet("mover", h, t, d); });
+      }))
+      .then(etapa("esqueleto de carpetas", function(){
         return Promise.all([C_PROYECTOS, C_SIN_PROYECTO, C_GENERALES, C_CAPAS_IND].map(function(r){ return asegurarCarpeta(dir, r).catch(function(){}); }));
-      }).then(function(){
-        // marcadores de todas las sesiones con registros y de sus proyectos
-        var m = Promise.resolve(), vistosV = {};
+      }))
+      .then(etapa("marcadores", function(){
         state.sesiones.forEach(function(ses){
           if(!tocadas[ses.id] && ses.carpetaLocal && state.registros.some(function(r){ return r.sesionId === ses.id; })) tocadas[ses.id] = ses;
         });
-        Object.keys(tocadas).forEach(function(id){
+        var ids = Object.keys(tocadas), m = Promise.resolve(), vistosV = {}, h = 0;
+        progOrdenSet("marcas", 0, ids.length, "");
+        ids.forEach(function(id){
           m = m.then(function(){ return escribirMarcadorSesion(dir, tocadas[id]); }).then(function(){
             var v = viajePorId(tocadas[id].viajeId);
             if(v && !vistosV[v.id]){ vistosV[v.id] = 1; return escribirMarcadorProyecto(dir, v); }
-          });
+          }).catch(function(){}).then(function(){ h++; progOrdenSet("marcas", h, ids.length, tocadas[id].carpetaLocal || ""); });
         });
         return m;
-      }).then(function(){
-        toast("🗂 Completando copias reducidas, tracks, recorridos y capas…", 3000);
-        return sincronizarComplementos(dir, {verificar:true, capas:true});
-      }).then(function(comp){
-        // quitar las carpetas antiguas que quedaron vacías
-        return listarEntradas(dir).then(function(raiz){
-          var q = Promise.resolve();
-          raiz.forEach(function(e){
-            if(e.kind !== "directory" || e.name === RAIZ_CARPETA) return;
-            var reconocida = TIPOS_EXPORT_ANTIGUOS.concat(["Fotos","Videos",CARPETA_VARIAS,CARPETA_SIN_SESION,CARPETA_SIN_PROYECTO,CARPETA_VARIOS_PROYECTOS]).indexOf(e.name) >= 0 || viajeDeCarpetaLocal(e.name) || sesionDeCarpetaLocal(e.name);
-            if(reconocida) q = q.then(function(){ return quitarVaciasRec(dir, e.name); });
+      }))
+      .then(etapa("copias reducidas, tracks, recorridos y capas", function(){
+        progOrdenSet("compl", 0, 0, "Contando lo que falta…");
+        return sincronizarComplementos(dir, {verificar:true, capas:true, parar:function(){ return cancelarOrden; }, progreso:function(h, t, d){ progOrdenSet("compl", h, t, d); }}).then(function(c){ comp = c; });
+      }))
+      .then(etapa("recogida de restos", function(){
+        progOrdenSet("barrido", 0, 0, "Buscando restos…");
+        return barrerRestosAntiguos(dir, res, function(h, t, d){ progOrdenSet("barrido", h, t, d); });
+      }))
+      .then(etapa("limpieza de carpetas vacías", function(){
+        progOrdenSet("limpiar", 0, 0, "");
+        return limpiarAntiguasVacias(dir, res, function(h, t, d){ progOrdenSet("limpiar", h, t, d); });
+      }))
+      .then(etapa("verificación final", function(){
+        progOrdenSet("verificar", 0, 3, "Buscando archivos fuera de lugar…");
+        return planReorganizacion(dir).then(function(p2){
+          vistaFinal.plan = p2;
+          if(!p2.items.length) return;
+          // segunda pasada automática solo con lo que quedó
+          progOrdenSet("verificar", 1, 3, "Corrigiendo " + p2.items.length + " archivo(s) que habían quedado…");
+          return moverItemsOrden(dir, p2.items, res, tocadas, function(h, t, d){ progOrdenSet("verificar", 1, 3, d); })
+            .then(function(){ return barrerRestosAntiguos(dir, res, function(){}); })
+            .then(function(){ return limpiarAntiguasVacias(dir, res, function(){}); })
+            .then(function(){ return planReorganizacion(dir); }).then(function(p3){ vistaFinal.plan = p3; });
+        }).then(function(){
+          progOrdenSet("verificar", 2, 3, "Revisando carpetas antiguas…");
+          return carpetasAntiguasDeRaiz(dir).then(function(ant){
+            var q = Promise.resolve();
+            ant.forEach(function(e){ q = q.then(function(){ var out = []; return listarArchivosRec(e, "", out).then(function(){ vistaFinal.antiguas.push(e.name + " (" + out.length + " archivo(s))"); }); }); });
+            return q;
           });
-          return q;
-        }).then(function(){ return comp; });
-      }).then(function(comp){
-        reorganizando = false;
-        var t = "Último orden (" + new Date().toLocaleString("es-CL") + "): " + res.movidos + " archivo(s) movido(s)";
-        if(comp.fotos) t += ", " + comp.fotos + " copia(s) reducida(s)";
-        if(comp.tracks) t += ", " + comp.tracks + " track(s)";
-        if(comp.recorridos) t += ", " + comp.recorridos + " recorrido(s)";
-        if(comp.capas) t += ", " + comp.capas + " capa(s)";
-        if(res.ausentes) t += ". " + res.ausentes + " no se encontraron (la ruta anotada ya no existe)";
-        if(res.fallidos || comp.fallos) t += ". " + (res.fallidos + comp.fallos) + " con error: vuelve a ordenar para reintentar";
-        if(plan.sinReconocer.length) t += ". Sin tocar (no reconocidas): " + plan.sinReconocer.join(", ");
-        t += ".";
-        informeOrden = t;
-        toast("✅ Carpeta ordenada: " + res.movidos + " archivos movidos", 6000);
+        }).then(function(){
+          return dir.getDirectoryHandle(RAIZ_CARPETA).then(function(rh){ return listarEntradas(rh); }).then(function(ents){
+            vistaFinal.raizSueltos = ents.filter(function(x){ return x.kind === "file"; }).length;
+          }).catch(function(){});
+        });
+      }))
+      .then(function(){
+        guardarRegistros(); guardarRecorridos();
+        reorganizando = false; actualizarWakeLock();
+        var detenido = cancelarOrden, p = vistaFinal.plan, pend = p ? p.items.length : 0;
+        var okTodo = !detenido && !errores.length && !pend && !vistaFinal.antiguas.length && !vistaFinal.raizSueltos && !res.fallidos && !comp.fallos;
+        var L = [];
+        L.push("Último orden (" + new Date().toLocaleString("es-CL") + ")" + (detenido ? ", DETENIDO antes de terminar" : "") + ":");
+        L.push("• " + res.movidos + " archivo(s) movido(s)" + (res.restos ? ", " + res.restos + " resto(s) recogido(s) en Sin_clasificar" : "") + (res.carpetasQuitadas ? ", " + res.carpetasQuitadas + " carpeta(s) antigua(s) quitada(s)" : "") + ".");
+        var cp = [];
+        if(comp.fotos) cp.push(comp.fotos + " copia(s) reducida(s)");
+        if(comp.tracks) cp.push(comp.tracks + " track(s)");
+        if(comp.recorridos) cp.push(comp.recorridos + " recorrido(s)");
+        if(comp.capas) cp.push(comp.capas + " capa(s)");
+        if(cp.length) L.push("• Creado: " + cp.join(", ") + ".");
+        if(res.ausentes) L.push("• " + res.ausentes + " archivo(s) anotado(s) en los registros ya no existen en la carpeta.");
+        if(detenido) L.push("• Vuelve a pulsar «Ordenar carpeta local» para continuar: lo ya ordenado no se repite.");
+        else if(okTodo) L.push("• Verificación final: todo en orden. No quedan archivos fuera de lugar ni carpetas antiguas, y la raíz «" + RAIZ_CARPETA + "» no tiene archivos sueltos.");
+        else {
+          L.push("• Verificación final con avisos:");
+          if(pend) L.push("   - " + pend + " archivo(s) siguen fuera de lugar.");
+          if(vistaFinal.antiguas.length) L.push("   - Quedan carpetas antiguas: " + vistaFinal.antiguas.join(", ") + ".");
+          if(vistaFinal.raizSueltos) L.push("   - Hay " + vistaFinal.raizSueltos + " archivo(s) suelto(s) en la raíz «" + RAIZ_CARPETA + "».");
+          if(res.fallidos || comp.fallos) L.push("   - " + (res.fallidos + comp.fallos) + " operación(es) con error" + (res.nombresFallidos.length ? " (por ejemplo: " + res.nombresFallidos.slice(0, 3).join("; ") + ")" : "") + ".");
+          if(errores.length) L.push("   - Pasos con error: " + errores.join("; ") + ".");
+          L.push("   Vuelve a ordenar para reintentar; si persiste, copia este informe y envíalo para revisarlo.");
+        }
+        if(plan.sinReconocer.length) L.push("• Sin tocar (la app no las reconoce): " + plan.sinReconocer.join(", ") + ".");
+        informeOrden = L.join("\n");
+        progOrdenFin(detenido ? "⏹ Detenido" : (okTodo ? "✅ Carpeta ordenada" : "⚠️ Terminó con avisos: revisa el informe"));
+        toast(detenido ? "⏹ Orden detenido" : (okTodo ? "✅ Carpeta ordenada: " + res.movidos + " archivos movidos" : "⚠️ Orden terminado con avisos"), 6000);
         try{ renderConfigCopia(); }catch(e){}
       });
     });
-  }).catch(function(){ reorganizando = false; toast("⚠️ No se pudo ordenar la carpeta", 5000); });
+  }).catch(function(e){
+    reorganizando = false; actualizarWakeLock();
+    if(progOrden){ progOrdenFin("⚠️ Se interrumpió: " + (e && e.message ? e.message : "error inesperado") + ". Vuelve a ordenar para continuar"); }
+    toast("⚠️ No se pudo ordenar la carpeta", 5000);
+  });
 }
 function eliminarSesionConRegistros(id){
   var s = sesionPorId(id);
